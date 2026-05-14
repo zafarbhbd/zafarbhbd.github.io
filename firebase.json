@@ -1,31 +1,14 @@
 {
   "hosting": {
     "public": ".",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "**/node_modules/**",
-      "README.md"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
+    "ignore": ["firebase.json", ".firebaserc", "README.md", "firestore.rules"],
+    "rewrites": [],
     "headers": [
-      {
-        "source": "**/*.html",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
-        ]
-      },
-      {
-        "source": "**/*.@(css|js)",
-        "headers": [
-          { "key": "Cache-Control", "value": "max-age=86400" }
-        ]
-      }
+      { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "**/*.@(css|js)", "headers": [{ "key": "Cache-Control", "value": "max-age=86400" }] }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

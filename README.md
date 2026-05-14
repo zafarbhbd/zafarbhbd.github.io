@@ -1,135 +1,102 @@
-# Abu Zafar — Personal Academic Website
-
-A clean, minimal academic personal website. Built with HTML, CSS, and vanilla JavaScript. Hosted on Firebase.
+# Abu Zafar — Academic Website v2
+## Multi-page + Firebase Admin Panel
 
 ---
 
-## 📁 Project Structure
+## 📁 File Structure
 
 ```
-abu-zafar-website/
-├── index.html          ← Main page (all sections)
+zafar-site/
+├── index.html          ← Home page
+├── about.html          ← About page
+├── research.html       ← Research page
+├── publications.html   ← Publications page
+├── blog.html           ← Blog page
+├── contact.html        ← Contact page
+├── admin.html          ← Admin panel (protected)
 ├── css/
-│   └── style.css       ← All styles & theme variables
+│   └── style.css
 ├── js/
-│   └── main.js         ← Interactivity (nav, animations, form)
-├── images/
-│   └── profile.jpg     ← YOUR PHOTO (add this file)
-├── firebase.json       ← Firebase hosting config
-├── .firebaserc         ← Firebase project alias
-└── README.md           ← This file
+│   ├── firebase-config.js   ← PUT YOUR FIREBASE CREDENTIALS HERE
+│   └── shared.js
+├── firebase.json
+├── firestore.rules
+└── .firebaserc
 ```
 
 ---
 
-## ✏️ How to Edit Content
+## ⚙️ SETUP — Do This First (5 steps)
 
-All editable sections are clearly marked with comments in `index.html`. Look for lines like:
-```html
-<!-- PHOTO PLACEHOLDER — see instructions below -->
-<!-- ADD MORE POSITIONS HERE — copy the block above -->
+### Step 1 — Add Firebase credentials
+Open `js/firebase-config.js` and replace all placeholder values:
+- `YOUR_API_KEY`
+- `YOUR_PROJECT_ID`
+- `YOUR_MESSAGING_SENDER_ID`
+- `YOUR_APP_ID`
+- `YOUR_GOOGLE_EMAIL@gmail.com`
+
+Get these from: Firebase Console → Your Project → Project Settings → Your Apps → Web App
+
+### Step 2 — Add your admin email
+In `js/firebase-config.js`, set:
+```js
+const ADMIN_EMAIL = "your.real.email@gmail.com";
 ```
 
-### Change Your Profile Photo
-1. Save your photo as `images/profile.jpg` (or any format: `.png`, `.webp`)
-2. In `index.html`, find the `photo-placeholder` div and replace it with:
-   ```html
-   <img src="images/profile.jpg" alt="Abu Zafar" class="hero-photo"/>
-   ```
-
-### Add / Edit Academic Positions
-In `index.html`, find the **Academic Positions** section and copy/edit `timeline-item` blocks:
-```html
-<div class="timeline-item">
-  <span class="timeline-year">2022 – Present</span>
-  <strong>Assistant Professor</strong>
-  <span>Department of Political Science, University of Dhaka</span>
-</div>
+In `firestore.rules`, replace:
 ```
+"YOUR_GOOGLE_EMAIL@gmail.com"
+```
+with your real Gmail address.
 
-### Add / Edit Publications
-Find the **Publications** section and copy/edit `pub-card` blocks. Fill in:
-- `pub-year` — the year badge
-- `pub-title` — paper title
-- `pub-authors` — all authors
-- `pub-journal` — journal name, volume, pages, citations
-- `pub-link` href values — link to PDF or DOI
+### Step 3 — Set Firebase Project ID
+In `.firebaserc`, replace `YOUR_FIREBASE_PROJECT_ID` with your real project ID.
 
-### Add a Blog Post
-Find the **Blog** section and copy/edit `blog-card` blocks.
+### Step 4 — Enable Google Sign-In in Firebase
+1. Go to Firebase Console → Authentication → Sign-in method
+2. Enable "Google" provider
+3. Save
 
-### Update Contact Details
-In the **Contact** section, replace:
-- `your.email@university.edu` with your real email
-- GitHub, Google Scholar, ResearchGate, ORCID links
-- Your office address
+### Step 5 — Enable Firestore Database
+1. Go to Firebase Console → Firestore Database
+2. Click "Create database"
+3. Choose "Start in production mode"
+4. Select a region (e.g. asia-south1 for Bangladesh)
+5. Done
 
 ---
 
-## 📬 Making the Contact Form Work
+## 🚀 Deploy
 
-The form uses [Formspree](https://formspree.io) (free tier — no backend needed):
-1. Sign up at https://formspree.io
-2. Create a new form → copy your endpoint URL
-3. In `js/main.js`, replace:
-   ```js
-   const FORMSPREE_ENDPOINT = 'YOUR_FORMSPREE_ENDPOINT';
-   ```
-   with your actual URL, e.g.:
-   ```js
-   const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xabcdefg';
-   ```
-
----
-
-## 🚀 Deploy to Firebase Hosting
-
-### First Time Setup
 ```bash
-# 1. Install Firebase CLI (requires Node.js)
-npm install -g firebase-tools
-
-# 2. Login to Firebase
+cd zafar-site
 firebase login
-
-# 3. Go to your project folder
-cd abu-zafar-website
-
-# 4. Initialize (choose "Hosting", select your project)
-firebase init hosting
-#    → Public directory: . (just press Enter / type a dot)
-#    → Single-page app: No
-#    → Overwrite index.html: No
-
-# 5. In .firebaserc, replace YOUR_FIREBASE_PROJECT_ID with your project ID
-#    (find it at https://console.firebase.google.com)
-
-# 6. Deploy!
 firebase deploy
-```
-
-### After Making Changes
-```bash
-firebase deploy
-```
-That's it — your live URL will appear in the terminal (e.g. `https://your-project.web.app`).
-
----
-
-## 🎨 Customising Colours & Fonts
-
-All design tokens are in `css/style.css` at the top, inside `:root {}`:
-```css
-:root {
-  --clr-accent:  #2a5298;   /* Navy blue — change to any colour */
-  --clr-accent2: #4a8c6e;   /* Teal green — secondary accent    */
-  --font-head:   'Lora', Georgia, serif;
-  --font-body:   'DM Sans', sans-serif;
-  ...
-}
 ```
 
 ---
 
-## 📝 License
-This website code is for personal use by Abu Zafar. Feel free to adapt as needed.
+## 🔐 Using the Admin Panel
+
+1. Go to `https://your-site.web.app/admin.html`
+2. Click "Sign in with Google"
+3. Log in with YOUR Google account
+4. Manage everything from the tabs:
+   - **Home** — position, institution, tagline, photo, stats
+   - **About** — bio paragraphs, future ambitions
+   - **Positions** — add/delete academic positions
+   - **Experience** — add/delete professional experience
+   - **Education** — add/delete degrees
+   - **Research** — add/delete research areas
+   - **Publications** — add/delete papers
+   - **Blog** — add/delete blog posts
+   - **Contact** — email, office, all social links
+
+All changes appear on the live website instantly!
+
+---
+
+## 📬 Contact Form
+Set up Formspree (free): https://formspree.io
+Then in `contact.html`, replace `YOUR_FORMSPREE_ENDPOINT` with your URL.

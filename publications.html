@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publications | Abu Zafar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">Abu Zafar</a>
+    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="research.html">Research</a></li>
+      <li><a href="publications.html">Publications</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Publications</h1>
+    <p id="pubSubtitle">Peer-reviewed journal articles and research papers.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div id="pubList" style="display:flex;flex-direction:column;gap:20px">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p>
+    <p>Hosted on Firebase &amp; GitHub Pages</p>
+  </div>
+</footer>
+
+<script type="module">
+  import { db }                             from "./js/firebase-config.js";
+  import { collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import "./js/shared.js";
+
+  const snap  = await getDocs(query(collection(db, "publications"), orderBy("year", "desc")));
+  const pubs  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const list  = document.getElementById("pubList");
+
+  document.getElementById("pubSubtitle").textContent =
+    `${pubs.length} peer-reviewed publication${pubs.length !== 1 ? "s" : ""}.`;
+
+  if (!pubs.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><p>Publications coming soon.</p></div>`;
+  } else {
+    list.innerHTML = pubs.map(p => `
+      <div class="pub-card" data-fade>
+        <span class="pub-year">${p.year}</span>
+        <div class="pub-body">
+          <h3 class="pub-title">${p.title}</h3>
+          <p class="pub-authors">${p.authors}</p>
+          <p class="pub-journal">${p.journal}${p.citations ? ` · <em>Cited ${p.citations} times</em>` : ""}</p>
+          <div class="pub-links">
+            ${p.pdfUrl  ? `<a href="${p.pdfUrl}"  target="_blank" class="pub-link">PDF ↗</a>`  : ""}
+            ${p.doiUrl  ? `<a href="${p.doiUrl}"  target="_blank" class="pub-link">DOI ↗</a>`  : ""}
+          </div>
+        </div>
+      </div>`).join("");
+    document.querySelectorAll("[data-fade]").forEach(el => {
+      const obs = new IntersectionObserver(entries => entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("visible"); obs.unobserve(e.target); }
+      }), { threshold: 0.1 });
+      obs.observe(el);
+    });
+  }
+</script>
+</body>
+</html>

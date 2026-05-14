@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blog | Abu Zafar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+  </style>
+</head>
+<body>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">Abu Zafar</a>
+    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="research.html">Research</a></li>
+      <li><a href="publications.html">Publications</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="container">
+    <h1>Blog</h1>
+    <p>Thoughts on research, policy, data science, and academia.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div id="blogGrid" class="blog-grid">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p>
+    <p>Hosted on Firebase &amp; GitHub Pages</p>
+  </div>
+</footer>
+
+<script type="module">
+  import { db }                             from "./js/firebase-config.js";
+  import { collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { formatDate }                     from "./js/shared.js";
+  import "./js/shared.js";
+
+  const snap  = await getDocs(query(collection(db, "blog"), orderBy("date", "desc")));
+  const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const grid  = document.getElementById("blogGrid");
+
+  if (!posts.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">✍️</div><p>Blog posts coming soon.</p></div>`;
+  } else {
+    grid.innerHTML = posts.map(p => `
+      <article class="blog-card" data-fade>
+        <div class="blog-meta">
+          <span class="blog-date">${formatDate(p.date)}</span>
+          <span class="blog-tag">${p.category || "General"}</span>
+        </div>
+        <h3 class="blog-title">${p.title}</h3>
+        <p class="blog-excerpt">${p.excerpt}</p>
+        ${p.url ? `<a href="${p.url}" class="blog-read-more" target="_blank">Read more →</a>` : ""}
+      </article>`).join("");
+    document.querySelectorAll("[data-fade]").forEach(el => {
+      const obs = new IntersectionObserver(entries => entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("visible"); obs.unobserve(e.target); }
+      }), { threshold: 0.1 });
+      obs.observe(el);
+    });
+  }
+</script>
+</body>
+</html>

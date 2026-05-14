@@ -1,438 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Abu Zafar | Political Scientist</title>
-  <meta name="description" content="Abu Zafar — Assistant Professor of Political Science. Researcher in climate change, adaptation, public policy, and data science."/>
+  <meta name="description" content="Abu Zafar — Political Scientist researching climate change, adaptation, and public policy."/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: calc(var(--nav-h) + 40px) 24px 60px;
+      background: var(--clr-surface);
+    }
+    .hero-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      display: flex; align-items: center; gap: 64px;
+    }
+    .hero-photo { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid var(--clr-border); box-shadow: var(--shadow); flex-shrink: 0; }
+    .photo-placeholder {
+      width: 200px; height: 200px; border-radius: 50%;
+      background: var(--clr-surface-alt); border: 3px dashed var(--clr-border);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 16px; flex-shrink: 0;
+    }
+    .photo-placeholder svg { width: 72px; height: 72px; margin-bottom: 8px; }
+    .placeholder-label { font-size: 0.72rem; color: var(--clr-muted); line-height: 1.4; }
+    .hero-eyebrow { font-size: 0.85rem; font-weight: 500; color: var(--clr-accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .hero-name { font-family: var(--font-head); font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 600; line-height: 1.15; margin-bottom: 12px; }
+    .hero-position { font-weight: 500; font-size: 1.05rem; }
+    .hero-institution { color: var(--clr-muted); font-size: 0.95rem; margin-bottom: 16px; }
+    .hero-tagline { font-size: 1rem; color: var(--clr-muted); max-width: 520px; margin-bottom: 28px; font-style: italic; font-family: var(--font-head); }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+    .hero-stats { display: flex; gap: 40px; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--clr-border); }
+    .stat-num { font-family: var(--font-head); font-size: 2rem; font-weight: 600; color: var(--clr-accent); display: block; }
+    .stat-label { font-size: 0.82rem; color: var(--clr-muted); }
+    .hero-scroll { text-align: center; color: var(--clr-muted); font-size: 0.78rem; letter-spacing: 0.12em; margin-top: 48px; opacity: 0.6; animation: float 2.5s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+    @media(max-width:900px){.hero-inner{flex-direction:column;text-align:center;gap:32px}.hero-cta{justify-content:center}.hero-tagline{margin:0 auto 28px}.hero-stats{justify-content:center}}
+  </style>
 </head>
 <body>
 
-  <!-- ═══════════════ NAVIGATION ═══════════════ -->
-  <nav id="navbar">
-    <div class="nav-inner">
-      <a href="#home" class="nav-brand">Abu Zafar</a>
-      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
-      </button>
-      <ul class="nav-links" id="navLinks">
-        <li><a href="#home">Home</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#research">Research</a></li>
-        <li><a href="#publications">Publications</a></li>
-        <li><a href="#blog">Blog</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
-    </div>
-  </nav>
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">Abu Zafar</a>
+    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="research.html">Research</a></li>
+      <li><a href="publications.html">Publications</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </div>
+</nav>
 
-  <!-- ═══════════════ HOME / HERO ═══════════════ -->
-  <section id="home" class="hero">
-    <div class="hero-inner">
-      <div class="hero-photo-wrap">
-        <!--
-          PHOTO PLACEHOLDER
-          To change your photo:
-          1. Save your image as "images/profile.jpg"
-          2. Replace the placeholder div below with:
-             <img src="images/profile.jpg" alt="Abu Zafar" class="hero-photo"/>
-        -->
-        <div class="photo-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
-            <circle cx="40" cy="30" r="16" fill="#c2c8d4"/>
-            <ellipse cx="40" cy="68" rx="24" ry="16" fill="#c2c8d4"/>
-          </svg>
-          <p class="placeholder-label">Add your photo:<br><code>images/profile.jpg</code></p>
-        </div>
-      </div>
-      <div class="hero-text">
-        <p class="hero-eyebrow">Political Scientist &amp; Researcher</p>
-        <h1 class="hero-name">Abu Zafar</h1>
-        <!-- CURRENT POSITION PLACEHOLDER — edit below -->
-        <p class="hero-position">Assistant Professor, Department of Political Science</p>
-        <!-- INSTITUTION PLACEHOLDER — edit below -->
-        <p class="hero-institution">Your University / Institution Name</p>
-        <p class="hero-tagline">Researching climate change, adaptation, public policy &amp; machine learning for social science.</p>
-        <div class="hero-cta">
-          <a href="#research" class="btn btn-primary">My Research</a>
-          <a href="#publications" class="btn btn-outline">Publications</a>
-          <a href="https://github.com/YOUR_GITHUB_USERNAME" target="_blank" class="btn btn-ghost">GitHub ↗</a>
-        </div>
+<section class="hero">
+  <div class="hero-inner">
+    <div id="heroPhoto">
+      <!-- Photo loads dynamically from Firestore -->
+      <div class="photo-placeholder">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="30" r="16" fill="#c2c8d4"/>
+          <ellipse cx="40" cy="68" rx="24" ry="16" fill="#c2c8d4"/>
+        </svg>
+        <p class="placeholder-label">Photo coming soon</p>
       </div>
     </div>
-    <div class="hero-scroll-hint">scroll ↓</div>
-  </section>
-
-  <!-- ═══════════════ ABOUT ═══════════════ -->
-  <section id="about" class="section">
-    <div class="container">
-      <h2 class="section-title">About Me</h2>
-
-      <div class="about-grid">
-        <div class="about-bio">
-          <p>
-            I am a political scientist with a deep interest in the intersection of <strong>climate change</strong>,
-            <strong>public policy</strong>, and <strong>social vulnerability</strong>. My research examines how
-            communities — particularly in South Asia — perceive, respond to, and adapt to environmental and political
-            challenges. I also apply <strong>data science and machine learning</strong> methods to social science questions.
-          </p>
-          <p>
-            Beyond academia, I am committed to open knowledge and civic engagement, and I regularly explore how
-            computational tools can strengthen policy research.
-          </p>
-          <!-- FUTURE AMBITION — edit below -->
-          <div class="about-ambition">
-            <h3>Future Ambitions</h3>
-            <p>
-              I aspire to contribute to evidence-based climate policy in the Global South, publish impactful interdisciplinary
-              research, and develop open-source tools that bridge data science and political science scholarship.
-              <!-- Edit or expand this paragraph freely. -->
-            </p>
-          </div>
-        </div>
-
-        <div class="about-sidebar">
-
-          <!-- ── ACADEMIC POSITIONS ──────────────────────────
-               To add / edit / remove a position:
-               Copy or delete one <div class="timeline-item"> block.
-          ─────────────────────────────────────────────────── -->
-          <div class="sidebar-block">
-            <h3 class="sidebar-heading">Academic Positions</h3>
-            <div class="timeline">
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX – Present</span>
-                <strong>Assistant Professor</strong>
-                <span>Department of Political Science, University Name</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX – 20XX</span>
-                <strong>Lecturer</strong>
-                <span>Department of Political Science, University Name</span>
-              </div>
-
-              <!-- ADD MORE POSITIONS HERE — copy the block above -->
-
-            </div>
-          </div>
-
-          <!-- ── PROFESSIONAL EXPERIENCE ─────────────────────
-               To add / edit / remove a station:
-               Copy or delete one <div class="timeline-item"> block.
-               You have worked at 3 places — add all three below.
-          ─────────────────────────────────────────────────── -->
-          <div class="sidebar-block">
-            <h3 class="sidebar-heading">Professional Experience</h3>
-            <div class="timeline">
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX – Present</span>
-                <strong>Role / Position</strong>
-                <span>Organization / Institution 1</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX – 20XX</span>
-                <strong>Role / Position</strong>
-                <span>Organization / Institution 2</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX – 20XX</span>
-                <strong>Role / Position</strong>
-                <span>Organization / Institution 3</span>
-              </div>
-
-              <!-- ADD MORE STATIONS HERE — copy a block above -->
-
-            </div>
-          </div>
-
-          <!-- ── EDUCATION ────────────────────────────────────
-               To add / edit / remove a degree:
-               Copy or delete one <div class="timeline-item"> block.
-          ─────────────────────────────────────────────────── -->
-          <div class="sidebar-block">
-            <h3 class="sidebar-heading">Education</h3>
-            <div class="timeline">
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX</span>
-                <strong>Diploma in Deep Learning with Python</strong>
-                <span>Institution Name (In Progress)</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX</span>
-                <strong>Diploma in Data Science &amp; Machine Learning</strong>
-                <span>Institution Name</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX</span>
-                <strong>Degree Name (e.g. M.S. / PhD)</strong>
-                <span>University Name</span>
-              </div>
-
-              <div class="timeline-item">
-                <span class="timeline-year">20XX</span>
-                <strong>Degree Name (e.g. B.S.S.)</strong>
-                <span>University Name</span>
-              </div>
-
-              <!-- ADD MORE DEGREES HERE — copy a block above -->
-
-            </div>
-          </div>
-
-        </div>
+    <div>
+      <p class="hero-eyebrow">Political Scientist &amp; Researcher</p>
+      <h1 class="hero-name">Abu Zafar</h1>
+      <p class="hero-position" id="heroPosition">Assistant Professor</p>
+      <p class="hero-institution" id="heroInstitution">Department of Political Science</p>
+      <p class="hero-tagline" id="heroTagline">Researching climate change, adaptation, public policy &amp; machine learning for social science.</p>
+      <div class="hero-cta">
+        <a href="research.html" class="btn btn-primary">My Research</a>
+        <a href="publications.html" class="btn btn-outline">Publications</a>
+        <a href="https://github.com/zafarbhbd" target="_blank" class="btn btn-ghost">GitHub ↗</a>
+      </div>
+      <div class="hero-stats">
+        <div><span class="stat-num" id="statPubs">5</span><span class="stat-label">Publications</span></div>
+        <div><span class="stat-num" id="statCites">35+</span><span class="stat-label">Citations</span></div>
+        <div><span class="stat-num" id="statYears">5+</span><span class="stat-label">Years Research</span></div>
       </div>
     </div>
-  </section>
+  </div>
+  <div class="hero-scroll">scroll ↓</div>
+</section>
 
-  <!-- ═══════════════ RESEARCH ═══════════════ -->
-  <section id="research" class="section section-alt">
-    <div class="container">
-      <h2 class="section-title">Research Interests</h2>
-      <p class="section-subtitle">My work spans political science, environmental studies, and computational social science.</p>
+<footer class="footer">
+  <div class="container footer-inner">
+    <p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p>
+    <p>Hosted on Firebase &amp; GitHub Pages</p>
+  </div>
+</footer>
 
-      <!-- ── RESEARCH AREAS ───────────────────────────────────
-           To add / edit / remove a card:
-           Copy or delete one <div class="research-card"> block.
-      ─────────────────────────────────────────────────────── -->
-      <div class="research-grid">
+<script type="module">
+  import { db }          from "./js/firebase-config.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import "./js/shared.js";
 
-        <div class="research-card">
-          <div class="research-icon">🌊</div>
-          <h3>Climate Change &amp; Coastal Vulnerability</h3>
-          <p>Examining how communities in Bangladesh's coastal zones perceive climate risks and develop adaptation strategies in response to environmental change.</p>
-        </div>
-
-        <div class="research-card">
-          <div class="research-icon">⚖️</div>
-          <h3>Public Policy &amp; Governance</h3>
-          <p>Investigating policy design, implementation gaps, and governance challenges in developing country contexts, with a focus on South Asia.</p>
-        </div>
-
-        <div class="research-card">
-          <div class="research-icon">🏕️</div>
-          <h3>Forced Migration &amp; Security</h3>
-          <p>Analyzing the political and security implications of the Rohingya refugee crisis for Bangladesh, including regional stability and humanitarian dimensions.</p>
-        </div>
-
-        <div class="research-card">
-          <div class="research-icon">👩‍💼</div>
-          <h3>Gender &amp; Labour Migration</h3>
-          <p>Understanding the factors that shape female migration into the informal sector in Bangladesh, including economic, social, and structural drivers.</p>
-        </div>
-
-        <div class="research-card">
-          <div class="research-icon">🤖</div>
-          <h3>Machine Learning in Social Science</h3>
-          <p>Applying machine learning techniques — including PCA, SMOTE, and deep learning — to social science problems such as fraud detection and policy analysis.</p>
-        </div>
-
-        <!-- ADD MORE RESEARCH AREAS HERE — copy a card block above -->
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ PUBLICATIONS ═══════════════ -->
-  <section id="publications" class="section">
-    <div class="container">
-      <h2 class="section-title">Publications</h2>
-      <p class="section-subtitle">5 peer-reviewed publications · <a href="https://scholar.google.com/YOUR_PROFILE" target="_blank" class="inline-link">Google Scholar ↗</a></p>
-
-      <!-- ── PUBLICATION LIST ─────────────────────────────────
-           To add / edit / remove a publication:
-           Copy or delete one <div class="pub-card"> block.
-           Fields to edit: year badge, title, authors, journal, links.
-      ─────────────────────────────────────────────────────── -->
-      <div class="pub-list">
-
-        <div class="pub-card">
-          <span class="pub-year">2025</span>
-          <div class="pub-body">
-            <h3 class="pub-title">Climate change in the coastal zone of Bangladesh: perceptions and determinants of adaptation strategies</h3>
-            <p class="pub-authors">A Zafar, D Wang</p>
-            <p class="pub-journal">SN Social Sciences, 5(8), 110</p>
-            <div class="pub-links">
-              <a href="#" class="pub-link">PDF ↗</a>
-              <a href="#" class="pub-link">DOI ↗</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="pub-card">
-          <span class="pub-year">2024</span>
-          <div class="pub-body">
-            <h3 class="pub-title">Optimizing machine learning classifiers for credit card fraud detection on highly imbalanced datasets using PCA and SMOTE techniques</h3>
-            <p class="pub-authors">ZA Haider, FM Khan, A Zafar, IU Khan</p>
-            <p class="pub-journal">VAWKUM Transactions on Computer Sciences, 12(2), 28–49 · <em>Cited 21 times</em></p>
-            <div class="pub-links">
-              <a href="#" class="pub-link">PDF ↗</a>
-              <a href="#" class="pub-link">DOI ↗</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="pub-card">
-          <span class="pub-year">2024</span>
-          <div class="pub-body">
-            <h3 class="pub-title">Factors shaping female migrants to informal sector in Bangladesh</h3>
-            <p class="pub-authors">NT Zaman, MA Hossain, MS Sohel, J Alam, A Zafar, MN Hasan, et al.</p>
-            <p class="pub-journal">SN Social Sciences, 4(10), 178 · <em>Cited 5 times</em></p>
-            <div class="pub-links">
-              <a href="#" class="pub-link">PDF ↗</a>
-              <a href="#" class="pub-link">DOI ↗</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="pub-card">
-          <span class="pub-year">2020</span>
-          <div class="pub-body">
-            <h3 class="pub-title">The Rohingya Refugees: A Review of Security Threats for Bangladesh</h3>
-            <p class="pub-authors">A Zafar</p>
-            <p class="pub-journal">Global Scientific Journals (GSJ), 8(9), 2104–2109 · <em>Cited 9 times</em></p>
-            <div class="pub-links">
-              <a href="#" class="pub-link">PDF ↗</a>
-              <a href="#" class="pub-link">DOI ↗</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- ADD MORE PUBLICATIONS HERE — copy a pub-card block above -->
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ BLOG ═══════════════ -->
-  <section id="blog" class="section section-alt">
-    <div class="container">
-      <h2 class="section-title">Blog</h2>
-      <p class="section-subtitle">Thoughts on research, policy, data science, and academia.</p>
-
-      <!-- ── BLOG POSTS ───────────────────────────────────────
-           To add / edit / remove a post:
-           Copy or delete one <div class="blog-card"> block.
-           Fields: date, category tag, title, excerpt, link.
-      ─────────────────────────────────────────────────────── -->
-      <div class="blog-grid">
-
-        <article class="blog-card">
-          <div class="blog-meta">
-            <span class="blog-date">Month DD, YYYY</span>
-            <span class="blog-tag">Climate Policy</span>
-          </div>
-          <h3 class="blog-title">Your First Blog Post Title Here</h3>
-          <p class="blog-excerpt">Write a short excerpt or summary of your post here. This is what visitors will see before clicking to read more.</p>
-          <a href="#" class="blog-read-more">Read more →</a>
-        </article>
-
-        <article class="blog-card">
-          <div class="blog-meta">
-            <span class="blog-date">Month DD, YYYY</span>
-            <span class="blog-tag">Data Science</span>
-          </div>
-          <h3 class="blog-title">Your Second Blog Post Title Here</h3>
-          <p class="blog-excerpt">Write a short excerpt or summary of your post here. This is what visitors will see before clicking to read more.</p>
-          <a href="#" class="blog-read-more">Read more →</a>
-        </article>
-
-        <article class="blog-card">
-          <div class="blog-meta">
-            <span class="blog-date">Month DD, YYYY</span>
-            <span class="blog-tag">Academia</span>
-          </div>
-          <h3 class="blog-title">Your Third Blog Post Title Here</h3>
-          <p class="blog-excerpt">Write a short excerpt or summary of your post here. This is what visitors will see before clicking to read more.</p>
-          <a href="#" class="blog-read-more">Read more →</a>
-        </article>
-
-        <!-- ADD MORE BLOG POSTS HERE — copy a blog-card block above -->
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ CONTACT ═══════════════ -->
-  <section id="contact" class="section">
-    <div class="container">
-      <h2 class="section-title">Contact</h2>
-      <p class="section-subtitle">Feel free to reach out for collaborations, questions, or just to say hello.</p>
-
-      <div class="contact-grid">
-        <div class="contact-info">
-          <!-- CONTACT DETAILS — replace placeholders below -->
-          <div class="contact-item">
-            <span class="contact-icon">✉️</span>
-            <div>
-              <strong>Email</strong>
-              <a href="mailto:your.email@university.edu">your.email@university.edu</a>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="contact-icon">🏛️</span>
-            <div>
-              <strong>Office</strong>
-              <span>Room No., Building Name<br>Your University, City, Bangladesh</span>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="contact-icon">🔗</span>
-            <div>
-              <strong>Links</strong>
-              <div class="contact-links">
-                <a href="https://github.com/YOUR_GITHUB_USERNAME" target="_blank">GitHub</a>
-                <a href="https://scholar.google.com/YOUR_PROFILE" target="_blank">Google Scholar</a>
-                <a href="https://www.researchgate.net/profile/YOUR_PROFILE" target="_blank">ResearchGate</a>
-                <a href="https://orcid.org/YOUR_ORCID" target="_blank">ORCID</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <form class="contact-form" id="contactForm">
-          <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" placeholder="Your name" required/>
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="your@email.com" required/>
-          </div>
-          <div class="form-group">
-            <label for="subject">Subject</label>
-            <input type="text" id="subject" name="subject" placeholder="Research collaboration, question…"/>
-          </div>
-          <div class="form-group">
-            <label for="message">Message</label>
-            <textarea id="message" name="message" rows="5" placeholder="Your message…" required></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">Send Message</button>
-          <p class="form-note" id="formNote"></p>
-        </form>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ FOOTER ═══════════════ -->
-  <footer class="footer">
-    <div class="container footer-inner">
-      <p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p>
-      <p>Built with ❤️ · Hosted on Firebase</p>
-    </div>
-  </footer>
-
-  <script src="js/main.js"></script>
+  // Load hero data from Firestore
+  const snap = await getDoc(doc(db, "site", "hero"));
+  if (snap.exists()) {
+    const d = snap.data();
+    if (d.position)    document.getElementById("heroPosition").textContent    = d.position;
+    if (d.institution) document.getElementById("heroInstitution").textContent = d.institution;
+    if (d.tagline)     document.getElementById("heroTagline").textContent     = d.tagline;
+    if (d.photoURL) {
+      document.getElementById("heroPhoto").innerHTML =
+        `<img src="${d.photoURL}" alt="Abu Zafar" class="hero-photo"/>`;
+    }
+    if (d.statPubs)   document.getElementById("statPubs").textContent   = d.statPubs;
+    if (d.statCites)  document.getElementById("statCites").textContent  = d.statCites;
+    if (d.statYears)  document.getElementById("statYears").textContent  = d.statYears;
+  }
+</script>
 </body>
 </html>
