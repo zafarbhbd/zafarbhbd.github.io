@@ -1,102 +1,115 @@
-# Abu Zafar — Academic Website v2
-## Multi-page + Firebase Admin Panel
+# Abu Zafar Academic Website v3
+## Complete system with Student Management
 
 ---
 
 ## 📁 File Structure
 
 ```
-zafar-site/
-├── index.html          ← Home page
-├── about.html          ← About page
-├── research.html       ← Research page
-├── publications.html   ← Publications page
-├── blog.html           ← Blog page
-├── contact.html        ← Contact page
-├── admin.html          ← Admin panel (protected)
-├── css/
-│   └── style.css
+zafar-site-v3/
+├── index.html              Home
+├── about.html              About (bio, positions, experience, education)
+├── positions.html          Academic Positions page
+├── education.html          Education page
+├── research.html           Research areas
+├── publications.html       Publications
+├── blog.html               Blog
+├── contact.html            Contact + email form
+├── admin.html              🔐 Website Admin Panel
+├── attendance.html         Student attendance (no login)
+├── student-portal.html     Student login + marks + attendance
+├── student-mgmt.html       🔐 Teacher Student Management
+├── css/style.css
 ├── js/
-│   ├── firebase-config.js   ← PUT YOUR FIREBASE CREDENTIALS HERE
-│   └── shared.js
+│   ├── firebase-config.js  ← PUT YOUR CREDENTIALS HERE
+│   ├── shared.js
+│   └── nav.js
 ├── firebase.json
 ├── firestore.rules
+├── storage.rules
 └── .firebaserc
 ```
 
 ---
 
-## ⚙️ SETUP — Do This First (5 steps)
+## ⚙️ SETUP (Do this first)
 
-### Step 1 — Add Firebase credentials
-Open `js/firebase-config.js` and replace all placeholder values:
-- `YOUR_API_KEY`
-- `YOUR_PROJECT_ID`
-- `YOUR_MESSAGING_SENDER_ID`
-- `YOUR_APP_ID`
-- `YOUR_GOOGLE_EMAIL@gmail.com`
+### 1. Firebase credentials
+Open `js/firebase-config.js` → replace all placeholder values.
+Get from: Firebase Console → Project Settings → Your Apps → Web App
 
-Get these from: Firebase Console → Your Project → Project Settings → Your Apps → Web App
+### 2. Your email
+Replace `YOUR_GOOGLE_EMAIL@gmail.com` in:
+- `js/firebase-config.js` (ADMIN_EMAIL)
+- `firestore.rules` (3 places)
+- `storage.rules` (2 places)
 
-### Step 2 — Add your admin email
-In `js/firebase-config.js`, set:
-```js
-const ADMIN_EMAIL = "your.real.email@gmail.com";
-```
+### 3. Firebase project ID
+In `.firebaserc` → replace `YOUR_FIREBASE_PROJECT_ID`
 
-In `firestore.rules`, replace:
-```
-"YOUR_GOOGLE_EMAIL@gmail.com"
-```
-with your real Gmail address.
+### 4. Enable services in Firebase Console
+- Authentication → Sign-in method → Enable **Google**
+- Firestore Database → Create database → Production mode → asia-south1
+- Storage → Get started → Production mode
 
-### Step 3 — Set Firebase Project ID
-In `.firebaserc`, replace `YOUR_FIREBASE_PROJECT_ID` with your real project ID.
-
-### Step 4 — Enable Google Sign-In in Firebase
-1. Go to Firebase Console → Authentication → Sign-in method
-2. Enable "Google" provider
-3. Save
-
-### Step 5 — Enable Firestore Database
-1. Go to Firebase Console → Firestore Database
-2. Click "Create database"
-3. Choose "Start in production mode"
-4. Select a region (e.g. asia-south1 for Bangladesh)
-5. Done
+### 5. Enable Firebase Storage
+Firebase Console → Storage → Get started
 
 ---
 
 ## 🚀 Deploy
 
 ```bash
-cd zafar-site
-firebase login
 firebase deploy
 ```
 
 ---
 
-## 🔐 Using the Admin Panel
+## 🔐 Admin Panel Access
+Go to: `yoursite.web.app/admin.html`
+Sign in with your Google account.
 
-1. Go to `https://your-site.web.app/admin.html`
-2. Click "Sign in with Google"
-3. Log in with YOUR Google account
-4. Manage everything from the tabs:
-   - **Home** — position, institution, tagline, photo, stats
-   - **About** — bio paragraphs, future ambitions
-   - **Positions** — add/delete academic positions
-   - **Experience** — add/delete professional experience
-   - **Education** — add/delete degrees
-   - **Research** — add/delete research areas
-   - **Publications** — add/delete papers
-   - **Blog** — add/delete blog posts
-   - **Contact** — email, office, all social links
+## 🎓 Student Management Access
+Go to: `yoursite.web.app/student-mgmt.html`
+Same Google sign-in — no second login needed.
 
-All changes appear on the live website instantly!
+## 👨‍🎓 Student Portal
+Go to: `yoursite.web.app/student-portal.html`
+Students log in with Registration Number + their own password.
+
+## 📋 Attendance
+Go to: `yoursite.web.app/attendance.html`
+No login needed for students.
 
 ---
 
 ## 📬 Contact Form
-Set up Formspree (free): https://formspree.io
-Then in `contact.html`, replace `YOUR_FORMSPREE_ENDPOINT` with your URL.
+Sign up free at https://formspree.io
+In `contact.html` replace `YOUR_FORMSPREE_ENDPOINT` with your URL.
+
+---
+
+## 🎓 Student Management Workflow
+
+### Adding students
+Student Management → Select year → Students tab → "+ Add Student"
+
+### Taking attendance
+1. Student Management → Attendance tab → Open session with date label
+2. Students go to attendance.html → select year → submit
+3. When done → Close attendance (absent filled automatically)
+
+### Assignments
+1. Student Management → Assignments tab → Create assignment
+2. Students log in to student-portal.html → upload file
+3. You → Submissions button → download files
+4. You → Mark button → enter marks for each student
+
+### Debates
+1. Student Management → Debates tab → Create debate (groups auto-assigned)
+2. Students perform in class
+3. You → Mark button → enter marks
+
+### Promoting students
+Students tab → scroll down → uncheck students to EXCLUDE → Promote button
+⚠️ Previous year records deleted automatically after confirmation.

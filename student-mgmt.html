@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Student Management | Abu Zafar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body{background:#f0f2f5}
+    #smPanel{display:none}
+    .year-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:0}
+    .year-tab{padding:8px 16px;border:none;border-radius:8px 8px 0 0;cursor:pointer;font-family:var(--font-body);font-size:0.85rem;font-weight:600;color:#fff;opacity:0.65;transition:opacity 0.2s}
+    .year-tab.active{opacity:1}
+    .year-tab.yt-y1{background:#2a5298}.year-tab.yt-y2{background:#4a8c6e}.year-tab.yt-y3{background:#c0392b}.year-tab.yt-y4{background:#7b3fa0}.year-tab.yt-m{background:#e67e22}
+    .year-content{display:none}.year-content.active{display:block}
+    .section-tabs{display:flex;gap:4px;background:var(--clr-surface);padding:6px;border-radius:0 10px 10px 10px;margin-bottom:20px;flex-wrap:wrap;box-shadow:var(--shadow)}
+    .section-tab{padding:7px 14px;border:none;background:none;cursor:pointer;border-radius:7px;font-family:var(--font-body);font-size:0.83rem;font-weight:500;color:var(--clr-muted);transition:all 0.2s}
+    .section-tab.active{background:var(--clr-accent);color:#fff}
+    .section-panel{display:none}.section-panel.active{display:block}
+    .att-open-bar{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .att-closed-bar{background:#fdecea;border:1px solid #ef9a9a;border-radius:8px;padding:12px 16px;margin-bottom:16px}
+    .stu-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+    .stu-table th{background:var(--clr-accent);color:#fff;padding:9px 12px;text-align:left}
+    .stu-table td{padding:8px 12px;border-bottom:1px solid var(--clr-border)}
+    .stu-table tr:hover td{background:#f5f5f5}
+    .promote-section{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:20px;margin-top:20px}
+    .marksheet-dl{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    .sub-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f7f4;border-radius:8px;margin-bottom:8px;gap:12px;flex-wrap:wrap;border:1px solid var(--clr-border)}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h2>Student Management</h2>
+    <p>Sign in with your Google account to manage students.</p>
+    <button class="google-btn" id="googleSignIn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"/>
+      Sign in with Google
+    </button>
+    <p id="loginError" style="color:#c62828;font-size:0.85rem;margin-top:16px"></p>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3 id="editModalTitle">Edit</h3>
+    <div id="editModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('editModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" id="editModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PANEL -->
+<div id="smPanel">
+  <nav id="navbar" style="display:block">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">Abu Zafar</a>
+      <div style="display:flex;gap:10px;align-items:center">
+        <a href="admin.html" class="btn btn-ghost btn-sm">Website Admin</a>
+        <a href="index.html" class="btn btn-ghost btn-sm">← Site</a>
+        <button class="btn btn-outline btn-sm" id="signOutBtn">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="sm-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <h1 style="font-family:var(--font-head);font-size:1.8rem">🎓 Student Management</h1>
+    </div>
+
+    <!-- YEAR TABS -->
+    <div class="year-tabs">
+      <button class="year-tab yt-y1 active" data-year="Y1">Hons 1st Year</button>
+      <button class="year-tab yt-y2" data-year="Y2">Hons 2nd Year</button>
+      <button class="year-tab yt-y3" data-year="Y3">Hons 3rd Year</button>
+      <button class="year-tab yt-y4" data-year="Y4">Hons 4th Year</button>
+      <button class="year-tab yt-m"  data-year="M">Masters</button>
+    </div>
+
+    <!-- YEAR CONTENT (one per year, same structure) -->
+    <div id="yearContentWrap">
+      <!-- Rendered dynamically -->
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { auth, db, storage, ADMIN_EMAIL } from "./js/firebase-config.js";
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs, addDoc, updateDoc, query, where, orderBy, writeBatch, Timestamp, getDocs as gd } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const YEARS=["Y1","Y2","Y3","Y4","M"];
+const YEAR_LABELS={"Y1":"Hons 1st Year","Y2":"Hons 2nd Year","Y3":"Hons 3rd Year","Y4":"Hons 4th Year","M":"Masters"};
+const NEXT_YEAR={"Y1":"Y2","Y2":"Y3","Y3":"Y4","Y4":"M"};
+let activeYear="Y1";
+
+// ── Auth ───────────────────────────────────────────────
+onAuthStateChanged(auth,user=>{
+  if(user&&user.email===ADMIN_EMAIL){
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("smPanel").style.display="block";
+    buildYearContents();
+    loadYear("Y1");
+  } else {
+    document.getElementById("loginScreen").style.display="flex";
+    document.getElementById("smPanel").style.display="none";
+  }
+});
+document.getElementById("googleSignIn").addEventListener("click",async()=>{
+  try{
+    const r=await signInWithPopup(auth,new GoogleAuthProvider());
+    if(r.user.email!==ADMIN_EMAIL){await signOut(auth);document.getElementById("loginError").textContent="❌ Access denied.";}
+  }catch(e){document.getElementById("loginError").textContent="Sign-in failed: "+e.message;}
+});
+document.getElementById("signOutBtn").addEventListener("click",()=>signOut(auth));
+
+// ── Build year content panels ─────────────────────────
+function buildYearContents(){
+  const wrap=document.getElementById("yearContentWrap");
+  wrap.innerHTML=YEARS.map(y=>`
+    <div class="year-content ${y==="Y1"?"active":""}" id="yc-${y}">
+      <div class="section-tabs">
+        <button class="section-tab active" data-year="${y}" data-sec="students">👥 Students</button>
+        <button class="section-tab" data-year="${y}" data-sec="attendance">📋 Attendance</button>
+        <button class="section-tab" data-year="${y}" data-sec="assignments">📝 Assignments</button>
+        <button class="section-tab" data-year="${y}" data-sec="debates">🗣️ Debates</button>
+        <button class="section-tab" data-year="${y}" data-sec="marksheet">📊 Marksheet</button>
+      </div>
+
+      <!-- STUDENTS -->
+      <div class="section-panel active" id="sec-${y}-students">
+        <div class="sm-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+            <h3 style="font-family:var(--font-head);margin:0">${YEAR_LABELS[y]} — Students</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="stuSearch-${y}" placeholder="Search name or reg…" style="padding:7px 12px;border:1px solid var(--clr-border);border-radius:6px;font-family:var(--font-body);font-size:0.85rem;width:200px"/>
+              <button class="btn btn-primary btn-sm" id="addStuBtn-${y}">+ Add Student</button>
+            </div>
+          </div>
+          <div id="stuList-${y}"><div class="spinner"></div></div>
+        </div>
+        ${y!=="M"?`<div class="promote-section">
+          <h4 style="font-family:var(--font-head);margin-bottom:8px">⬆️ Promote Students to ${YEAR_LABELS[NEXT_YEAR[y]]||""}</h4>
+          <p style="font-size:0.85rem;color:var(--clr-muted);margin-bottom:12px">Tick students to <strong>exclude</strong> from promotion (they stay in ${YEAR_LABELS[y]}). All others will be promoted. Previous year records will be deleted.</p>
+          <div id="promoteList-${y}" style="max-height:200px;overflow-y:auto;margin-bottom:12px"></div>
+          <button class="btn btn-warn" id="promoteBtn-${y}">Promote Selected Students</button>
+        </div>`:""}
+      </div>
+
+      <!-- ATTENDANCE -->
+      <div class="section-panel" id="sec-${y}-attendance">
+        <div class="sm-card">
+          <h3 style="font-family:var(--font-head)">Attendance Control — ${YEAR_LABELS[y]}</h3>
+          <div id="attControl-${y}"><div class="spinner"></div></div>
+        </div>
+        <div class="sm-card">
+          <h3 style="font-family:var(--font-head)">Attendance Statement (Date-wise)</h3>
+          <p style="font-size:0.85rem;color:var(--clr-muted);margin-bottom:16px">This table is for verification only — not saved as a record.</p>
+          <div id="attStatement-${y}"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ASSIGNMENTS -->
+      <div class="section-panel" id="sec-${y}-assignments">
+        <div class="sm-card">
+          <h3 style="font-family:var(--font-head)">Assignments — ${YEAR_LABELS[y]}</h3>
+          <div id="assignList-${y}"><div class="spinner"></div></div>
+          <hr style="margin:20px 0;border-color:var(--clr-border)"/>
+          <h4 style="margin-bottom:12px;font-size:0.95rem">➕ Create Assignment</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Title</label><input type="text" id="aTitle-${y}"/></div>
+            <div class="form-group"><label>Total Marks</label><input type="number" id="aMarks-${y}" placeholder="5"/></div>
+            <div class="form-group"><label>Due Date</label><input type="date" id="aDue-${y}"/></div>
+          </div>
+          <div class="form-group" style="margin-top:10px"><label>Description / Instructions</label><textarea id="aDesc-${y}" rows="2"></textarea></div>
+          <div class="form-actions"><button class="btn btn-primary" id="addAssignBtn-${y}">Create Assignment</button></div>
+          <div id="aStatus-${y}"></div>
+        </div>
+      </div>
+
+      <!-- DEBATES -->
+      <div class="section-panel" id="sec-${y}-debates">
+        <div class="sm-card">
+          <h3 style="font-family:var(--font-head)">Debates — ${YEAR_LABELS[y]}</h3>
+          <div id="debateList-${y}"><div class="spinner"></div></div>
+          <hr style="margin:20px 0;border-color:var(--clr-border)"/>
+          <h4 style="margin-bottom:12px;font-size:0.95rem">➕ Create Debate</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Topic / Title</label><input type="text" id="dTitle-${y}"/></div>
+            <div class="form-group"><label>Total Marks</label><input type="number" id="dMarks-${y}" placeholder="10"/></div>
+            <div class="form-group"><label>Group Size</label><input type="number" id="dGroupSize-${y}" placeholder="5" min="2"/></div>
+          </div>
+          <div class="form-group" style="margin-top:10px"><label>Description</label><textarea id="dDesc-${y}" rows="2"></textarea></div>
+          <div class="form-actions"><button class="btn btn-primary" id="addDebateBtn-${y}">Create Debate &amp; Auto-Assign Groups</button></div>
+          <div id="dStatus-${y}"></div>
+        </div>
+      </div>
+
+      <!-- MARKSHEET -->
+      <div class="section-panel" id="sec-${y}-marksheet">
+        <div class="sm-card">
+          <h3 style="font-family:var(--font-head)">Combined Marksheet — ${YEAR_LABELS[y]}</h3>
+          <div class="marksheet-dl">
+            <button class="btn btn-outline btn-sm" id="dlPdf-${y}">⬇️ Download PDF</button>
+            <button class="btn btn-outline btn-sm" id="dlExcel-${y}">⬇️ Download Excel</button>
+          </div>
+          <div id="marksheetTable-${y}"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>`).join("");
+
+  // Attach section tab events
+  document.querySelectorAll(".section-tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      const y=tab.dataset.year; const sec=tab.dataset.sec;
+      document.querySelectorAll(`[data-year="${y}"].section-tab`).forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(`#yc-${y} .section-panel`).forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`sec-${y}-${sec}`).classList.add("active");
+      if(sec==="attendance") loadAttendance(y);
+      if(sec==="assignments") loadAssignments(y);
+      if(sec==="debates") loadDebates(y);
+      if(sec==="marksheet") loadMarksheet(y);
+    });
+  });
+}
+
+// ── Year tab switching ─────────────────────────────────
+document.querySelectorAll(".year-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".year-tab").forEach(t=>t.classList.remove("active"));
+    YEARS.forEach(y=>{const el=document.getElementById("yc-"+y);if(el)el.classList.remove("active");});
+    tab.classList.add("active");
+    const y=tab.dataset.year;
+    document.getElementById("yc-"+y).classList.add("active");
+    loadYear(y);
+  });
+});
+
+// ── Load year ──────────────────────────────────────────
+async function loadYear(y){
+  activeYear=y;
+  await loadStudents(y);
+  await loadAttendance(y);
+  await loadAssignments(y);
+  await loadDebates(y);
+  await loadMarksheet(y);
+  setupYearEvents(y);
+}
+
+// ── STUDENTS ───────────────────────────────────────────
+async function loadStudents(y){
+  const snap=await getDocs(query(collection(db,"students_"+y),orderBy("name")));
+  const students=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderStudents(y,students);
+  renderPromoteList(y,students);
+  // Search
+  document.getElementById("stuSearch-"+y).oninput=e=>{
+    const q=e.target.value.toLowerCase();
+    renderStudents(y,students.filter(s=>s.name.toLowerCase().includes(q)||s.regNo.includes(q)));
+  };
+}
+
+function renderStudents(y,students){
+  const el=document.getElementById("stuList-"+y);
+  if(!students.length){el.innerHTML=`<p style="color:var(--clr-muted);padding:20px;text-align:center">No students yet. Add students using the button above.</p>`;return;}
+  el.innerHTML=`<table class="stu-table"><thead><tr><th>#</th><th>Reg No</th><th>Name</th><th>Session</th><th>Actions</th></tr></thead><tbody>`+
+    students.map((s,i)=>`<tr><td>${i+1}</td><td>${s.regNo}</td><td>${s.name}</td><td>${s.session||"—"}</td><td><button class="btn btn-outline btn-xs edit-stu-btn" data-id="${s.id}" data-year="${y}">Edit</button> <button class="btn btn-danger btn-xs del-stu-btn" data-id="${s.id}" data-year="${y}">Delete</button></td></tr>`).join("")+
+    `</tbody></table><p style="font-size:0.82rem;color:var(--clr-muted);margin-top:8px">Total: ${students.length} students</p>`;
+
+  el.querySelectorAll(".del-stu-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("Delete this student? This also removes their password.")) return;
+    await deleteDoc(doc(db,"students_"+btn.dataset.year,btn.dataset.id));
+    await deleteDoc(doc(db,"student_passwords",btn.dataset.id)).catch(()=>{});
+    loadStudents(btn.dataset.year);
+  }));
+  el.querySelectorAll(".edit-stu-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    const sSnap=await getDoc(doc(db,"students_"+btn.dataset.year,btn.dataset.id));
+    const s=sSnap.data();
+    openModal("Edit Student",[{key:"name",label:"Name",value:s.name},{key:"session",label:"Session (e.g. 2024-25)",value:s.session||""}],async data=>{
+      await updateDoc(doc(db,"students_"+btn.dataset.year,btn.dataset.id),data);
+      loadStudents(btn.dataset.year);
+    });
+  }));
+}
+
+function renderPromoteList(y,students){
+  const el=document.getElementById("promoteList-"+y);
+  if(!el) return;
+  el.innerHTML=students.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.88rem;cursor:pointer"><input type="checkbox" class="exclude-cb" value="${s.id}"/> ${s.name} (${s.regNo})</label>`).join("")||`<p style="color:var(--clr-muted);font-size:0.85rem">No students.</p>`;
+}
+
+function setupYearEvents(y){
+  // Add student
+  document.getElementById("addStuBtn-"+y).onclick=()=>{
+    openModal("Add Student",[{key:"regNo",label:"Registration Number",placeholder:"23219054277"},{key:"name",label:"Full Name"},{key:"session",label:"Session (e.g. 2024-25)"}],async data=>{
+      if(!data.regNo||!data.name){alert("Reg No and Name are required.");return;}
+      // Check uniqueness
+      const existing=await getDoc(doc(db,"students_"+y,data.regNo));
+      if(existing.exists()){alert("Registration number already exists in this year.");return;}
+      await setDoc(doc(db,"students_"+y,data.regNo),{regNo:data.regNo,name:data.name,session:data.session,yearKey:y,addedAt:new Date().toISOString()});
+      loadStudents(y);
+    });
+  };
+
+  // Promote
+  const promBtn=document.getElementById("promoteBtn-"+y);
+  if(promBtn) promBtn.onclick=async()=>{
+    const nextY=NEXT_YEAR[y];
+    if(!nextY){alert("Masters is the final year.");return;}
+    const excluded=Array.from(document.querySelectorAll(`#promoteList-${y} .exclude-cb:checked`)).map(cb=>cb.value);
+    const allSnap=await getDocs(collection(db,"students_"+y));
+    const toPromote=allSnap.docs.filter(d=>!excluded.includes(d.id));
+    if(!toPromote.length){alert("No students to promote.");return;}
+    if(!confirm(`⚠️ WARNING!\n\nThis will:\n• Move ${toPromote.length} students to ${YEAR_LABELS[nextY]}\n• Delete ALL their current ${YEAR_LABELS[y]} records (attendance, marks, submissions)\n\nStudents staying in ${YEAR_LABELS[y]}: ${excluded.length}\n\nThis CANNOT be undone. Continue?`)) return;
+
+    for(const d of toPromote){
+      const s=d.data();
+      // Add to next year
+      await setDoc(doc(db,"students_"+nextY,s.regNo),{...s,yearKey:nextY});
+      // Update password record
+      const passSnap=await getDoc(doc(db,"student_passwords",s.regNo));
+      if(passSnap.exists()) await updateDoc(doc(db,"student_passwords",s.regNo),{yearKey:nextY});
+      // Delete from current year
+      await deleteDoc(doc(db,"students_"+y,d.id));
+    }
+    // Delete attendance records for promoted students
+    const promoted=toPromote.map(d=>d.data().regNo);
+    const attSnap=await getDocs(query(collection(db,"attendance_records"),where("yearKey","==",y)));
+    for(const d of attSnap.docs){if(promoted.includes(d.data().regNo)) await deleteDoc(d.ref);}
+    // Delete marks
+    const marksSnap=await getDocs(query(collection(db,"marks"),where("yearKey","==",y)));
+    for(const d of marksSnap.docs){if(promoted.includes(d.data().regNo)) await deleteDoc(d.ref);}
+    // Delete submissions
+    const subSnap=await getDocs(query(collection(db,"submissions"),where("yearKey","==",y)));
+    for(const d of subSnap.docs){
+      if(promoted.includes(d.data().regNo)){
+        if(d.data().storagePath){try{await deleteObject(ref(storage,d.data().storagePath));}catch(e){}}
+        await deleteDoc(d.ref);
+      }
+    }
+    alert(`✅ Done! ${toPromote.length} students promoted to ${YEAR_LABELS[nextY]}.`);
+    loadYear(y); loadYear(nextY);
+  };
+
+  // Assignment create
+  document.getElementById("addAssignBtn-"+y).onclick=async()=>{
+    const title=document.getElementById("aTitle-"+y).value.trim();
+    if(!title){showStat("aStatus-"+y,"Title required.",false);return;}
+    await addDoc(collection(db,"assignments"),{title,totalMarks:parseInt(document.getElementById("aMarks-"+y).value)||5,dueDate:document.getElementById("aDue-"+y).value,description:document.getElementById("aDesc-"+y).value.trim(),yearKey:y,createdAt:Timestamp.now()});
+    ["aTitle-"+y,"aDesc-"+y,"aDue-"+y].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    showStat("aStatus-"+y,"✅ Assignment created!"); loadAssignments(y);
+  };
+
+  // Debate create
+  document.getElementById("addDebateBtn-"+y).onclick=async()=>{
+    const title=document.getElementById("dTitle-"+y).value.trim();
+    const groupSize=parseInt(document.getElementById("dGroupSize-"+y).value)||5;
+    if(!title){showStat("dStatus-"+y,"Title required.",false);return;}
+    // Load students and auto-assign groups
+    const stuSnap=await getDocs(query(collection(db,"students_"+y),orderBy("name")));
+    const students=stuSnap.docs.map(d=>d.data());
+    const shuffled=[...students].sort(()=>Math.random()-0.5);
+    const groupInfo={};
+    shuffled.forEach((s,i)=>{groupInfo[s.regNo]="Group "+(Math.floor(i/groupSize)+1);});
+    await addDoc(collection(db,"debates"),{title,totalMarks:parseInt(document.getElementById("dMarks-"+y).value)||10,description:document.getElementById("dDesc-"+y).value.trim(),yearKey:y,groupSize,groupInfo,createdAt:Timestamp.now()});
+    ["dTitle-"+y,"dDesc-"+y].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+    showStat("dStatus-"+y,"✅ Debate created with auto-assigned groups!"); loadDebates(y);
+  };
+
+  // Marksheet download
+  document.getElementById("dlPdf-"+y).onclick=()=>downloadMarksheet(y,"pdf");
+  document.getElementById("dlExcel-"+y).onclick=()=>downloadMarksheet(y,"excel");
+}
+
+// ── ATTENDANCE ─────────────────────────────────────────
+async function loadAttendance(y){
+  const sessSnap=await getDoc(doc(db,"attendance_sessions",y));
+  const ctrl=document.getElementById("attControl-"+y);
+  if(!ctrl) return;
+  const isOpen=sessSnap.exists()&&sessSnap.data().status==="OPEN";
+  const sess=sessSnap.exists()?sessSnap.data():{};
+
+  ctrl.innerHTML=isOpen?`
+    <div class="att-open-bar">
+      <span class="att-status-open">✅ OPEN</span>
+      <span style="font-size:0.9rem">Session: <strong>${sess.label||""}</strong></span>
+      <button class="btn btn-danger btn-sm" id="closeAttBtn-${y}">Close Attendance</button>
+    </div>`:
+    `<div class="att-closed-bar">
+      <span class="att-status-closed">❌ CLOSED</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group"><label>Session Label (e.g. 01-Jan-2025)</label><input type="text" id="sessLabel-${y}" placeholder="01-Jan-2025"/></div>
+      <button class="btn btn-success" id="openAttBtn-${y}">Open Attendance</button>
+    </div>`;
+
+  if(isOpen){
+    document.getElementById("closeAttBtn-"+y).onclick=async()=>{
+      await setDoc(doc(db,"attendance_sessions",y),{...sess,status:"CLOSED"});
+      // Fill absent for all students
+      const stuSnap=await getDocs(collection(db,"students_"+y));
+      for(const d of stuSnap.docs){
+        const s=d.data();
+        const attRef=doc(db,"attendance_records",y+"_"+s.regNo+"_"+sess.sessionId);
+        const exists=await getDoc(attRef);
+        if(!exists.exists()){
+          await setDoc(attRef,{regNo:s.regNo,name:s.name,yearKey:y,sessionId:sess.sessionId,sessionLabel:sess.label,timestamp:new Date().toISOString(),status:"A"});
+        }
+      }
+      loadAttendance(y);
+    };
+  } else {
+    document.getElementById("openAttBtn-"+y).onclick=async()=>{
+      const label=document.getElementById("sessLabel-"+y).value.trim();
+      if(!label){alert("Please enter a session label.");return;}
+      const sessionId=y+"_"+label.replace(/\s/g,"_")+"_"+Date.now();
+      await setDoc(doc(db,"attendance_sessions",y),{status:"OPEN",label,sessionId,yearKey:y,openedAt:new Date().toISOString()});
+      loadAttendance(y);
+    };
+  }
+
+  // Statement
+  await loadAttStatement(y);
+}
+
+async function loadAttStatement(y){
+  const stEl=document.getElementById("attStatement-"+y);
+  if(!stEl) return;
+
+  const [stuSnap,attSnap]=await Promise.all([
+    getDocs(query(collection(db,"students_"+y),orderBy("name"))),
+    getDocs(query(collection(db,"attendance_records"),where("yearKey","==",y)))
+  ]);
+  const students=stuSnap.docs.map(d=>d.data());
+  const records=attSnap.docs.map(d=>d.data());
+
+  // Get unique sessions
+  const sessions=[...new Set(records.map(r=>r.sessionLabel))].sort();
+  if(!sessions.length||!students.length){stEl.innerHTML=`<p style="color:var(--clr-muted);font-size:0.88rem">No attendance data yet.</p>`;return;}
+
+  // Build map: regNo → sessionLabel → status
+  const attMap={};
+  records.forEach(r=>{if(!attMap[r.regNo])attMap[r.regNo]={};attMap[r.regNo][r.sessionLabel]=r.status;});
+
+  const total=sessions.length;
+  let html=`<div class="att-table-wrap"><table class="att-table"><thead><tr><th>Reg No</th><th>Name</th>`;
+  sessions.forEach(s=>{html+=`<th style="min-width:90px">${s}</th>`;});
+  html+=`<th>Present</th><th>%</th></tr></thead><tbody>`;
+  students.forEach(s=>{
+    const row=attMap[s.regNo]||{};
+    const present=sessions.filter(sess=>row[sess]==="P").length;
+    const pct=total?Math.round(present/total*100):0;
+    html+=`<tr><td>${s.regNo}</td><td>${s.name}</td>`;
+    sessions.forEach(sess=>{
+      const st=row[sess]||"—";
+      html+=`<td class="${st==="P"?"att-p":st==="A"?"att-a":""}">${st}</td>`;
+    });
+    html+=`<td>${present}/${total}</td><td>${pct}%</td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  stEl.innerHTML=html;
+}
+
+// ── ASSIGNMENTS ────────────────────────────────────────
+async function loadAssignments(y){
+  const el=document.getElementById("assignList-"+y);
+  if(!el) return;
+  const snap=await getDocs(query(collection(db,"assignments"),where("yearKey","==",y),orderBy("createdAt","desc")));
+  const items=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(!items.length){el.innerHTML=`<p style="color:var(--clr-muted);font-size:0.88rem">No assignments yet.</p>`;return;}
+  el.innerHTML=items.map(item=>`
+    <div class="sub-row">
+      <div style="flex:1">
+        <strong>${item.title}</strong>
+        <span style="display:block;font-size:0.82rem;color:var(--clr-muted)">Total: ${item.totalMarks} marks · Due: ${item.dueDate||"—"}</span>
+        ${item.description?`<span style="font-size:0.82rem;color:var(--clr-muted)">${item.description}</span>`:""}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-xs view-subs-btn" data-id="${item.id}" data-title="${item.title}" data-marks="${item.totalMarks}" data-year="${y}">📎 Submissions</button>
+        <button class="btn btn-outline btn-xs mark-assign-btn" data-id="${item.id}" data-title="${item.title}" data-marks="${item.totalMarks}" data-year="${y}">✏️ Mark</button>
+        <button class="btn btn-danger btn-xs del-assign-btn" data-id="${item.id}">Delete</button>
+      </div>
+    </div>`).join("");
+
+  el.querySelectorAll(".del-assign-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("Delete this assignment?")) return;
+    await deleteDoc(doc(db,"assignments",btn.dataset.id));
+    loadAssignments(y);
+  }));
+  el.querySelectorAll(".view-subs-btn").forEach(btn=>btn.addEventListener("click",()=>viewSubmissions(btn.dataset.id,btn.dataset.title,btn.dataset.year)));
+  el.querySelectorAll(".mark-assign-btn").forEach(btn=>btn.addEventListener("click",()=>markAssignment(btn.dataset.id,btn.dataset.title,btn.dataset.marks,btn.dataset.year,"assignment")));
+}
+
+async function viewSubmissions(assignId,title,y){
+  const snap=await getDocs(query(collection(db,"submissions"),where("assignId","==",assignId)));
+  const subs=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const body=subs.length?subs.map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--clr-border);flex-wrap:wrap">
+      <div style="flex:1"><strong style="font-size:0.88rem">${s.name}</strong><span style="font-size:0.8rem;color:var(--clr-muted);display:block">${s.regNo} · ${s.submittedAt?s.submittedAt.substring(0,10):""}</span></div>
+      <a href="${s.fileURL}" target="_blank" class="btn btn-outline btn-xs">📥 Download</a>
+      <button class="btn btn-danger btn-xs del-sub-btn" data-id="${s.id}" data-path="${s.storagePath||""}">Delete</button>
+    </div>`).join(""):`<p style="color:var(--clr-muted)">No submissions yet.</p>`;
+
+  openModal(`📎 Submissions: ${title}`,[],null,body);
+  setTimeout(()=>{
+    document.querySelectorAll(".del-sub-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+      if(!confirm("Delete this submission? The student will be able to resubmit.")) return;
+      if(btn.dataset.path){try{await deleteObject(ref(storage,btn.dataset.path));}catch(e){}}
+      await deleteDoc(doc(db,"submissions",btn.dataset.id));
+      btn.closest("div[style]").remove();
+    }));
+  },100);
+}
+
+async function markAssignment(itemId,title,totalMarks,y,type){
+  const stuSnap=await getDocs(query(collection(db,"students_"+y),orderBy("name")));
+  const students=stuSnap.docs.map(d=>d.data());
+  const marksSnap=await getDocs(query(collection(db,"marks"),where("itemId","==",itemId)));
+  const existingMarks={};
+  marksSnap.docs.forEach(d=>{const m=d.data();existingMarks[m.regNo]={id:d.id,...m};});
+
+  const body=`<p style="font-size:0.85rem;color:var(--clr-muted);margin-bottom:12px">Total marks: ${totalMarks}</p>`+
+    students.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--clr-border)">
+      <span style="flex:1;font-size:0.88rem">${s.name} <span style="color:var(--clr-muted);font-size:0.78rem">(${s.regNo})</span></span>
+      <input type="number" class="mark-input" data-reg="${s.regNo}" min="0" max="${totalMarks}" value="${existingMarks[s.regNo]?.obtained||""}" placeholder="—" style="width:70px;padding:4px 8px;border:1px solid var(--clr-border);border-radius:4px;font-size:0.88rem"/>
+    </div>`).join("");
+
+  openModal(`✏️ Mark: ${title}`,[],async()=>{
+    const inputs=document.querySelectorAll(".mark-input");
+    for(const input of inputs){
+      const reg=input.dataset.reg; const val=input.value.trim();
+      if(val==="") continue;
+      const obtained=parseFloat(val);
+      const stu=students.find(s=>s.regNo===reg);
+      if(existingMarks[reg]){
+        await updateDoc(doc(db,"marks",existingMarks[reg].id),{obtained});
+      } else {
+        await addDoc(collection(db,"marks"),{itemId,itemType:type,regNo:reg,name:stu?.name||"",yearKey:y,obtained,totalMarks:parseInt(totalMarks),markedAt:new Date().toISOString()});
+      }
+    }
+    document.getElementById("editModal").classList.remove("open");
+  },body);
+}
+
+// ── DEBATES ────────────────────────────────────────────
+async function loadDebates(y){
+  const el=document.getElementById("debateList-"+y);
+  if(!el) return;
+  const snap=await getDocs(query(collection(db,"debates"),where("yearKey","==",y),orderBy("createdAt","desc")));
+  const items=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(!items.length){el.innerHTML=`<p style="color:var(--clr-muted);font-size:0.88rem">No debates yet.</p>`;return;}
+  el.innerHTML=items.map(item=>`
+    <div class="sub-row">
+      <div style="flex:1">
+        <strong>${item.title}</strong>
+        <span style="display:block;font-size:0.82rem;color:var(--clr-muted)">Total: ${item.totalMarks} marks · Group size: ${item.groupSize||"—"}</span>
+        ${item.description?`<span style="font-size:0.82rem;color:var(--clr-muted)">${item.description}</span>`:""}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-xs view-groups-btn" data-id="${item.id}" data-title="${item.title}">👥 Groups</button>
+        <button class="btn btn-outline btn-xs mark-debate-btn" data-id="${item.id}" data-title="${item.title}" data-marks="${item.totalMarks}" data-year="${y}">✏️ Mark</button>
+        <button class="btn btn-danger btn-xs del-debate-btn" data-id="${item.id}">Delete</button>
+      </div>
+    </div>`).join("");
+
+  el.querySelectorAll(".del-debate-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("Delete this debate?")) return;
+    await deleteDoc(doc(db,"debates",btn.dataset.id)); loadDebates(y);
+  }));
+  el.querySelectorAll(".view-groups-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    const dSnap=await getDoc(doc(db,"debates",btn.dataset.id));
+    const d=dSnap.data();
+    const groups={};
+    Object.entries(d.groupInfo||{}).forEach(([reg,g])=>{if(!groups[g])groups[g]=[];groups[g].push(reg);});
+    const body=Object.entries(groups).map(([g,regs])=>`<div style="margin-bottom:12px"><strong>${g}</strong><ul style="margin:4px 0 0 16px">${regs.map(r=>`<li style="font-size:0.88rem">${r}</li>`).join("")}</ul></div>`).join("");
+    openModal("👥 Groups: "+btn.dataset.title,[],null,body||"No groups assigned.");
+  }));
+  el.querySelectorAll(".mark-debate-btn").forEach(btn=>btn.addEventListener("click",()=>markAssignment(btn.dataset.id,btn.dataset.title,btn.dataset.marks,btn.dataset.year,"debate")));
+}
+
+// ── MARKSHEET ──────────────────────────────────────────
+async function loadMarksheet(y){
+  const el=document.getElementById("marksheetTable-"+y);
+  if(!el) return;
+  const [stuSnap,assSnap,debSnap,marksSnap]=await Promise.all([
+    getDocs(query(collection(db,"students_"+y),orderBy("name"))),
+    getDocs(query(collection(db,"assignments"),where("yearKey","==",y),orderBy("createdAt","desc"))),
+    getDocs(query(collection(db,"debates"),where("yearKey","==",y),orderBy("createdAt","desc"))),
+    getDocs(query(collection(db,"marks"),where("yearKey","==",y)))
+  ]);
+  const students=stuSnap.docs.map(d=>d.data());
+  const assignments=assSnap.docs.map(d=>({id:d.id,...d.data(),type:"A"}));
+  const debates=debSnap.docs.map(d=>({id:d.id,...d.data(),type:"D"}));
+  const allItems=[...assignments,...debates];
+  const marksMap={};
+  marksSnap.docs.forEach(d=>{const m=d.data();if(!marksMap[m.regNo])marksMap[m.regNo]={};marksMap[m.regNo][m.itemId]=m.obtained;});
+
+  if(!allItems.length||!students.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><p>No data yet.</p></div>`;return;}
+
+  let html=`<div class="marks-table-wrap" id="marksheetContent-${y}"><table class="marks-table" id="marksheetTbl-${y}"><thead><tr><th>Reg No</th><th>Name</th>`;
+  allItems.forEach(item=>{html+=`<th title="${item.title}">${item.type==="D"?"[D]":"[A]"} ${item.title.substring(0,12)}… (${item.totalMarks})</th>`;});
+  html+=`<th>Total</th></tr></thead><tbody>`;
+  students.forEach(s=>{
+    const row=marksMap[s.regNo]||{};
+    let total=0;
+    html+=`<tr><td>${s.regNo}</td><td>${s.name}</td>`;
+    allItems.forEach(item=>{const v=row[item.id]; const n=v!==undefined?v:0; total+=n; html+=`<td>${v!==undefined?v:"—"}</td>`;});
+    html+=`<td><strong>${total}</strong></td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  el.innerHTML=html;
+}
+
+async function downloadMarksheet(y,format){
+  const tbl=document.getElementById("marksheetTbl-"+y);
+  if(!tbl){alert("Load the marksheet tab first.");return;}
+  if(format==="excel"){
+    // Simple CSV download
+    const rows=Array.from(tbl.querySelectorAll("tr")).map(tr=>Array.from(tr.querySelectorAll("th,td")).map(td=>'"'+td.textContent.trim()+'"').join(","));
+    const csv=rows.join("\n");
+    const a=document.createElement("a"); a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.download=`marksheet_${YEAR_LABELS[y].replace(/\s/g,"_")}.csv`; a.click();
+  } else {
+    window.print();
+  }
+}
+
+// ── MODAL helper ───────────────────────────────────────
+let _modalSaveCb=null;
+document.getElementById("editModalSave").addEventListener("click",()=>{if(_modalSaveCb)_modalSaveCb();});
+function openModal(title,fields,onSave,customBody=null){
+  document.getElementById("editModalTitle").textContent=title;
+  if(customBody!==null){
+    document.getElementById("editModalBody").innerHTML=customBody;
+    document.getElementById("editModalSave").style.display=onSave?"inline-flex":"none";
+  } else {
+    document.getElementById("editModalBody").innerHTML=fields.map(f=>`<div class="form-group" style="margin-bottom:12px"><label>${f.label}</label><input type="${f.type||"text"}" id="em_${f.key}" value="${f.value||""}" placeholder="${f.placeholder||""}"/></div>`).join("");
+    document.getElementById("editModalSave").style.display="inline-flex";
+  }
+  _modalSaveCb=onSave?()=>{
+    if(fields.length){
+      const data={};
+      fields.forEach(f=>data[f.key]=document.getElementById("em_"+f.key).value.trim());
+      onSave(data);
+    } else {
+      onSave();
+    }
+    document.getElementById("editModal").classList.remove("open");
+  }:null;
+  document.getElementById("editModal").classList.add("open");
+}
+
+function showStat(id,msg,ok=true){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.textContent=msg; el.className="status-msg "+(ok?"status-ok":"status-err");
+  setTimeout(()=>{el.textContent="";el.className=""},3500);
+}
+</script>
+</body></html>

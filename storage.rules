@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Profile photo — only admin
+    match /profile/{file} {
+      allow read: true;
+      allow write: if request.auth != null && request.auth.token.email == "YOUR_GOOGLE_EMAIL@gmail.com";
+    }
+    // Submissions — anyone can upload (students), only admin deletes
+    match /submissions/{assignId}/{file} {
+      allow read: true;
+      allow create: if request.resource.size < 10 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.token.email == "YOUR_GOOGLE_EMAIL@gmail.com";
+    }
+  }
+}

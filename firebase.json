@@ -1,14 +1,12 @@
 {
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", ".firebaserc", "README.md", "firestore.rules"],
-    "rewrites": [],
-    "headers": [
-      { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-      { "source": "**/*.@(css|js)", "headers": [{ "key": "Cache-Control", "value": "max-age=86400" }] }
-    ]
+    "ignore": ["firebase.json", ".firebaserc", "README.md", "firestore.rules", "storage.rules"]
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

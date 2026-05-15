@@ -1,89 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Admin Panel | Abu Zafar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
-  <style>
-    body { background: #f0f2f5; }
-    .admin-wrap { max-width: 900px; margin: 0 auto; padding: calc(var(--nav-h) + 32px) 24px 60px; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
-    .admin-header h1 { font-family: var(--font-head); font-size: 1.8rem; }
-    .admin-user { font-size: 0.85rem; color: var(--clr-muted); }
-
-    /* Login screen */
-    #loginScreen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .login-card { background: var(--clr-surface); border-radius: 12px; padding: 48px; text-align: center; box-shadow: var(--shadow); max-width: 400px; width: 100%; }
-    .login-card h2 { font-family: var(--font-head); margin-bottom: 8px; }
-    .login-card p  { color: var(--clr-muted); font-size: 0.9rem; margin-bottom: 28px; }
-    .google-btn { display: flex; align-items: center; gap: 12px; justify-content: center; width: 100%; padding: 12px 24px; border: 1px solid var(--clr-border); border-radius: var(--radius); background: #fff; cursor: pointer; font-family: var(--font-body); font-size: 0.95rem; font-weight: 500; transition: box-shadow var(--transition); }
-    .google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .google-btn img { width: 20px; height: 20px; }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 4px; background: var(--clr-surface); padding: 6px; border-radius: 10px; margin-bottom: 28px; flex-wrap: wrap; box-shadow: var(--shadow); }
-    .tab { padding: 8px 16px; border: none; background: none; cursor: pointer; border-radius: 7px; font-family: var(--font-body); font-size: 0.88rem; font-weight: 500; color: var(--clr-muted); transition: all var(--transition); }
-    .tab.active { background: var(--clr-accent); color: #fff; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* Admin cards */
-    .admin-card { background: var(--clr-surface); border-radius: 10px; padding: 28px; margin-bottom: 20px; box-shadow: var(--shadow); }
-    .admin-card h3 { font-family: var(--font-head); font-size: 1.1rem; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--clr-border); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-
-    /* Item list */
-    .item-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8f7f4; border-radius: var(--radius); gap: 12px; flex-wrap: wrap; }
-    .item-row-info { flex: 1; }
-    .item-row-info strong { display: block; font-size: 0.9rem; }
-    .item-row-info span   { font-size: 0.82rem; color: var(--clr-muted); }
-    .item-actions { display: flex; gap: 8px; }
-
-    .status-msg { padding: 10px 16px; border-radius: var(--radius); font-size: 0.88rem; margin-top: 12px; }
-    .status-ok  { background: #e8f5e9; color: #2e7d32; }
-    .status-err { background: #fdecea; color: #c62828; }
-
-    #adminPanel { display: none; }
-  </style>
+  <style>body{background:#f0f2f5}#adminPanel{display:none}.upload-progress{height:6px;background:var(--clr-border);border-radius:3px;margin-top:8px;overflow:hidden}.upload-progress-bar{height:100%;background:var(--clr-accent);width:0%;transition:width 0.3s}</style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-card">
     <h2>Admin Panel</h2>
-    <p>Sign in with your Google account to manage your website content.</p>
+    <p>Sign in with your Google account to manage your website.</p>
     <button class="google-btn" id="googleSignIn">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"/>
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"/>
       Sign in with Google
     </button>
     <p id="loginError" style="color:#c62828;font-size:0.85rem;margin-top:16px"></p>
   </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3 id="editModalTitle">Edit Entry</h3>
+    <div id="editModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('editModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" id="editModalSave">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN PANEL -->
 <div id="adminPanel">
-  <nav id="navbar">
+  <nav id="navbar" style="display:block">
     <div class="nav-inner">
       <a href="index.html" class="nav-brand">Abu Zafar</a>
-      <span class="admin-user" id="adminUserEmail"></span>
-      <button class="btn btn-outline btn-sm" id="signOutBtn">Sign Out</button>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="adminUserEmail" style="font-size:0.82rem;color:var(--clr-muted)"></span>
+        <a href="index.html" class="btn btn-ghost btn-sm">← View Site</a>
+        <button class="btn btn-outline btn-sm" id="signOutBtn">Sign Out</button>
+      </div>
     </div>
   </nav>
 
   <div class="admin-wrap">
-    <div class="admin-header">
-      <h1>⚙️ Admin Panel</h1>
-      <a href="index.html" class="btn btn-ghost btn-sm">← View Site</a>
-    </div>
+    <div class="admin-header"><h1>⚙️ Admin Panel</h1></div>
 
-    <!-- TABS -->
     <div class="tabs">
       <button class="tab active" data-tab="hero">🏠 Home</button>
       <button class="tab" data-tab="about">👤 About</button>
@@ -96,96 +63,110 @@
       <button class="tab" data-tab="contact">📧 Contact</button>
     </div>
 
-    <!-- ══ HOME TAB ══ -->
+    <!-- HOME -->
     <div class="tab-panel active" id="tab-hero">
       <div class="admin-card">
-        <h3>Home Page — Hero Section</h3>
-        <div class="form-group"><label>Current Position (e.g. Assistant Professor)</label><input type="text" id="heroPosition"/></div>
-        <div class="form-group" style="margin-top:12px"><label>Institution / Department</label><input type="text" id="heroInstitution"/></div>
-        <div class="form-group" style="margin-top:12px"><label>Tagline (short description)</label><input type="text" id="heroTagline"/></div>
+        <h3>Home — Hero Section</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Current Position</label><input type="text" id="heroPosition" placeholder="Assistant Professor"/></div>
+          <div class="form-group"><label>Institution / Department</label><input type="text" id="heroInstitution"/></div>
+        </div>
+        <div class="form-group" style="margin-top:12px"><label>Tagline</label><input type="text" id="heroTagline"/></div>
         <div class="form-row" style="margin-top:12px">
           <div class="form-group"><label>Publications count</label><input type="text" id="heroStatPubs" placeholder="5"/></div>
           <div class="form-group"><label>Citations count</label><input type="text" id="heroStatCites" placeholder="35+"/></div>
           <div class="form-group"><label>Years of research</label><input type="text" id="heroStatYears" placeholder="5+"/></div>
         </div>
-        <div class="form-group" style="margin-top:12px"><label>Profile Photo URL (paste a direct image link)</label><input type="text" id="heroPhotoURL" placeholder="https://…"/></div>
+        <div class="form-group" style="margin-top:20px"><label>Profile Photo</label>
+          <div class="photo-upload-area" id="photoUploadArea">
+            <img id="photoPreview" class="photo-preview" src="" alt="" style="display:none"/>
+            <div id="photoUploadHint">
+              <div style="font-size:2rem">📸</div>
+              <p class="photo-upload-hint">Click to upload photo (JPG, PNG — max 2MB)</p>
+            </div>
+            <input type="file" id="photoFileInput" accept="image/jpeg,image/png,image/webp"/>
+          </div>
+          <div class="upload-progress" id="uploadProgress" style="display:none"><div class="upload-progress-bar" id="uploadProgressBar"></div></div>
+          <p style="font-size:0.8rem;color:var(--clr-muted);margin-top:6px">Or paste a direct image URL:</p>
+          <input type="text" id="heroPhotoURL" placeholder="https://…" style="margin-top:6px"/>
+        </div>
         <div class="form-actions">
-          <button class="btn btn-primary" id="saveHeroBtn">Save Changes</button>
+          <button class="btn btn-primary" id="saveHeroBtn">Save Home Page</button>
         </div>
         <div id="heroStatus"></div>
       </div>
     </div>
 
-    <!-- ══ ABOUT TAB ══ -->
+    <!-- ABOUT -->
     <div class="tab-panel" id="tab-about">
       <div class="admin-card">
         <h3>Bio &amp; Ambition</h3>
-        <div class="form-group"><label>Bio (each new line = new paragraph)</label><textarea id="aboutBio" rows="6"></textarea></div>
+        <div class="form-group"><label>Bio (each new line = new paragraph)</label><textarea id="aboutBio" rows="7"></textarea></div>
         <div class="form-group" style="margin-top:12px"><label>Future Ambitions</label><textarea id="aboutAmbition" rows="3"></textarea></div>
-        <div class="form-actions"><button class="btn btn-primary" id="saveAboutBtn">Save</button></div>
+        <div class="form-actions"><button class="btn btn-primary" id="saveAboutBtn">Save About</button></div>
         <div id="aboutStatus"></div>
       </div>
     </div>
 
-    <!-- ══ POSITIONS TAB ══ -->
+    <!-- POSITIONS -->
     <div class="tab-panel" id="tab-positions">
       <div class="admin-card">
         <h3>Academic Positions</h3>
         <div id="positionsList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Position</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
           <div class="form-group"><label>Title</label><input type="text" id="posTitle" placeholder="Assistant Professor"/></div>
-          <div class="form-group"><label>Institution</label><input type="text" id="posPlace" placeholder="University Name"/></div>
+          <div class="form-group"><label>Institution</label><input type="text" id="posPlace"/></div>
           <div class="form-group"><label>Years</label><input type="text" id="posYears" placeholder="2022 – Present"/></div>
-          <div class="form-group"><label>Order (1 = top)</label><input type="number" id="posOrder" value="1"/></div>
+          <div class="form-group"><label>Order</label><input type="number" id="posOrder" value="1"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="addPositionBtn">Add Position</button></div>
         <div id="posStatus"></div>
       </div>
     </div>
 
-    <!-- ══ EXPERIENCE TAB ══ -->
+    <!-- EXPERIENCE -->
     <div class="tab-panel" id="tab-experience">
       <div class="admin-card">
         <h3>Professional Experience</h3>
         <div id="experienceList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Experience</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
-          <div class="form-group"><label>Role / Title</label><input type="text" id="expTitle" placeholder="Researcher"/></div>
-          <div class="form-group"><label>Organization</label><input type="text" id="expPlace" placeholder="Organization Name"/></div>
-          <div class="form-group"><label>Years</label><input type="text" id="expYears" placeholder="2019 – 2022"/></div>
-          <div class="form-group"><label>Order (1 = top)</label><input type="number" id="expOrder" value="1"/></div>
+          <div class="form-group"><label>Role</label><input type="text" id="expTitle"/></div>
+          <div class="form-group"><label>Organization</label><input type="text" id="expPlace"/></div>
+          <div class="form-group"><label>Years</label><input type="text" id="expYears"/></div>
+          <div class="form-group"><label>Order</label><input type="number" id="expOrder" value="1"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="addExpBtn">Add Experience</button></div>
         <div id="expStatus"></div>
       </div>
     </div>
 
-    <!-- ══ EDUCATION TAB ══ -->
+    <!-- EDUCATION -->
     <div class="tab-panel" id="tab-education">
       <div class="admin-card">
         <h3>Education</h3>
         <div id="educationList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Degree</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
-          <div class="form-group"><label>Degree / Qualification</label><input type="text" id="eduTitle" placeholder="M.S.S. Political Science"/></div>
-          <div class="form-group"><label>Institution</label><input type="text" id="eduPlace" placeholder="University Name"/></div>
-          <div class="form-group"><label>Year(s)</label><input type="text" id="eduYears" placeholder="2015"/></div>
-          <div class="form-group"><label>Order (1 = top)</label><input type="number" id="eduOrder" value="1"/></div>
+          <div class="form-group"><label>Degree</label><input type="text" id="eduTitle" placeholder="M.S.S. Political Science"/></div>
+          <div class="form-group"><label>Institution</label><input type="text" id="eduPlace"/></div>
+          <div class="form-group"><label>Year(s)</label><input type="text" id="eduYears"/></div>
+          <div class="form-group"><label>Order</label><input type="number" id="eduOrder" value="1"/></div>
         </div>
-        <div class="form-actions"><button class="btn btn-primary" id="addEduBtn">Add Education</button></div>
+        <div class="form-actions"><button class="btn btn-primary" id="addEduBtn">Add Degree</button></div>
         <div id="eduStatus"></div>
       </div>
     </div>
 
-    <!-- ══ RESEARCH TAB ══ -->
+    <!-- RESEARCH -->
     <div class="tab-panel" id="tab-research">
       <div class="admin-card">
         <h3>Research Areas</h3>
         <div id="researchList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Research Area</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-group"><label>Icon (emoji)</label><input type="text" id="resIcon" placeholder="🌊" style="max-width:80px"/></div>
-        <div class="form-group" style="margin-top:10px"><label>Title</label><input type="text" id="resTitle" placeholder="Climate Change &amp; Coastal Vulnerability"/></div>
+        <div class="form-group" style="margin-top:10px"><label>Title</label><input type="text" id="resTitle"/></div>
         <div class="form-group" style="margin-top:10px"><label>Description</label><textarea id="resDesc" rows="3"></textarea></div>
         <div class="form-group" style="margin-top:10px"><label>Order</label><input type="number" id="resOrder" value="1"/></div>
         <div class="form-actions"><button class="btn btn-primary" id="addResBtn">Add Research Area</button></div>
@@ -193,320 +174,298 @@
       </div>
     </div>
 
-    <!-- ══ PUBLICATIONS TAB ══ -->
+    <!-- PUBLICATIONS -->
     <div class="tab-panel" id="tab-publications">
       <div class="admin-card">
         <h3>Publications</h3>
         <div id="pubsList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Publication</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-group"><label>Title</label><input type="text" id="pubTitle"/></div>
-        <div class="form-group" style="margin-top:10px"><label>Authors</label><input type="text" id="pubAuthors" placeholder="A Zafar, B Smith"/></div>
+        <div class="form-group" style="margin-top:10px"><label>Authors</label><input type="text" id="pubAuthors"/></div>
         <div class="form-row" style="margin-top:10px">
-          <div class="form-group"><label>Journal / Conference</label><input type="text" id="pubJournal"/></div>
+          <div class="form-group"><label>Journal</label><input type="text" id="pubJournal"/></div>
           <div class="form-group"><label>Year</label><input type="number" id="pubYear" placeholder="2024"/></div>
-          <div class="form-group"><label>Citations (number)</label><input type="number" id="pubCitations" placeholder="0"/></div>
+          <div class="form-group"><label>Citations</label><input type="number" id="pubCitations" placeholder="0"/></div>
         </div>
         <div class="form-row" style="margin-top:10px">
-          <div class="form-group"><label>PDF URL (optional)</label><input type="text" id="pubPdf" placeholder="https://…"/></div>
-          <div class="form-group"><label>DOI URL (optional)</label><input type="text" id="pubDoi" placeholder="https://doi.org/…"/></div>
+          <div class="form-group"><label>PDF URL</label><input type="text" id="pubPdf"/></div>
+          <div class="form-group"><label>DOI URL</label><input type="text" id="pubDoi"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="addPubBtn">Add Publication</button></div>
         <div id="pubStatus"></div>
       </div>
     </div>
 
-    <!-- ══ BLOG TAB ══ -->
+    <!-- BLOG -->
     <div class="tab-panel" id="tab-blog">
       <div class="admin-card">
         <h3>Blog Posts</h3>
         <div id="blogList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem">Add New Post</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-group"><label>Title</label><input type="text" id="blogTitle"/></div>
         <div class="form-row" style="margin-top:10px">
           <div class="form-group"><label>Category</label><input type="text" id="blogCat" placeholder="Climate Policy"/></div>
           <div class="form-group"><label>Date</label><input type="date" id="blogDate"/></div>
         </div>
-        <div class="form-group" style="margin-top:10px"><label>Excerpt (short summary)</label><textarea id="blogExcerpt" rows="3"></textarea></div>
-        <div class="form-group" style="margin-top:10px"><label>Post URL (link to full post, optional)</label><input type="text" id="blogUrl" placeholder="https://…"/></div>
+        <div class="form-group" style="margin-top:10px"><label>Excerpt</label><textarea id="blogExcerpt" rows="3"></textarea></div>
+        <div class="form-group" style="margin-top:10px"><label>Post URL (optional)</label><input type="text" id="blogUrl"/></div>
         <div class="form-actions"><button class="btn btn-primary" id="addBlogBtn">Add Post</button></div>
         <div id="blogStatus"></div>
       </div>
     </div>
 
-    <!-- ══ CONTACT TAB ══ -->
+    <!-- CONTACT -->
     <div class="tab-panel" id="tab-contact">
       <div class="admin-card">
         <h3>Contact Details &amp; Social Links</h3>
         <div class="form-row">
-          <div class="form-group"><label>Email</label><input type="email" id="ctEmail" placeholder="you@university.edu"/></div>
-          <div class="form-group"><label>Office Address</label><input type="text" id="ctOffice" placeholder="Room 101, Building, University, City"/></div>
+          <div class="form-group"><label>Email</label><input type="email" id="ctEmail"/></div>
+          <div class="form-group"><label>Office Address</label><input type="text" id="ctOffice"/></div>
         </div>
         <div class="form-row" style="margin-top:12px">
-          <div class="form-group"><label>GitHub URL</label><input type="text" id="ctGithub" placeholder="https://github.com/zafarbhbd"/></div>
-          <div class="form-group"><label>Google Scholar URL</label><input type="text" id="ctScholar" placeholder="https://scholar.google.com/…"/></div>
-          <div class="form-group"><label>ResearchGate URL</label><input type="text" id="ctRg" placeholder="https://researchgate.net/…"/></div>
-          <div class="form-group"><label>ORCID URL</label><input type="text" id="ctOrcid" placeholder="https://orcid.org/…"/></div>
-          <div class="form-group"><label>LinkedIn URL (optional)</label><input type="text" id="ctLinkedin" placeholder="https://linkedin.com/…"/></div>
+          <div class="form-group"><label>GitHub URL</label><input type="text" id="ctGithub"/></div>
+          <div class="form-group"><label>Google Scholar URL</label><input type="text" id="ctScholar"/></div>
+          <div class="form-group"><label>ResearchGate URL</label><input type="text" id="ctRg"/></div>
+          <div class="form-group"><label>ORCID URL</label><input type="text" id="ctOrcid"/></div>
+          <div class="form-group"><label>LinkedIn URL</label><input type="text" id="ctLinkedin"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="saveContactBtn">Save Contact Info</button></div>
         <div id="contactStatus"></div>
       </div>
     </div>
 
-  </div><!-- /admin-wrap -->
+  </div>
 </div><!-- /adminPanel -->
 
 <script type="module">
-import { auth, db, ADMIN_EMAIL } from "./js/firebase-config.js";
-import {
-  GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  doc, getDoc, setDoc, collection, getDocs, addDoc,
-  deleteDoc, orderBy, query, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { auth, db, storage, ADMIN_EMAIL } from "./js/firebase-config.js";
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, orderBy, query, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // ── Auth ───────────────────────────────────────────────
-const loginScreen = document.getElementById("loginScreen");
-const adminPanel  = document.getElementById("adminPanel");
-const navbar      = document.getElementById("navbar");
-
 onAuthStateChanged(auth, user => {
-  if (user && user.email === ADMIN_EMAIL) {
-    loginScreen.style.display = "none";
-    adminPanel.style.display  = "block";
-    navbar.style.display      = "block";
-    document.getElementById("adminUserEmail").textContent = user.email;
+  if(user && user.email===ADMIN_EMAIL){
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("adminPanel").style.display="block";
+    document.getElementById("adminUserEmail").textContent=user.email;
     loadAll();
   } else {
-    loginScreen.style.display = "flex";
-    adminPanel.style.display  = "none";
+    document.getElementById("loginScreen").style.display="flex";
+    document.getElementById("adminPanel").style.display="none";
   }
 });
-
-document.getElementById("googleSignIn").addEventListener("click", async () => {
-  const provider = new GoogleAuthProvider();
-  try {
-    const result = await signInWithPopup(auth, provider);
-    if (result.user.email !== ADMIN_EMAIL) {
-      await signOut(auth);
-      document.getElementById("loginError").textContent = "❌ Access denied. Only the site owner can log in.";
-    }
-  } catch (e) {
-    document.getElementById("loginError").textContent = "Sign-in failed: " + e.message;
-  }
+document.getElementById("googleSignIn").addEventListener("click",async()=>{
+  try{
+    const r=await signInWithPopup(auth,new GoogleAuthProvider());
+    if(r.user.email!==ADMIN_EMAIL){await signOut(auth);document.getElementById("loginError").textContent="❌ Access denied.";}
+  }catch(e){document.getElementById("loginError").textContent="Sign-in failed: "+e.message;}
 });
-
-document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
+document.getElementById("signOutBtn").addEventListener("click",()=>signOut(auth));
 
 // ── Tabs ───────────────────────────────────────────────
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
     tab.classList.add("active");
-    document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+    document.getElementById("tab-"+tab.dataset.tab).classList.add("active");
   });
 });
 
 // ── Status helper ──────────────────────────────────────
-function showStatus(id, msg, ok = true) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.className = "status-msg " + (ok ? "status-ok" : "status-err");
-  setTimeout(() => { el.textContent = ""; el.className = ""; }, 3000);
+function showStatus(id,msg,ok=true){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.className="status-msg "+(ok?"status-ok":"status-err");
+  setTimeout(()=>{el.textContent="";el.className=""},3500);
 }
 
-// ── Generic list renderer ──────────────────────────────
-function renderList(containerId, items, colName) {
-  const el = document.getElementById(containerId);
-  if (!items.length) { el.innerHTML = `<p style="color:var(--clr-muted);font-size:0.88rem">No entries yet.</p>`; return; }
-  el.innerHTML = items.map(i => `
+// ── Photo upload ───────────────────────────────────────
+const photoArea=document.getElementById("photoUploadArea");
+const photoInput=document.getElementById("photoFileInput");
+const photoPreview=document.getElementById("photoPreview");
+photoArea.addEventListener("click",()=>photoInput.click());
+photoInput.addEventListener("change",async()=>{
+  const file=photoInput.files[0];
+  if(!file) return;
+  if(file.size>2*1024*1024){showStatus("heroStatus","Photo must be under 2MB.",false);return;}
+  const progressWrap=document.getElementById("uploadProgress");
+  const progressBar=document.getElementById("uploadProgressBar");
+  progressWrap.style.display="block";
+  const storRef=ref(storage,"profile/photo_"+Date.now());
+  const task=uploadBytesResumable(storRef,file);
+  task.on("state_changed",snap=>{
+    progressBar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+"%";
+  },err=>{showStatus("heroStatus","Upload failed: "+err.message,false);progressWrap.style.display="none";},
+  async()=>{
+    const url=await getDownloadURL(task.snapshot.ref);
+    document.getElementById("heroPhotoURL").value=url;
+    photoPreview.src=url; photoPreview.style.display="block";
+    document.getElementById("photoUploadHint").style.display="none";
+    progressWrap.style.display="none";
+    showStatus("heroStatus","✅ Photo uploaded! Click 'Save Home Page' to apply.");
+  });
+});
+
+// ── Edit Modal ─────────────────────────────────────────
+let editCallback=null;
+document.getElementById("editModalSave").addEventListener("click",()=>{
+  if(editCallback) editCallback();
+});
+function openEditModal(title,fields,onSave){
+  document.getElementById("editModalTitle").textContent=title;
+  document.getElementById("editModalBody").innerHTML=fields.map(f=>`
+    <div class="form-group" style="margin-bottom:12px">
+      <label>${f.label}</label>
+      <input type="${f.type||"text"}" id="em_${f.key}" value="${f.value||""}" placeholder="${f.placeholder||""}"/>
+    </div>`).join("");
+  editCallback=()=>{
+    const data={};
+    fields.forEach(f=>data[f.key]=document.getElementById("em_"+f.key).value.trim());
+    onSave(data);
+    document.getElementById("editModal").classList.remove("open");
+  };
+  document.getElementById("editModal").classList.add("open");
+}
+
+// ── Generic list renderer with Edit + Delete ──────────
+function renderList(containerId,items,colName,fields){
+  const el=document.getElementById(containerId);
+  if(!items.length){el.innerHTML=`<p style="color:var(--clr-muted);font-size:0.88rem">No entries yet.</p>`;return;}
+  el.innerHTML=items.map(i=>`
     <div class="item-row">
       <div class="item-row-info">
-        <strong>${i.title || i.name || ""}</strong>
-        <span>${i.place || i.journal || i.excerpt || ""} ${i.years || i.year || ""}</span>
+        <strong>${i.title||i.name||""}</strong>
+        <span>${[i.place,i.journal,i.authors,i.excerpt].filter(Boolean).join(" · ")} ${i.years||i.year||""}</span>
       </div>
       <div class="item-actions">
-        <button class="btn btn-danger btn-sm" data-id="${i.id}" data-col="${colName}">Delete</button>
+        <button class="btn btn-outline btn-xs edit-btn" data-id="${i.id}" data-col="${colName}">Edit</button>
+        <button class="btn btn-danger btn-xs del-btn" data-id="${i.id}" data-col="${colName}">Delete</button>
       </div>
     </div>`).join("");
-  el.querySelectorAll("[data-col]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Delete this entry?")) return;
-      await deleteDoc(doc(db, btn.dataset.col, btn.dataset.id));
+  el.querySelectorAll(".del-btn").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("Delete this entry? This cannot be undone.")) return;
+    await deleteDoc(doc(db,btn.dataset.col,btn.dataset.id));
+    loadAll();
+  }));
+  el.querySelectorAll(".edit-btn").forEach(btn=>btn.addEventListener("click",()=>{
+    const item=items.find(i=>i.id===btn.dataset.id);
+    if(!item) return;
+    const editFields=fields.map(f=>({...f,value:item[f.key]||""}));
+    openEditModal("Edit Entry",editFields,async data=>{
+      await updateDoc(doc(db,btn.dataset.col,btn.dataset.id),data);
       loadAll();
     });
-  });
+  }));
 }
 
-// ── Load all data ──────────────────────────────────────
-async function loadAll() {
+// ── Load all ───────────────────────────────────────────
+async function loadAll(){
   // Hero
-  const heroSnap = await getDoc(doc(db, "site", "hero"));
-  if (heroSnap.exists()) {
-    const d = heroSnap.data();
-    document.getElementById("heroPosition").value    = d.position    || "";
-    document.getElementById("heroInstitution").value = d.institution || "";
-    document.getElementById("heroTagline").value     = d.tagline     || "";
-    document.getElementById("heroPhotoURL").value    = d.photoURL    || "";
-    document.getElementById("heroStatPubs").value    = d.statPubs    || "";
-    document.getElementById("heroStatCites").value   = d.statCites   || "";
-    document.getElementById("heroStatYears").value   = d.statYears   || "";
+  const hSnap=await getDoc(doc(db,"site","hero"));
+  if(hSnap.exists()){
+    const d=hSnap.data();
+    document.getElementById("heroPosition").value=d.position||"";
+    document.getElementById("heroInstitution").value=d.institution||"";
+    document.getElementById("heroTagline").value=d.tagline||"";
+    document.getElementById("heroPhotoURL").value=d.photoURL||"";
+    document.getElementById("heroStatPubs").value=d.statPubs||"";
+    document.getElementById("heroStatCites").value=d.statCites||"";
+    document.getElementById("heroStatYears").value=d.statYears||"";
+    if(d.photoURL){photoPreview.src=d.photoURL;photoPreview.style.display="block";document.getElementById("photoUploadHint").style.display="none";}
   }
   // About
-  const aboutSnap = await getDoc(doc(db, "site", "about"));
-  if (aboutSnap.exists()) {
-    document.getElementById("aboutBio").value      = aboutSnap.data().bio      || "";
-    document.getElementById("aboutAmbition").value = aboutSnap.data().ambition || "";
+  const aSnap=await getDoc(doc(db,"site","about"));
+  if(aSnap.exists()){
+    document.getElementById("aboutBio").value=aSnap.data().bio||"";
+    document.getElementById("aboutAmbition").value=aSnap.data().ambition||"";
   }
   // Contact
-  const ctSnap = await getDoc(doc(db, "site", "contact"));
-  if (ctSnap.exists()) {
-    const d = ctSnap.data();
-    document.getElementById("ctEmail").value    = d.email        || "";
-    document.getElementById("ctOffice").value   = d.office       || "";
-    document.getElementById("ctGithub").value   = d.github       || "";
-    document.getElementById("ctScholar").value  = d.scholar      || "";
-    document.getElementById("ctRg").value       = d.researchgate || "";
-    document.getElementById("ctOrcid").value    = d.orcid        || "";
-    document.getElementById("ctLinkedin").value = d.linkedin     || "";
+  const cSnap=await getDoc(doc(db,"site","contact"));
+  if(cSnap.exists()){
+    const d=cSnap.data();
+    ["ctEmail","ctOffice","ctGithub","ctScholar","ctRg","ctOrcid","ctLinkedin"].forEach(id=>{
+      const key=id.replace("ct","").toLowerCase();
+      const map={ctemail:"email",ctoffice:"office",ctgithub:"github",ctscholar:"scholar",ctrg:"researchgate",ctorcid:"orcid",ctlinkedin:"linkedin"};
+      document.getElementById(id).value=d[map[id.toLowerCase()]]||"";
+    });
   }
-  // Lists
-  const load = async (col, ordField = "order") => {
-    const s = await getDocs(query(collection(db, col), orderBy(ordField)));
-    return s.docs.map(d => ({ id: d.id, ...d.data() }));
-  };
-  renderList("positionsList",  await load("positions"),              "positions");
-  renderList("experienceList", await load("experience"),             "experience");
-  renderList("educationList",  await load("education"),              "education");
-  renderList("researchList",   await load("research"),               "research");
-  renderList("pubsList",       await load("publications", "year"),   "publications");
-  renderList("blogList",       await load("blog", "date"),           "blog");
+
+  const timelineFields=[{key:"title",label:"Title"},{key:"place",label:"Institution / Organization"},{key:"years",label:"Years"}];
+  const load=async(col,ord="order")=>{const s=await getDocs(query(collection(db,col),orderBy(ord)));return s.docs.map(d=>({id:d.id,...d.data()}));};
+
+  renderList("positionsList", await load("positions"),  "positions",  timelineFields);
+  renderList("experienceList",await load("experience"), "experience", timelineFields);
+  renderList("educationList", await load("education"),  "education",  timelineFields);
+  renderList("researchList",  await load("research"),   "research",   [{key:"icon",label:"Icon"},{key:"title",label:"Title"},{key:"description",label:"Description"}]);
+  renderList("pubsList",      await load("publications","year"),"publications",[{key:"title",label:"Title"},{key:"authors",label:"Authors"},{key:"journal",label:"Journal"},{key:"year",label:"Year",type:"number"},{key:"citations",label:"Citations",type:"number"},{key:"pdfUrl",label:"PDF URL"},{key:"doiUrl",label:"DOI URL"}]);
+  renderList("blogList",      await load("blog","date"),"blog",[{key:"title",label:"Title"},{key:"category",label:"Category"},{key:"excerpt",label:"Excerpt"},{key:"url",label:"URL"}]);
 }
 
 // ── Save Hero ──────────────────────────────────────────
-document.getElementById("saveHeroBtn").addEventListener("click", async () => {
-  await setDoc(doc(db, "site", "hero"), {
-    position:    document.getElementById("heroPosition").value.trim(),
-    institution: document.getElementById("heroInstitution").value.trim(),
-    tagline:     document.getElementById("heroTagline").value.trim(),
-    photoURL:    document.getElementById("heroPhotoURL").value.trim(),
-    statPubs:    document.getElementById("heroStatPubs").value.trim(),
-    statCites:   document.getElementById("heroStatCites").value.trim(),
-    statYears:   document.getElementById("heroStatYears").value.trim(),
+document.getElementById("saveHeroBtn").addEventListener("click",async()=>{
+  await setDoc(doc(db,"site","hero"),{
+    position:document.getElementById("heroPosition").value.trim(),
+    institution:document.getElementById("heroInstitution").value.trim(),
+    tagline:document.getElementById("heroTagline").value.trim(),
+    photoURL:document.getElementById("heroPhotoURL").value.trim(),
+    statPubs:document.getElementById("heroStatPubs").value.trim(),
+    statCites:document.getElementById("heroStatCites").value.trim(),
+    statYears:document.getElementById("heroStatYears").value.trim(),
   });
-  showStatus("heroStatus", "✅ Home page saved!");
+  showStatus("heroStatus","✅ Home page saved!");
 });
 
 // ── Save About ─────────────────────────────────────────
-document.getElementById("saveAboutBtn").addEventListener("click", async () => {
-  await setDoc(doc(db, "site", "about"), {
-    bio:      document.getElementById("aboutBio").value.trim(),
-    ambition: document.getElementById("aboutAmbition").value.trim(),
-  });
-  showStatus("aboutStatus", "✅ About page saved!");
+document.getElementById("saveAboutBtn").addEventListener("click",async()=>{
+  await setDoc(doc(db,"site","about"),{bio:document.getElementById("aboutBio").value.trim(),ambition:document.getElementById("aboutAmbition").value.trim()});
+  showStatus("aboutStatus","✅ Saved!");
 });
 
-// ── Add Position ───────────────────────────────────────
-document.getElementById("addPositionBtn").addEventListener("click", async () => {
-  const title = document.getElementById("posTitle").value.trim();
-  if (!title) { showStatus("posStatus", "Title is required.", false); return; }
-  await addDoc(collection(db, "positions"), {
-    title, place: document.getElementById("posPlace").value.trim(),
-    years: document.getElementById("posYears").value.trim(),
-    order: parseInt(document.getElementById("posOrder").value) || 1,
-  });
-  ["posTitle","posPlace","posYears"].forEach(id => document.getElementById(id).value = "");
-  showStatus("posStatus", "✅ Position added!"); loadAll();
+// ── Timeline adds ──────────────────────────────────────
+async function addTimeline(col,fields,statusId){
+  const title=fields.title.value.trim();
+  if(!title){showStatus(statusId,"Title/Role is required.",false);return;}
+  await addDoc(collection(db,col),{title,place:fields.place.value.trim(),years:fields.years.value.trim(),order:parseInt(fields.order.value)||1});
+  Object.values(fields).forEach(f=>f.value="");
+  showStatus(statusId,"✅ Added!"); loadAll();
+}
+document.getElementById("addPositionBtn").addEventListener("click",()=>addTimeline("positions",{title:document.getElementById("posTitle"),place:document.getElementById("posPlace"),years:document.getElementById("posYears"),order:document.getElementById("posOrder")},"posStatus"));
+document.getElementById("addExpBtn").addEventListener("click",()=>addTimeline("experience",{title:document.getElementById("expTitle"),place:document.getElementById("expPlace"),years:document.getElementById("expYears"),order:document.getElementById("expOrder")},"expStatus"));
+document.getElementById("addEduBtn").addEventListener("click",()=>addTimeline("education",{title:document.getElementById("eduTitle"),place:document.getElementById("eduPlace"),years:document.getElementById("eduYears"),order:document.getElementById("eduOrder")},"eduStatus"));
+
+// ── Research ───────────────────────────────────────────
+document.getElementById("addResBtn").addEventListener("click",async()=>{
+  const title=document.getElementById("resTitle").value.trim();
+  if(!title){showStatus("resStatus","Title required.",false);return;}
+  await addDoc(collection(db,"research"),{icon:document.getElementById("resIcon").value.trim()||"📌",title,description:document.getElementById("resDesc").value.trim(),order:parseInt(document.getElementById("resOrder").value)||1});
+  ["resIcon","resTitle","resDesc"].forEach(id=>document.getElementById(id).value="");
+  showStatus("resStatus","✅ Added!"); loadAll();
 });
 
-// ── Add Experience ─────────────────────────────────────
-document.getElementById("addExpBtn").addEventListener("click", async () => {
-  const title = document.getElementById("expTitle").value.trim();
-  if (!title) { showStatus("expStatus", "Role is required.", false); return; }
-  await addDoc(collection(db, "experience"), {
-    title, place: document.getElementById("expPlace").value.trim(),
-    years: document.getElementById("expYears").value.trim(),
-    order: parseInt(document.getElementById("expOrder").value) || 1,
-  });
-  ["expTitle","expPlace","expYears"].forEach(id => document.getElementById(id).value = "");
-  showStatus("expStatus", "✅ Experience added!"); loadAll();
+// ── Publications ───────────────────────────────────────
+document.getElementById("addPubBtn").addEventListener("click",async()=>{
+  const title=document.getElementById("pubTitle").value.trim();
+  if(!title){showStatus("pubStatus","Title required.",false);return;}
+  await addDoc(collection(db,"publications"),{title,authors:document.getElementById("pubAuthors").value.trim(),journal:document.getElementById("pubJournal").value.trim(),year:parseInt(document.getElementById("pubYear").value)||new Date().getFullYear(),citations:parseInt(document.getElementById("pubCitations").value)||0,pdfUrl:document.getElementById("pubPdf").value.trim(),doiUrl:document.getElementById("pubDoi").value.trim()});
+  ["pubTitle","pubAuthors","pubJournal","pubYear","pubCitations","pubPdf","pubDoi"].forEach(id=>document.getElementById(id).value="");
+  showStatus("pubStatus","✅ Added!"); loadAll();
 });
 
-// ── Add Education ──────────────────────────────────────
-document.getElementById("addEduBtn").addEventListener("click", async () => {
-  const title = document.getElementById("eduTitle").value.trim();
-  if (!title) { showStatus("eduStatus", "Degree is required.", false); return; }
-  await addDoc(collection(db, "education"), {
-    title, place: document.getElementById("eduPlace").value.trim(),
-    years: document.getElementById("eduYears").value.trim(),
-    order: parseInt(document.getElementById("eduOrder").value) || 1,
-  });
-  ["eduTitle","eduPlace","eduYears"].forEach(id => document.getElementById(id).value = "");
-  showStatus("eduStatus", "✅ Education added!"); loadAll();
+// ── Blog ───────────────────────────────────────────────
+document.getElementById("addBlogBtn").addEventListener("click",async()=>{
+  const title=document.getElementById("blogTitle").value.trim();
+  if(!title){showStatus("blogStatus","Title required.",false);return;}
+  const dateVal=document.getElementById("blogDate").value;
+  await addDoc(collection(db,"blog"),{title,category:document.getElementById("blogCat").value.trim(),excerpt:document.getElementById("blogExcerpt").value.trim(),url:document.getElementById("blogUrl").value.trim(),date:dateVal?Timestamp.fromDate(new Date(dateVal)):Timestamp.now()});
+  ["blogTitle","blogCat","blogExcerpt","blogUrl","blogDate"].forEach(id=>document.getElementById(id).value="");
+  showStatus("blogStatus","✅ Added!"); loadAll();
 });
 
-// ── Add Research ───────────────────────────────────────
-document.getElementById("addResBtn").addEventListener("click", async () => {
-  const title = document.getElementById("resTitle").value.trim();
-  if (!title) { showStatus("resStatus", "Title is required.", false); return; }
-  await addDoc(collection(db, "research"), {
-    icon:  document.getElementById("resIcon").value.trim()  || "📌",
-    title, description: document.getElementById("resDesc").value.trim(),
-    order: parseInt(document.getElementById("resOrder").value) || 1,
-  });
-  ["resIcon","resTitle","resDesc"].forEach(id => document.getElementById(id).value = "");
-  showStatus("resStatus", "✅ Research area added!"); loadAll();
+// ── Contact ────────────────────────────────────────────
+document.getElementById("saveContactBtn").addEventListener("click",async()=>{
+  await setDoc(doc(db,"site","contact"),{email:document.getElementById("ctEmail").value.trim(),office:document.getElementById("ctOffice").value.trim(),github:document.getElementById("ctGithub").value.trim(),scholar:document.getElementById("ctScholar").value.trim(),researchgate:document.getElementById("ctRg").value.trim(),orcid:document.getElementById("ctOrcid").value.trim(),linkedin:document.getElementById("ctLinkedin").value.trim()});
+  showStatus("contactStatus","✅ Saved!");
 });
-
-// ── Add Publication ────────────────────────────────────
-document.getElementById("addPubBtn").addEventListener("click", async () => {
-  const title = document.getElementById("pubTitle").value.trim();
-  if (!title) { showStatus("pubStatus", "Title is required.", false); return; }
-  await addDoc(collection(db, "publications"), {
-    title, authors:   document.getElementById("pubAuthors").value.trim(),
-    journal:   document.getElementById("pubJournal").value.trim(),
-    year:      parseInt(document.getElementById("pubYear").value) || new Date().getFullYear(),
-    citations: parseInt(document.getElementById("pubCitations").value) || 0,
-    pdfUrl:    document.getElementById("pubPdf").value.trim(),
-    doiUrl:    document.getElementById("pubDoi").value.trim(),
-  });
-  ["pubTitle","pubAuthors","pubJournal","pubYear","pubCitations","pubPdf","pubDoi"]
-    .forEach(id => document.getElementById(id).value = "");
-  showStatus("pubStatus", "✅ Publication added!"); loadAll();
-});
-
-// ── Add Blog Post ──────────────────────────────────────
-document.getElementById("addBlogBtn").addEventListener("click", async () => {
-  const title = document.getElementById("blogTitle").value.trim();
-  if (!title) { showStatus("blogStatus", "Title is required.", false); return; }
-  const dateVal = document.getElementById("blogDate").value;
-  await addDoc(collection(db, "blog"), {
-    title, category: document.getElementById("blogCat").value.trim(),
-    excerpt: document.getElementById("blogExcerpt").value.trim(),
-    url:     document.getElementById("blogUrl").value.trim(),
-    date:    dateVal ? Timestamp.fromDate(new Date(dateVal)) : Timestamp.now(),
-  });
-  ["blogTitle","blogCat","blogExcerpt","blogUrl","blogDate"]
-    .forEach(id => document.getElementById(id).value = "");
-  showStatus("blogStatus", "✅ Blog post added!"); loadAll();
-});
-
-// ── Save Contact ───────────────────────────────────────
-document.getElementById("saveContactBtn").addEventListener("click", async () => {
-  await setDoc(doc(db, "site", "contact"), {
-    email:        document.getElementById("ctEmail").value.trim(),
-    office:       document.getElementById("ctOffice").value.trim(),
-    github:       document.getElementById("ctGithub").value.trim(),
-    scholar:      document.getElementById("ctScholar").value.trim(),
-    researchgate: document.getElementById("ctRg").value.trim(),
-    orcid:        document.getElementById("ctOrcid").value.trim(),
-    linkedin:     document.getElementById("ctLinkedin").value.trim(),
-  });
-  showStatus("contactStatus", "✅ Contact info saved!");
-});
-
 </script>
-</body>
-</html>
+</body></html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Attendance | Abu Zafar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .att-hero{padding:calc(var(--nav-h)+48px) 24px 48px;background:linear-gradient(135deg,#e8eef8,#f8f7f4);text-align:center}
+    .att-hero h1{font-family:var(--font-head);font-size:2.2rem;margin-bottom:8px}
+    .att-hero p{color:var(--clr-muted)}
+    .att-form-card{max-width:480px;margin:0 auto;background:var(--clr-surface);border-radius:16px;padding:36px;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+    .att-result{max-width:480px;margin:24px auto 0;background:#e8f5e9;border-radius:12px;padding:24px;text-align:center;display:none}
+    .att-result h3{color:#2e7d32;font-family:var(--font-head);margin-bottom:12px}
+    .att-result p{color:#1b5e20;font-size:0.9rem;margin:4px 0}
+    .status-open{color:#2e7d32;font-weight:600;font-size:0.9rem;margin-top:8px}
+    .status-closed{color:#c62828;font-weight:600;font-size:0.9rem;margin-top:8px}
+    .year-selector{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+    .year-btn{padding:8px 16px;border:2px solid var(--clr-border);border-radius:20px;background:none;cursor:pointer;font-family:var(--font-body);font-size:0.85rem;font-weight:500;transition:all var(--transition)}
+    .year-btn.active{background:var(--clr-accent);color:#fff;border-color:var(--clr-accent)}
+  </style>
+</head>
+<body>
+<nav id="navbar"></nav>
+<div class="att-hero">
+  <h1>📋 Attendance Portal</h1>
+  <p>Select your year and submit your attendance below.</p>
+</div>
+<section class="section" style="padding:48px 24px">
+  <div class="att-form-card">
+    <!-- Year selector -->
+    <div class="year-selector" id="yearSelector">
+      <button class="year-btn active" data-year="Y1">Hons 1st Year</button>
+      <button class="year-btn" data-year="Y2">Hons 2nd Year</button>
+      <button class="year-btn" data-year="Y3">Hons 3rd Year</button>
+      <button class="year-btn" data-year="Y4">Hons 4th Year</button>
+      <button class="year-btn" data-year="M">Masters</button>
+    </div>
+    <div id="sessionInfo" style="text-align:center;margin-bottom:20px;min-height:24px"></div>
+
+    <div class="form-group">
+      <label>Registration Number</label>
+      <input type="text" id="attReg" placeholder="e.g. 23219054277" maxlength="20"/>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Full Name</label>
+      <select id="attName"><option value="">— Select your name —</option></select>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" style="width:100%" id="submitAttBtn">Submit Attendance</button>
+    </div>
+    <p id="attError" style="color:#c62828;font-size:0.85rem;margin-top:12px;text-align:center"></p>
+  </div>
+  <div class="att-result" id="attResult">
+    <h3>✅ Attendance Recorded!</h3>
+    <p id="attResName"></p>
+    <p id="attResYear"></p>
+    <p id="attResSession"></p>
+    <p id="attResTotal" style="margin-top:12px;font-size:1rem;font-weight:500"></p>
+  </div>
+</section>
+<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar.</p></div></footer>
+<script type="module">
+import { insertNav } from "./js/nav.js";
+import { db } from "./js/firebase-config.js";
+import { doc, getDoc, collection, getDocs, updateDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import "./js/shared.js";
+insertNav();
+
+const YEAR_LABELS={"Y1":"Hons 1st Year","Y2":"Hons 2nd Year","Y3":"Hons 3rd Year","Y4":"Hons 4th Year","M":"Masters"};
+let selectedYear="Y1";
+let students=[];
+
+async function loadYear(yearKey){
+  selectedYear=yearKey;
+  document.getElementById("attError").textContent="";
+  document.getElementById("attResult").style.display="none";
+  document.getElementById("attReg").value="";
+
+  // Check session status
+  const sessSnap=await getDoc(doc(db,"attendance_sessions",yearKey));
+  const sessInfo=document.getElementById("sessionInfo");
+  if(!sessSnap.exists()||sessSnap.data().status!=="OPEN"){
+    sessInfo.innerHTML=`<span class="status-closed">❌ Attendance is currently closed for ${YEAR_LABELS[yearKey]}</span>`;
+    document.getElementById("submitAttBtn").disabled=true;
+  } else {
+    const s=sessSnap.data();
+    sessInfo.innerHTML=`<span class="status-open">✅ Attendance OPEN — Session: ${s.label||""}</span>`;
+    document.getElementById("submitAttBtn").disabled=false;
+  }
+
+  // Load student list
+  const stuSnap=await getDocs(query(collection(db,"students_"+yearKey),orderBy("name")));
+  students=stuSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const sel=document.getElementById("attName");
+  sel.innerHTML=`<option value="">— Select your name —</option>`+students.map(s=>`<option value="${s.regNo}">${s.name} (${s.regNo})</option>`).join("");
+}
+
+// Auto-fill reg when name selected
+document.getElementById("attName").addEventListener("change",e=>{
+  if(e.target.value) document.getElementById("attReg").value=e.target.value;
+});
+
+// Year buttons
+document.querySelectorAll(".year-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".year-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    loadYear(btn.dataset.year);
+  });
+});
+
+// Submit
+document.getElementById("submitAttBtn").addEventListener("click",async()=>{
+  const reg=document.getElementById("attReg").value.trim();
+  const errEl=document.getElementById("attError");
+  errEl.textContent="";
+  if(!reg){errEl.textContent="Please enter your registration number.";return;}
+
+  const student=students.find(s=>s.regNo===reg);
+  if(!student){errEl.textContent="Registration number not found. Please check and try again.";return;}
+
+  // Check session
+  const sessSnap=await getDoc(doc(db,"attendance_sessions",selectedYear));
+  if(!sessSnap.exists()||sessSnap.data().status!=="OPEN"){errEl.textContent="Attendance is closed.";return;}
+  const sess=sessSnap.data();
+
+  // Check already submitted
+  const attDocRef=doc(db,"attendance_records",selectedYear+"_"+reg+"_"+sess.sessionId);
+  const attSnap=await getDoc(attDocRef);
+  if(attSnap.exists()){errEl.textContent="You have already submitted attendance for this session!";return;}
+
+  // Save attendance
+  const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  await setDoc(attDocRef,{regNo:reg,name:student.name,yearKey:selectedYear,sessionId:sess.sessionId,sessionLabel:sess.label,timestamp:new Date().toISOString(),status:"P"});
+
+  // Show result
+  const result=document.getElementById("attResult");
+  document.getElementById("attResName").textContent="👤 "+student.name+" ("+reg+")";
+  document.getElementById("attResYear").textContent="📅 "+YEAR_LABELS[selectedYear];
+  document.getElementById("attResSession").textContent="🗓️ Session: "+sess.label;
+  result.style.display="block";
+  document.getElementById("submitAttBtn").disabled=true;
+  document.getElementById("attReg").value="";
+  document.getElementById("attName").value="";
+});
+
+loadYear("Y1");
+</script>
+</body></html>

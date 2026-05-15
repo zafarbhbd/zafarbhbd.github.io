@@ -1,123 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>About | Abu Zafar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
-  <style>
-    .about-grid { display: grid; grid-template-columns: 1fr 380px; gap: 64px; align-items: start; }
-    .about-bio p { margin-bottom: 16px; font-size: 1rem; line-height: 1.8; }
-    .about-ambition { margin-top: 28px; padding: 20px 24px; background: var(--clr-accent-lt); border-left: 4px solid var(--clr-accent); border-radius: 0 var(--radius) var(--radius) 0; }
-    .about-ambition h3 { font-family: var(--font-head); font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: var(--clr-accent); }
-    .sidebar-block { margin-bottom: 32px; }
-    .sidebar-heading { font-family: var(--font-head); font-size: 0.95rem; font-weight: 600; color: var(--clr-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--clr-border); }
-    @media(max-width:900px){ .about-grid { grid-template-columns: 1fr; } }
-  </style>
 </head>
 <body>
-
-<nav id="navbar">
-  <div class="nav-inner">
-    <a href="index.html" class="nav-brand">Abu Zafar</a>
-    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="research.html">Research</a></li>
-      <li><a href="publications.html">Publications</a></li>
-      <li><a href="blog.html">Blog</a></li>
-      <li><a href="contact.html">Contact</a></li>
-    </ul>
-  </div>
-</nav>
-
-<div class="page-header">
-  <div class="container">
-    <h1>About Me</h1>
-    <p>Political scientist, researcher, and educator.</p>
-  </div>
-</div>
-
+<nav id="navbar"></nav>
+<div class="page-header"><div class="container"><h1>About Me</h1><p>Political scientist, researcher, and educator.</p></div></div>
 <section class="section">
   <div class="container">
     <div class="about-grid">
-      <div class="about-bio" data-fade>
-        <div id="bioText"><div class="spinner"></div></div>
-        <div class="about-ambition">
-          <h3>Future Ambitions</h3>
-          <p id="ambitionText">Loading…</p>
+      <!-- LEFT: Bio -->
+      <div data-fade>
+        <div class="about-bio-card">
+          <div id="bioText"><div class="spinner"></div></div>
+          <div class="about-ambition">
+            <h3>🎯 Future Ambitions</h3>
+            <p id="ambitionText">Loading…</p>
+          </div>
         </div>
       </div>
+      <!-- RIGHT: Sidebar -->
       <div>
-        <div class="sidebar-block" data-fade>
-          <h3 class="sidebar-heading">Academic Positions</h3>
-          <div class="timeline" id="positionsList"><div class="spinner"></div></div>
+        <!-- Positions — Blue -->
+        <div class="sidebar-block sb-positions" data-fade>
+          <div class="sidebar-block-header">🎓 Academic Positions</div>
+          <div class="sidebar-block-body">
+            <div class="timeline" id="positionsList"><div class="spinner"></div></div>
+          </div>
         </div>
-        <div class="sidebar-block" data-fade>
-          <h3 class="sidebar-heading">Professional Experience</h3>
-          <div class="timeline" id="experienceList"><div class="spinner"></div></div>
+        <!-- Experience — Green -->
+        <div class="sidebar-block sb-experience" data-fade>
+          <div class="sidebar-block-header">💼 Professional Experience</div>
+          <div class="sidebar-block-body">
+            <div class="timeline" id="experienceList"><div class="spinner"></div></div>
+          </div>
         </div>
-        <div class="sidebar-block" data-fade>
-          <h3 class="sidebar-heading">Education</h3>
-          <div class="timeline" id="educationList"><div class="spinner"></div></div>
+        <!-- Education — Purple -->
+        <div class="sidebar-block sb-education" data-fade>
+          <div class="sidebar-block-header">📚 Education</div>
+          <div class="sidebar-block-body">
+            <div class="timeline" id="educationList"><div class="spinner"></div></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
-
-<footer class="footer">
-  <div class="container footer-inner">
-    <p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p>
-    <p>Hosted on Firebase &amp; GitHub Pages</p>
-  </div>
-</footer>
-
+<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar.</p><p>Hosted on Firebase &amp; GitHub Pages</p></div></footer>
 <script type="module">
-  import { db }                        from "./js/firebase-config.js";
-  import { doc, getDoc, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import "./js/shared.js";
+import { insertNav } from "./js/nav.js";
+import { db } from "./js/firebase-config.js";
+import { doc, getDoc, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import "./js/shared.js";
+insertNav("about");
 
-  function timelineHTML(items) {
-    if (!items.length) return `<p style="color:var(--clr-muted);font-size:0.9rem">No entries yet.</p>`;
-    return items.map(i => `
-      <div class="timeline-item">
-        <span class="timeline-year">${i.years || ""}</span>
-        <strong>${i.title || ""}</strong>
-        <span>${i.place || ""}</span>
-      </div>`).join("");
-  }
+function timelineHTML(items) {
+  if(!items.length) return `<p style="color:var(--clr-muted);font-size:0.9rem">No entries yet.</p>`;
+  return items.map(i=>`<div class="timeline-item"><span class="timeline-year">${i.years||""}</span><strong>${i.title||""}</strong><span>${i.place||""}</span></div>`).join("");
+}
 
-  // Bio & ambition
-  const siteSnap = await getDoc(doc(db, "site", "about"));
-  if (siteSnap.exists()) {
-    const d = siteSnap.data();
-    document.getElementById("bioText").innerHTML =
-      (d.bio || "Bio coming soon.").split("\n").map(p => `<p>${p}</p>`).join("");
-    document.getElementById("ambitionText").textContent = d.ambition || "Coming soon.";
-  } else {
-    document.getElementById("bioText").innerHTML = "<p>I am a political scientist with a deep interest in climate change, public policy, and social vulnerability.</p>";
-    document.getElementById("ambitionText").textContent = "To contribute to evidence-based climate policy in the Global South.";
-  }
+const sSnap = await getDoc(doc(db,"site","about"));
+if(sSnap.exists()){
+  const d=sSnap.data();
+  document.getElementById("bioText").innerHTML=(d.bio||"Bio coming soon.").split("\n").filter(p=>p.trim()).map(p=>`<p style="margin-bottom:14px">${p}</p>`).join("");
+  document.getElementById("ambitionText").textContent=d.ambition||"Coming soon.";
+} else {
+  document.getElementById("bioText").innerHTML="<p>I am a political scientist with a deep interest in climate change, public policy, and social vulnerability in South Asia.</p>";
+  document.getElementById("ambitionText").textContent="To contribute to evidence-based climate policy in the Global South.";
+}
 
-  // Positions
-  const posSnap = await getDocs(query(collection(db, "positions"), orderBy("order")));
-  const positions = posSnap.docs.map(d => d.data());
-  document.getElementById("positionsList").innerHTML = timelineHTML(positions);
+const posSnap = await getDocs(query(collection(db,"positions"),orderBy("order")));
+document.getElementById("positionsList").innerHTML = timelineHTML(posSnap.docs.map(d=>d.data()));
 
-  // Experience
-  const expSnap = await getDocs(query(collection(db, "experience"), orderBy("order")));
-  const experience = expSnap.docs.map(d => d.data());
-  document.getElementById("experienceList").innerHTML = timelineHTML(experience);
+const expSnap = await getDocs(query(collection(db,"experience"),orderBy("order")));
+document.getElementById("experienceList").innerHTML = timelineHTML(expSnap.docs.map(d=>d.data()));
 
-  // Education
-  const eduSnap = await getDocs(query(collection(db, "education"), orderBy("order")));
-  const education = eduSnap.docs.map(d => d.data());
-  document.getElementById("educationList").innerHTML = timelineHTML(education);
+const eduSnap = await getDocs(query(collection(db,"education"),orderBy("order")));
+document.getElementById("educationList").innerHTML = timelineHTML(eduSnap.docs.map(d=>d.data()));
 </script>
-</body>
-</html>
+</body></html>

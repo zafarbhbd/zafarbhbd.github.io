@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Student Portal | Abu Zafar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<nav id="navbar"></nav>
+
+<!-- LOGIN -->
+<div id="stuLoginScreen">
+  <div class="stu-login-card">
+    <h2>🎓 Student Portal</h2>
+    <p>Log in with your Registration Number and password to view your marks and attendance.</p>
+    <div id="loginView">
+      <div class="form-group"><label>Registration Number</label><input type="text" id="loginReg" placeholder="e.g. 23219054277"/></div>
+      <div class="form-group" style="margin-top:12px"><label>Password</label><input type="password" id="loginPass" placeholder="Your password"/></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" id="loginBtn">Login</button>
+      <p style="margin-top:12px;font-size:0.85rem;text-align:center"><a href="#" id="showSetPass">First time? Set your password</a></p>
+      <p id="loginErr" style="color:#c62828;font-size:0.85rem;margin-top:8px;text-align:center"></p>
+    </div>
+    <div id="setPassView" style="display:none">
+      <div class="form-group"><label>Registration Number</label><input type="text" id="spReg" placeholder="e.g. 23219054277"/></div>
+      <div class="form-group" style="margin-top:12px"><label>New Password (min 6 chars)</label><input type="password" id="spPass"/></div>
+      <div class="form-group" style="margin-top:12px"><label>Confirm Password</label><input type="password" id="spPass2"/></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" id="setPassBtn">Set Password</button>
+      <p style="margin-top:12px;font-size:0.85rem;text-align:center"><a href="#" id="showLogin">← Back to Login</a></p>
+      <p id="spErr" style="color:#c62828;font-size:0.85rem;margin-top:8px;text-align:center"></p>
+    </div>
+  </div>
+</div>
+
+<!-- PORTAL -->
+<div id="stuPortal" style="display:none">
+  <div class="stu-portal-wrap">
+    <div class="stu-info-bar">
+      <div><strong id="portalName"></strong><br><span id="portalReg"></span></div>
+      <div style="margin-left:auto"><span id="portalYear" style="font-size:0.88rem;color:var(--clr-muted)"></span></div>
+      <button class="btn btn-ghost btn-sm" id="stuLogout">Logout</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" data-stab="marks">📊 My Marks</button>
+      <button class="tab" data-stab="attendance">📋 Attendance</button>
+      <button class="tab" data-stab="assignments">📝 Assignments</button>
+    </div>
+
+    <!-- MARKS -->
+    <div id="stab-marks" class="tab-panel active">
+      <div class="stu-card">
+        <h3>Combined Marksheet</h3>
+        <div id="marksTable"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE -->
+    <div id="stab-attendance" class="tab-panel">
+      <div class="stu-card">
+        <h3>Attendance Record</h3>
+        <div id="attRecord"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ASSIGNMENTS -->
+    <div id="stab-assignments" class="tab-panel">
+      <div class="stu-card">
+        <h3>My Assignments &amp; Debates</h3>
+        <div id="assignList"><div class="spinner"></div></div>
+      </div>
+      <!-- Upload form -->
+      <div class="stu-card" id="uploadCard" style="display:none">
+        <h3 id="uploadTitle">Submit Assignment</h3>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="uploadFile" accept=".pdf,.doc,.docx"/>
+          <div style="font-size:2rem">📎</div>
+          <p>Click to select file (PDF or Word)</p>
+          <p class="upload-hint" id="uploadFileName">No file selected</p>
+        </div>
+        <div class="form-actions" style="margin-top:16px">
+          <button class="btn btn-primary" id="doUploadBtn">Submit</button>
+          <button class="btn btn-ghost" id="cancelUpload">Cancel</button>
+        </div>
+        <p id="uploadMsg" style="font-size:0.85rem;margin-top:8px"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar.</p></div></footer>
+<script type="module">
+import { insertNav } from "./js/nav.js";
+import { db, storage } from "./js/firebase-config.js";
+import { doc, getDoc, setDoc, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import "./js/shared.js";
+insertNav();
+
+const YEAR_LABELS={"Y1":"Hons 1st Year","Y2":"Hons 2nd Year","Y3":"Hons 3rd Year","Y4":"Hons 4th Year","M":"Masters"};
+let currentStudent=null;
+let currentAssignId=null;
+
+// ── Toggle views ───────────────────────────────────────
+document.getElementById("showSetPass").addEventListener("click",e=>{e.preventDefault();document.getElementById("loginView").style.display="none";document.getElementById("setPassView").style.display="block";});
+document.getElementById("showLogin").addEventListener("click",e=>{e.preventDefault();document.getElementById("setPassView").style.display="none";document.getElementById("loginView").style.display="block";});
+
+// ── Set password ───────────────────────────────────────
+document.getElementById("setPassBtn").addEventListener("click",async()=>{
+  const reg=document.getElementById("spReg").value.trim();
+  const pass=document.getElementById("spPass").value;
+  const pass2=document.getElementById("spPass2").value;
+  const err=document.getElementById("spErr");
+  if(!reg||!pass){err.textContent="All fields required.";return;}
+  if(pass.length<6){err.textContent="Password must be at least 6 characters.";return;}
+  if(pass!==pass2){err.textContent="Passwords do not match.";return;}
+
+  // Find student across all years
+  const years=["Y1","Y2","Y3","Y4","M"];
+  let found=null;
+  for(const y of years){
+    const snap=await getDoc(doc(db,"students_"+y,reg));
+    if(snap.exists()){found={...snap.data(),yearKey:y};break;}
+  }
+  if(!found){err.textContent="Registration number not found. Please check.";return;}
+
+  // Save password hash (simple — for demo; in production use Firebase Auth)
+  const passDoc=doc(db,"student_passwords",reg);
+  const existing=await getDoc(passDoc);
+  if(existing.exists()){err.textContent="Password already set. Contact teacher to reset.";return;}
+  await setDoc(passDoc,{regNo:reg,password:btoa(pass),yearKey:found.yearKey});
+  err.style.color="#2e7d32"; err.textContent="✅ Password set! You can now login.";
+  setTimeout(()=>{document.getElementById("setPassView").style.display="none";document.getElementById("loginView").style.display="block";},1500);
+});
+
+// ── Login ──────────────────────────────────────────────
+document.getElementById("loginBtn").addEventListener("click",async()=>{
+  const reg=document.getElementById("loginReg").value.trim();
+  const pass=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginErr");
+  if(!reg||!pass){err.textContent="Both fields required.";return;}
+
+  const passDoc=await getDoc(doc(db,"student_passwords",reg));
+  if(!passDoc.exists()){err.textContent="No account found. Please set your password first.";return;}
+  if(passDoc.data().password!==btoa(pass)){err.textContent="Incorrect password.";return;}
+
+  const yearKey=passDoc.data().yearKey;
+  const stuDoc=await getDoc(doc(db,"students_"+yearKey,reg));
+  if(!stuDoc.exists()){err.textContent="Student record not found.";return;}
+
+  currentStudent={...stuDoc.data(),yearKey,regNo:reg};
+  sessionStorage.setItem("stuSession",JSON.stringify(currentStudent));
+  showPortal();
+});
+
+// ── Logout ─────────────────────────────────────────────
+document.getElementById("stuLogout").addEventListener("click",()=>{
+  sessionStorage.removeItem("stuSession");
+  currentStudent=null;
+  document.getElementById("stuPortal").style.display="none";
+  document.getElementById("stuLoginScreen").style.display="flex";
+});
+
+function showPortal(){
+  document.getElementById("stuLoginScreen").style.display="none";
+  document.getElementById("stuPortal").style.display="block";
+  document.getElementById("portalName").textContent=currentStudent.name;
+  document.getElementById("portalReg").textContent="Reg: "+currentStudent.regNo;
+  document.getElementById("portalYear").textContent=YEAR_LABELS[currentStudent.yearKey]||"";
+  loadMarks();
+  loadAttendance();
+  loadAssignments();
+}
+
+// ── Tabs ───────────────────────────────────────────────
+document.querySelectorAll("[data-stab]").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll("[data-stab]").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".tab-panel[id^='stab-']").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("stab-"+tab.dataset.stab).classList.add("active");
+  });
+});
+
+// ── Load Marks ─────────────────────────────────────────
+async function loadMarks(){
+  const yk=currentStudent.yearKey;
+  // Get all assignments and debates for this year
+  const [assSnap,debSnap]=await Promise.all([
+    getDocs(query(collection(db,"assignments"),where("yearKey","==",yk),orderBy("createdAt","desc"))),
+    getDocs(query(collection(db,"debates"),where("yearKey","==",yk),orderBy("createdAt","desc")))
+  ]);
+  const assignments=assSnap.docs.map(d=>({id:d.id,...d.data(),type:"assignment"}));
+  const debates=debSnap.docs.map(d=>({id:d.id,...d.data(),type:"debate"}));
+  const all=[...assignments,...debates];
+
+  if(!all.length){document.getElementById("marksTable").innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><p>No assignments or debates yet.</p></div>`;return;}
+
+  // Get student marks
+  const marksSnap=await getDocs(query(collection(db,"marks"),where("regNo","==",currentStudent.regNo)));
+  const marksMap={};
+  marksSnap.docs.forEach(d=>{const m=d.data();marksMap[m.itemId]=m;});
+
+  let html=`<div class="marks-table-wrap"><table class="marks-table"><thead><tr><th>#</th><th>Title</th><th>Type</th><th>Total</th><th>Obtained</th></tr></thead><tbody>`;
+  all.forEach((item,i)=>{
+    const mark=marksMap[item.id];
+    html+=`<tr><td>${i+1}</td><td>${item.title}</td><td><span class="blog-tag">${item.type==="debate"?"Debate":"Assignment"}</span></td><td>${item.totalMarks}</td><td>${mark?mark.obtained:"—"}</td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById("marksTable").innerHTML=html;
+}
+
+// ── Load Attendance ────────────────────────────────────
+async function loadAttendance(){
+  const yk=currentStudent.yearKey;
+  const reg=currentStudent.regNo;
+  const snap=await getDocs(query(collection(db,"attendance_records"),where("regNo","==",reg),where("yearKey","==",yk),orderBy("sessionLabel")));
+  const records=snap.docs.map(d=>d.data());
+
+  if(!records.length){document.getElementById("attRecord").innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><p>No attendance records yet.</p></div>`;return;}
+
+  const total=records.length;
+  const present=records.filter(r=>r.status==="P").length;
+  const pct=Math.round(present/total*100);
+
+  let html=`<div style="display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap">
+    <div style="background:var(--clr-accent-lt);padding:16px 24px;border-radius:8px;text-align:center"><strong style="font-size:1.5rem;color:var(--clr-accent)">${present}</strong><p style="font-size:0.8rem;color:var(--clr-muted)">Present</p></div>
+    <div style="background:#fdecea;padding:16px 24px;border-radius:8px;text-align:center"><strong style="font-size:1.5rem;color:#c62828">${total-present}</strong><p style="font-size:0.8rem;color:var(--clr-muted)">Absent</p></div>
+    <div style="background:#e8f5e9;padding:16px 24px;border-radius:8px;text-align:center"><strong style="font-size:1.5rem;color:#2e7d32">${pct}%</strong><p style="font-size:0.8rem;color:var(--clr-muted)">Attendance</p></div>
+  </div>
+  <div class="att-table-wrap"><table class="att-table"><thead><tr><th>#</th><th>Session</th><th>Status</th></tr></thead><tbody>`;
+  records.forEach((r,i)=>{html+=`<tr><td>${i+1}</td><td>${r.sessionLabel}</td><td class="${r.status==="P"?"att-p":"att-a"}">${r.status==="P"?"Present":"Absent"}</td></tr>`;});
+  html+=`</tbody></table></div>`;
+  document.getElementById("attRecord").innerHTML=html;
+}
+
+// ── Load Assignments ───────────────────────────────────
+async function loadAssignments(){
+  const yk=currentStudent.yearKey;
+  const [assSnap,debSnap]=await Promise.all([
+    getDocs(query(collection(db,"assignments"),where("yearKey","==",yk),orderBy("createdAt","desc"))),
+    getDocs(query(collection(db,"debates"),where("yearKey","==",yk),orderBy("createdAt","desc")))
+  ]);
+  const all=[...assSnap.docs.map(d=>({id:d.id,...d.data(),type:"assignment"})),...debSnap.docs.map(d=>({id:d.id,...d.data(),type:"debate"}))];
+
+  if(!all.length){document.getElementById("assignList").innerHTML=`<div class="empty-state"><div class="empty-icon">📝</div><p>No assignments yet.</p></div>`;return;}
+
+  // Get submissions
+  const subSnap=await getDocs(query(collection(db,"submissions"),where("regNo","==",currentStudent.regNo)));
+  const subMap={};
+  subSnap.docs.forEach(d=>{const s=d.data();subMap[s.assignId]=d.id;});
+
+  let html="";
+  all.forEach(item=>{
+    const submitted=subMap[item.id];
+    html+=`<div class="item-row" style="margin-bottom:10px">
+      <div class="item-row-info">
+        <strong>${item.title} <span class="blog-tag">${item.type==="debate"?"Debate":"Assignment"}</span></strong>
+        <span>Total Marks: ${item.totalMarks} · Due: ${item.dueDate||"—"}</span>
+        ${item.description?`<span style="display:block;margin-top:4px;font-size:0.82rem;color:var(--clr-muted)">${item.description}</span>`:""}
+        ${item.type==="debate"&&item.groupInfo?`<span style="display:block;font-size:0.82rem;color:var(--clr-accent)">Your group: ${item.groupInfo[currentStudent.regNo]||"—"}</span>`:""}
+      </div>
+      <div class="item-actions">
+        ${item.type==="assignment"?(submitted?`<span style="color:#2e7d32;font-size:0.82rem;font-weight:500">✅ Submitted</span>`:`<button class="btn btn-primary btn-sm upload-btn" data-id="${item.id}" data-title="${item.title}">Upload</button>`):`<span style="font-size:0.82rem;color:var(--clr-muted)">Class performance</span>`}
+      </div>
+    </div>`;
+  });
+  document.getElementById("assignList").innerHTML=html;
+
+  document.querySelectorAll(".upload-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      currentAssignId=btn.dataset.id;
+      document.getElementById("uploadTitle").textContent="Submit: "+btn.dataset.title;
+      document.getElementById("uploadCard").style.display="block";
+      document.getElementById("uploadCard").scrollIntoView({behavior:"smooth"});
+    });
+  });
+}
+
+// ── File upload ────────────────────────────────────────
+const uploadArea=document.getElementById("uploadArea");
+const uploadFileInput=document.getElementById("uploadFile");
+uploadArea.addEventListener("click",()=>uploadFileInput.click());
+uploadFileInput.addEventListener("change",()=>{
+  const f=uploadFileInput.files[0];
+  if(f) document.getElementById("uploadFileName").textContent="📎 "+f.name;
+});
+
+document.getElementById("cancelUpload").addEventListener("click",()=>{
+  document.getElementById("uploadCard").style.display="none";
+  uploadFileInput.value=""; document.getElementById("uploadFileName").textContent="No file selected";
+});
+
+document.getElementById("doUploadBtn").addEventListener("click",async()=>{
+  const file=uploadFileInput.files[0];
+  const msg=document.getElementById("uploadMsg");
+  if(!file){msg.textContent="Please select a file.";msg.style.color="#c62828";return;}
+  if(file.size>10*1024*1024){msg.textContent="File too large (max 10MB).";msg.style.color="#c62828";return;}
+  const allowed=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+  if(!allowed.includes(file.type)){msg.textContent="Only PDF or Word files allowed.";msg.style.color="#c62828";return;}
+
+  const btn=document.getElementById("doUploadBtn");
+  btn.disabled=true; btn.textContent="Uploading…"; msg.textContent="";
+
+  const storRef=ref(storage,`submissions/${currentAssignId}/${currentStudent.regNo}_${Date.now()}_${file.name}`);
+  const task=uploadBytesResumable(storRef,file);
+  task.on("state_changed",null,err=>{msg.textContent="Upload failed: "+err.message;msg.style.color="#c62828";btn.disabled=false;btn.textContent="Submit";},
+  async()=>{
+    const url=await getDownloadURL(task.snapshot.ref);
+    const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    await addDoc(collection(db,"submissions"),{
+      assignId:currentAssignId,regNo:currentStudent.regNo,name:currentStudent.name,
+      yearKey:currentStudent.yearKey,fileURL:url,fileName:file.name,
+      submittedAt:new Date().toISOString(),storagePath:storRef.fullPath
+    });
+    msg.textContent="✅ Submitted successfully!"; msg.style.color="#2e7d32";
+    btn.disabled=false; btn.textContent="Submit";
+    uploadFileInput.value=""; document.getElementById("uploadFileName").textContent="No file selected";
+    setTimeout(()=>{document.getElementById("uploadCard").style.display="none";loadAssignments();},1500);
+  });
+});
+
+// ── Check session ──────────────────────────────────────
+const saved=sessionStorage.getItem("stuSession");
+if(saved){currentStudent=JSON.parse(saved);showPortal();}
+</script>
+</body></html>
