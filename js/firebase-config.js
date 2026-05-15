@@ -1,14 +1,9 @@
 // ═══════════════════════════════════════════════════════
 //  firebase-config.js
-//  Replace the placeholder values below with your own
-//  Firebase project credentials.
+//  Replace ALL placeholder values with your Firebase credentials
 //
-//  HOW TO GET THESE VALUES:
-//  1. Go to https://console.firebase.google.com
-//  2. Click your project → Project Settings (gear icon)
-//  3. Scroll to "Your apps" → click "</>" (Web app)
-//  4. Register app if needed → copy the firebaseConfig object
-//  5. Paste each value below
+//  HOW TO GET THESE:
+//  Firebase Console → Project Settings → Your Apps → Web App
 // ═══════════════════════════════════════════════════════
 
 const firebaseConfig = {
@@ -20,18 +15,17 @@ const firebaseConfig = {
   appId:             "1:866882657881:web:b49d39dd67a07e24351b48"
 };
 
-// ── ADMIN EMAIL ────────────────────────────────────────
-// Replace with YOUR Google account email.
-// Only this email can access the admin panel.
+// Your Google account email — only this can access admin panel
 const ADMIN_EMAIL = "zafarbhbd@gmail.com";
 
-// ── Initialize Firebase ────────────────────────────────
-import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { initializeApp }     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore }      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getStorage }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-const app  = initializeApp(firebaseConfig);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const app     = initializeApp(firebaseConfig);
+const db      = getFirestore(app);
+const auth    = getAuth(app);
+const storage = getStorage(app);
 
-export { app, db, auth, ADMIN_EMAIL };
+export { app, db, auth, storage, ADMIN_EMAIL };
