@@ -6,25 +6,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
-  <style>
-    .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--nav-h)+40px) 24px 60px;background:var(--clr-surface)}
-    .hero-inner{max-width:var(--max-w);margin:0 auto;display:flex;align-items:center;gap:64px}
-    .hero-photo{width:200px;height:200px;border-radius:50%;object-fit:cover;border:4px solid var(--clr-border);box-shadow:var(--shadow);flex-shrink:0}
-    .photo-placeholder{width:200px;height:200px;border-radius:50%;background:var(--clr-surface-alt);border:3px dashed var(--clr-border);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;flex-shrink:0}
-    .photo-placeholder svg{width:72px;height:72px;margin-bottom:8px}
-    .hero-eyebrow{font-size:0.85rem;font-weight:500;color:var(--clr-accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
-    .hero-name{font-family:var(--font-head);font-size:clamp(2.4rem,6vw,3.6rem);font-weight:600;line-height:1.15;margin-bottom:12px}
-    .hero-position{font-weight:500;font-size:1.05rem}
-    .hero-institution{color:var(--clr-muted);font-size:0.95rem;margin-bottom:16px}
-    .hero-tagline{font-size:1rem;color:var(--clr-muted);max-width:520px;margin-bottom:28px;font-style:italic;font-family:var(--font-head)}
-    .hero-cta{display:flex;flex-wrap:wrap;gap:12px}
-    .hero-stats{display:flex;gap:40px;margin-top:40px;padding-top:32px;border-top:1px solid var(--clr-border)}
-    .stat-num{font-family:var(--font-head);font-size:2rem;font-weight:600;color:var(--clr-accent);display:block}
-    .stat-label{font-size:0.82rem;color:var(--clr-muted)}
-    .hero-scroll{text-align:center;color:var(--clr-muted);font-size:0.78rem;letter-spacing:0.12em;margin-top:48px;opacity:0.6;animation:float 2.5s ease-in-out infinite}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
-    @media(max-width:900px){.hero-inner{flex-direction:column;text-align:center;gap:32px}.hero-cta{justify-content:center}.hero-tagline{margin:0 auto 28px}.hero-stats{justify-content:center}}
-  </style>
 </head>
 <body>
 <nav id="navbar"></nav>
@@ -32,7 +13,7 @@
   <div class="hero-inner">
     <div id="heroPhoto">
       <div class="photo-placeholder">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="30" r="16" fill="#c2c8d4"/><ellipse cx="40" cy="68" rx="24" ry="16" fill="#c2c8d4"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" style="width:72px;height:72px;margin-bottom:8px"><circle cx="40" cy="30" r="16" fill="#c2c8d4"/><ellipse cx="40" cy="68" rx="24" ry="16" fill="#c2c8d4"/></svg>
         <p style="font-size:0.72rem;color:var(--clr-muted)">Add photo via Admin</p>
       </div>
     </div>
@@ -52,17 +33,24 @@
         <div><span class="stat-num" id="statCites">35+</span><span class="stat-label">Citations</span></div>
         <div><span class="stat-num" id="statYears">5+</span><span class="stat-label">Years Research</span></div>
       </div>
+      <!-- DYNAMIC LINKS SECTION -->
+      <div class="hero-links-section" id="heroLinksSection" style="display:none">
+        <p class="hero-links-label">Connect &amp; Follow</p>
+        <div class="hero-links" id="heroLinks"></div>
+      </div>
     </div>
   </div>
   <div class="hero-scroll">scroll ↓</div>
 </section>
-<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar.</p><p>Hosted on Firebase &amp; GitHub Pages</p></div></footer>
+<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p><p>Hosted on Firebase</p></div></footer>
 <script type="module">
 import { insertNav } from "./js/nav.js";
 import { db } from "./js/firebase-config.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, getDoc, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import "./js/shared.js";
-insertNav("home");
+insertNav();
+
+// Hero data
 const snap = await getDoc(doc(db,"site","hero"));
 if(snap.exists()){
   const d=snap.data();
@@ -73,6 +61,18 @@ if(snap.exists()){
   if(d.statCites)   document.getElementById("statCites").textContent=d.statCites;
   if(d.statYears)   document.getElementById("statYears").textContent=d.statYears;
   if(d.photoURL)    document.getElementById("heroPhoto").innerHTML=`<img src="${d.photoURL}" class="hero-photo" alt="Abu Zafar"/>`;
+}
+
+// Dynamic links
+const linksSnap = await getDocs(query(collection(db,"hero_links"), orderBy("order")));
+const links = linksSnap.docs.map(d=>({id:d.id,...d.data()}));
+if(links.length){
+  document.getElementById("heroLinks").innerHTML = links.map(l=>`
+    <a href="${l.url}" target="_blank" rel="noopener" class="hero-link-pill">
+      ${l.emoji ? `<span class="hero-link-emoji">${l.emoji}</span>` : ""}
+      <span>${l.label}</span>
+    </a>`).join("");
+  document.getElementById("heroLinksSection").style.display = "block";
 }
 </script>
 </body></html>
