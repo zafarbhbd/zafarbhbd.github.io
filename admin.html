@@ -9,6 +9,7 @@
   <style>
     body{background:#f0f2f5}
     #adminPanel{display:none}
+    .link-pill-preview{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;background:linear-gradient(135deg,#0d6e6e,#2a5298);color:#fff;font-size:0.83rem;font-weight:500;margin-left:10px}
   </style>
 </head>
 <body>
@@ -67,7 +68,7 @@
       <button class="tab" data-tab="links">🔗 Home Links</button>
     </div>
 
-    <!-- HOME -->
+    <!-- ══ HOME ══ -->
     <div class="tab-panel active" id="tab-hero">
       <div class="admin-card">
         <h3>Home — Hero Section</h3>
@@ -81,7 +82,6 @@
           <div class="form-group"><label>Citations count</label><input type="text" id="heroStatCites" placeholder="35+"/></div>
           <div class="form-group"><label>Years of research</label><input type="text" id="heroStatYears" placeholder="5+"/></div>
         </div>
-        <!-- CLOUDINARY PHOTO UPLOAD -->
         <div class="form-group" style="margin-top:20px">
           <label>Profile Photo</label>
           <div class="photo-upload-area" id="photoUploadArea">
@@ -95,23 +95,20 @@
           <div class="upload-progress" id="uploadProgress" style="display:none">
             <div class="upload-progress-bar" id="uploadProgressBar"></div>
           </div>
-          <p style="font-size:0.8rem;color:var(--clr-muted);margin-top:8px">
-            ℹ️ Upload uses Cloudinary (free). Set your Cloud Name below in
-            <code style="background:#f0f0f0;padding:1px 6px;border-radius:3px">js/firebase-config.js</code>
-            under <code style="background:#f0f0f0;padding:1px 6px;border-radius:3px">CLOUDINARY_CLOUD_NAME</code> and
-            <code style="background:#f0f0f0;padding:1px 6px;border-radius:3px">CLOUDINARY_UPLOAD_PRESET</code>
-          </p>
-          <p style="font-size:0.8rem;color:var(--clr-muted);margin-top:4px">Or paste a direct image URL:</p>
-          <input type="text" id="heroPhotoURL" placeholder="https://…" style="margin-top:6px"/>
+          <div style="margin-top:10px;padding:12px 16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:0.83rem;color:#856404">
+            ⚠️ <strong>Google Drive links do not work as image URLs.</strong><br>
+            Use the upload button above (requires Cloudinary setup), or upload your photo to
+            <a href="https://imgur.com/upload" target="_blank" style="color:#0d6e6e">imgur.com</a> and paste the direct link below.
+          </div>
+          <p style="font-size:0.8rem;color:var(--clr-muted);margin-top:10px">Or paste a direct image URL (Cloudinary, Imgur, etc.):</p>
+          <input type="text" id="heroPhotoURL" placeholder="https://i.imgur.com/yourphoto.jpg" style="margin-top:6px"/>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" id="saveHeroBtn">Save Home Page</button>
-        </div>
+        <div class="form-actions"><button class="btn btn-primary" id="saveHeroBtn">Save Home Page</button></div>
         <div id="heroStatus"></div>
       </div>
     </div>
 
-    <!-- ABOUT -->
+    <!-- ══ ABOUT ══ -->
     <div class="tab-panel" id="tab-about">
       <div class="admin-card">
         <h3>Bio &amp; Ambition</h3>
@@ -122,16 +119,16 @@
       </div>
     </div>
 
-    <!-- POSITIONS -->
+    <!-- ══ POSITIONS ══ -->
     <div class="tab-panel" id="tab-positions">
       <div class="admin-card">
         <h3>Academic Positions</h3>
         <div id="positionsList" class="item-list"></div>
-        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New Position</h4>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
-          <div class="form-group"><label>Title (e.g. Assistant Professor)</label><input type="text" id="posTitle"/></div>
-          <div class="form-group"><label>Institution / Department</label><input type="text" id="posPlace"/></div>
-          <div class="form-group"><label>Years (e.g. 2022 – Present)</label><input type="text" id="posYears"/></div>
+          <div class="form-group"><label>Title</label><input type="text" id="posTitle" placeholder="Assistant Professor"/></div>
+          <div class="form-group"><label>Institution</label><input type="text" id="posPlace"/></div>
+          <div class="form-group"><label>Years</label><input type="text" id="posYears" placeholder="2022 – Present"/></div>
           <div class="form-group"><label>Order (1 = top)</label><input type="number" id="posOrder" value="1"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="addPositionBtn">Add Position</button></div>
@@ -139,14 +136,14 @@
       </div>
     </div>
 
-    <!-- EXPERIENCE -->
+    <!-- ══ EXPERIENCE ══ -->
     <div class="tab-panel" id="tab-experience">
       <div class="admin-card">
         <h3>Professional Experience</h3>
         <div id="experienceList" class="item-list"></div>
         <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
-          <div class="form-group"><label>Role / Title</label><input type="text" id="expTitle"/></div>
+          <div class="form-group"><label>Role</label><input type="text" id="expTitle"/></div>
           <div class="form-group"><label>Organization</label><input type="text" id="expPlace"/></div>
           <div class="form-group"><label>Years</label><input type="text" id="expYears"/></div>
           <div class="form-group"><label>Order</label><input type="number" id="expOrder" value="1"/></div>
@@ -156,14 +153,14 @@
       </div>
     </div>
 
-    <!-- EDUCATION -->
+    <!-- ══ EDUCATION ══ -->
     <div class="tab-panel" id="tab-education">
       <div class="admin-card">
         <h3>Education</h3>
         <div id="educationList" class="item-list"></div>
         <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New</h4>
         <div class="form-row">
-          <div class="form-group"><label>Degree / Qualification</label><input type="text" id="eduTitle" placeholder="M.S.S. Political Science"/></div>
+          <div class="form-group"><label>Degree</label><input type="text" id="eduTitle" placeholder="M.S.S. Political Science"/></div>
           <div class="form-group"><label>Institution</label><input type="text" id="eduPlace"/></div>
           <div class="form-group"><label>Year(s)</label><input type="text" id="eduYears"/></div>
           <div class="form-group"><label>Order</label><input type="number" id="eduOrder" value="1"/></div>
@@ -173,7 +170,7 @@
       </div>
     </div>
 
-    <!-- RESEARCH -->
+    <!-- ══ RESEARCH ══ -->
     <div class="tab-panel" id="tab-research">
       <div class="admin-card">
         <h3>Research Areas</h3>
@@ -188,33 +185,33 @@
       </div>
     </div>
 
-    <!-- PUBLICATIONS -->
+    <!-- ══ PUBLICATIONS ══ -->
     <div class="tab-panel" id="tab-publications">
       <div class="admin-card">
         <h3>Publications</h3>
         <div id="pubsList" class="item-list"></div>
         <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New Publication</h4>
         <div class="form-group"><label>Title</label><input type="text" id="pubTitle"/></div>
-        <div class="form-group" style="margin-top:10px"><label>Authors (as they appear in publication)</label><input type="text" id="pubAuthors" placeholder="A Zafar, B Smith, C Jones"/></div>
+        <div class="form-group" style="margin-top:10px"><label>Authors</label><input type="text" id="pubAuthors" placeholder="A Zafar, B Smith"/></div>
         <div class="form-row" style="margin-top:10px">
-          <div class="form-group"><label>Journal / Conference</label><input type="text" id="pubJournal"/></div>
+          <div class="form-group"><label>Journal</label><input type="text" id="pubJournal"/></div>
           <div class="form-group"><label>Year</label><input type="number" id="pubYear" placeholder="2024"/></div>
           <div class="form-group"><label>Citations</label><input type="number" id="pubCitations" placeholder="0"/></div>
         </div>
         <div class="form-row" style="margin-top:10px">
           <div class="form-group">
-            <label>🔗 Publication URL <span style="color:var(--clr-accent);font-weight:600">(main link — shown as "View Publication")</span></label>
+            <label>🔗 Publication URL <span style="color:var(--clr-accent);font-weight:600">(main link)</span></label>
             <input type="text" id="pubUrl" placeholder="https://journal.com/your-paper"/>
           </div>
-          <div class="form-group"><label>PDF URL (optional)</label><input type="text" id="pubPdf" placeholder="https://…"/></div>
-          <div class="form-group"><label>DOI URL (optional)</label><input type="text" id="pubDoi" placeholder="https://doi.org/…"/></div>
+          <div class="form-group"><label>PDF URL (optional)</label><input type="text" id="pubPdf"/></div>
+          <div class="form-group"><label>DOI URL (optional)</label><input type="text" id="pubDoi"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="addPubBtn">Add Publication</button></div>
         <div id="pubStatus"></div>
       </div>
     </div>
 
-    <!-- BLOG -->
+    <!-- ══ BLOG ══ -->
     <div class="tab-panel" id="tab-blog">
       <div class="admin-card">
         <h3>Blog Posts</h3>
@@ -225,53 +222,79 @@
           <div class="form-group"><label>Category</label><input type="text" id="blogCat" placeholder="Climate Policy"/></div>
           <div class="form-group"><label>Date</label><input type="date" id="blogDate"/></div>
         </div>
-        <div class="form-group" style="margin-top:10px"><label>Excerpt (short summary shown on site)</label><textarea id="blogExcerpt" rows="3"></textarea></div>
-        <div class="form-group" style="margin-top:10px"><label>Post URL (link to full post, optional)</label><input type="text" id="blogUrl" placeholder="https://…"/></div>
+        <div class="form-group" style="margin-top:10px"><label>Excerpt</label><textarea id="blogExcerpt" rows="3"></textarea></div>
+        <div class="form-group" style="margin-top:10px"><label>Post URL (optional)</label><input type="text" id="blogUrl"/></div>
         <div class="form-actions"><button class="btn btn-primary" id="addBlogBtn">Add Post</button></div>
         <div id="blogStatus"></div>
       </div>
     </div>
 
-    <!-- CONTACT -->
+    <!-- ══ CONTACT ══ -->
     <div class="tab-panel" id="tab-contact">
       <div class="admin-card">
         <h3>Contact Details &amp; Social Links</h3>
         <div class="form-row">
           <div class="form-group"><label>Email</label><input type="email" id="ctEmail"/></div>
-          <div class="form-group"><label>Office Address</label><input type="text" id="ctOffice" placeholder="Room 101, Building, University, City"/></div>
+          <div class="form-group"><label>Office Address</label><input type="text" id="ctOffice"/></div>
         </div>
         <div class="form-row" style="margin-top:12px">
-          <div class="form-group"><label>GitHub URL</label><input type="text" id="ctGithub" placeholder="https://github.com/zafarbhbd"/></div>
+          <div class="form-group"><label>GitHub URL</label><input type="text" id="ctGithub"/></div>
           <div class="form-group"><label>Google Scholar URL</label><input type="text" id="ctScholar"/></div>
           <div class="form-group"><label>ResearchGate URL</label><input type="text" id="ctRg"/></div>
-          <div class="form-group"><label>ORCID URL</label><input type="text" id="ctOrcid" placeholder="https://orcid.org/…"/></div>
-          <div class="form-group"><label>LinkedIn URL (optional)</label><input type="text" id="ctLinkedin"/></div>
+          <div class="form-group"><label>ORCID URL</label><input type="text" id="ctOrcid"/></div>
+          <div class="form-group"><label>LinkedIn URL</label><input type="text" id="ctLinkedin"/></div>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="saveContactBtn">Save Contact Info</button></div>
         <div id="contactStatus"></div>
       </div>
+    </div>
 
-    <!-- HOME LINKS -->
+    <!-- ══ HOME LINKS ══ -->
     <div class="tab-panel" id="tab-links">
       <div class="admin-card">
         <h3>🔗 Home Page Links</h3>
-        <p style="font-size:0.88rem;color:var(--clr-muted);margin-bottom:16px">
-          These appear on the Home page below the stats row as attractive pill buttons.
-          Add any link you want — Facebook, Twitter, ResearchGate, Google Scholar, etc.
+        <p style="font-size:0.88rem;color:var(--clr-muted);margin-bottom:20px">
+          These appear on the Home page below the Publications / Citations / Years stats row as styled pill buttons.
+          Add any link you want — Facebook, Google Scholar, ResearchGate, Twitter, LinkedIn, etc.
         </p>
-        <div id="linksList" class="item-list"></div>
+
+        <!-- Existing links list -->
+        <div id="linksList" class="item-list">
+          <div class="spinner"></div>
+        </div>
+
+        <!-- Add new link form -->
         <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--clr-muted)">➕ Add New Link</h4>
         <div class="form-row">
-          <div class="form-group"><label>Label (e.g. Facebook)</label><input type="text" id="linkLabel" placeholder="Facebook"/></div>
-          <div class="form-group"><label>URL</label><input type="text" id="linkUrl" placeholder="https://facebook.com/yourprofile"/></div>
-          <div class="form-group"><label>Emoji (optional)</label><input type="text" id="linkEmoji" placeholder="📘" style="max-width:80px"/></div>
-          <div class="form-group"><label>Order (1 = first)</label><input type="number" id="linkOrder" value="1" min="1"/></div>
+          <div class="form-group">
+            <label>Label <span style="color:#c62828">*</span></label>
+            <input type="text" id="linkLabel" placeholder="e.g. Facebook, Google Scholar"/>
+          </div>
+          <div class="form-group">
+            <label>URL <span style="color:#c62828">*</span></label>
+            <input type="text" id="linkUrl" placeholder="https://facebook.com/yourprofile"/>
+          </div>
+          <div class="form-group">
+            <label>Emoji (optional)</label>
+            <input type="text" id="linkEmoji" placeholder="📘" style="max-width:100px"/>
+          </div>
+          <div class="form-group">
+            <label>Order (1 = first)</label>
+            <input type="number" id="linkOrder" value="1" min="1"/>
+          </div>
         </div>
-        <div style="margin-top:10px;padding:12px 16px;background:var(--clr-accent-lt);border-radius:8px;font-size:0.85rem;color:var(--clr-accent)">
-          <strong>Preview of button style:</strong>
-          <span style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;padding:5px 14px;border-radius:30px;background:linear-gradient(135deg,#0d6e6e,#2a5298);color:#fff;font-size:0.83rem;font-weight:500">📘 Facebook</span>
+
+        <!-- Style preview -->
+        <div style="margin-top:12px;padding:14px 18px;background:var(--clr-accent-lt);border-radius:8px;font-size:0.85rem;color:var(--clr-accent);display:flex;align-items:center;flex-wrap:wrap;gap:12px">
+          <strong>Button style preview:</strong>
+          <span class="link-pill-preview">📘 Facebook</span>
+          <span class="link-pill-preview">🔗 Google Scholar</span>
+          <span class="link-pill-preview">GitHub</span>
         </div>
-        <div class="form-actions" style="margin-top:14px"><button class="btn btn-primary" id="addLinkBtn">Add Link</button></div>
+
+        <div class="form-actions" style="margin-top:16px">
+          <button class="btn btn-primary" id="addLinkBtn">Add Link to Home Page</button>
+        </div>
         <div id="linkStatus"></div>
       </div>
     </div>
@@ -284,11 +307,9 @@ import { auth, db, ADMIN_EMAIL } from "./js/firebase-config.js";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, orderBy, query, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ── Cloudinary config ──────────────────────────────────
-// Set these after creating your free Cloudinary account
-// https://cloudinary.com/users/register/free
-const CLOUDINARY_CLOUD_NAME   = "YOUR_CLOUD_NAME";    // e.g. "dxyz123abc"
-const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET"; // e.g. "ml_default" (unsigned preset)
+// Cloudinary config — fill these in after setting up your free Cloudinary account
+const CLOUDINARY_CLOUD_NAME    = "YOUR_CLOUD_NAME";
+const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET";
 
 // ── Auth ───────────────────────────────────────────────
 onAuthStateChanged(auth, user => {
@@ -317,12 +338,15 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+    // Reload links when Links tab is clicked
+    if(tab.dataset.tab === "links") loadLinks();
   });
 });
 
 // ── Status helper ──────────────────────────────────────
 function showStatus(id, msg, ok = true){
   const el = document.getElementById(id);
+  if(!el) return;
   el.textContent = msg;
   el.className = "status-msg " + (ok ? "status-ok" : "status-err");
   setTimeout(() => { el.textContent = ""; el.className = ""; }, 3500);
@@ -336,38 +360,31 @@ photoArea.addEventListener("click", () => photoInput.click());
 photoInput.addEventListener("change", async () => {
   const file = photoInput.files[0];
   if(!file) return;
-  if(file.size > 5 * 1024 * 1024){ showStatus("heroStatus", "Photo must be under 5MB.", false); return; }
-  if(CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME"){
-    showStatus("heroStatus", "⚠️ Please set your Cloudinary credentials in admin.html first.", false); return;
-  }
-  const progressWrap = document.getElementById("uploadProgress");
-  const progressBar  = document.getElementById("uploadProgressBar");
-  progressWrap.style.display = "block";
-  progressBar.style.width = "30%";
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append("folder", "abu-zafar-profile");
-
+  if(file.size > 5*1024*1024){ showStatus("heroStatus","Photo must be under 5MB.",false); return; }
+  if(CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME"){ showStatus("heroStatus","⚠️ Set your Cloudinary credentials first.",false); return; }
+  const prog = document.getElementById("uploadProgress");
+  const bar  = document.getElementById("uploadProgressBar");
+  prog.style.display = "block"; bar.style.width = "30%";
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  fd.append("folder", "abu-zafar-profile");
   try {
-    progressBar.style.width = "60%";
-    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
+    bar.style.width = "60%";
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method:"POST", body:fd });
     const data = await res.json();
-    progressBar.style.width = "100%";
+    bar.style.width = "100%";
     if(data.secure_url){
       document.getElementById("heroPhotoURL").value = data.secure_url;
       photoPreview.src = data.secure_url;
       photoPreview.style.display = "block";
       document.getElementById("photoUploadHint").style.display = "none";
-      showStatus("heroStatus", "✅ Photo uploaded! Click 'Save Home Page' to apply.");
+      showStatus("heroStatus","✅ Photo uploaded! Click Save Home Page to apply.");
     } else {
-      showStatus("heroStatus", "Upload failed. Check your Cloudinary credentials.", false);
+      showStatus("heroStatus","Upload failed. Check Cloudinary credentials.",false);
     }
-  } catch(e){
-    showStatus("heroStatus", "Upload error: " + e.message, false);
-  }
-  setTimeout(() => { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1000);
+  } catch(e){ showStatus("heroStatus","Upload error: "+e.message,false); }
+  setTimeout(() => { prog.style.display="none"; bar.style.width="0%"; }, 1000);
 });
 
 // ── Edit Modal ─────────────────────────────────────────
@@ -380,11 +397,11 @@ function openEditModal(title, fields, onSave){
       <label>${f.label}</label>
       ${f.textarea
         ? `<textarea id="em_${f.key}" rows="3">${f.value||""}</textarea>`
-        : `<input type="${f.type||"text"}" id="em_${f.key}" value="${(f.value||"").replace(/"/g,'&quot;')}" placeholder="${f.placeholder||""}"/>`}
+        : `<input type="${f.type||"text"}" id="em_${f.key}" value="${(f.value||"").replace(/"/g,"&quot;")}" placeholder="${f.placeholder||""}"/>`}
     </div>`).join("");
   editCallback = () => {
     const data = {};
-    fields.forEach(f => data[f.key] = document.getElementById("em_" + f.key).value.trim());
+    fields.forEach(f => data[f.key] = document.getElementById("em_"+f.key).value.trim());
     onSave(data);
     document.getElementById("editModal").classList.remove("open");
   };
@@ -394,30 +411,28 @@ function openEditModal(title, fields, onSave){
 // ── Generic list renderer ──────────────────────────────
 function renderList(containerId, items, colName, editFields){
   const el = document.getElementById(containerId);
-  if(!items.length){ el.innerHTML = `<p style="color:var(--clr-muted);font-size:0.88rem">No entries yet.</p>`; return; }
+  if(!items.length){ el.innerHTML = `<p style="color:var(--clr-muted);font-size:0.88rem;margin-bottom:16px">No entries yet.</p>`; return; }
   el.innerHTML = items.map(i => `
     <div class="item-row">
       <div class="item-row-info">
-        <strong>${i.title || i.name || ""}</strong>
-        <span>${[i.place, i.journal, i.authors, i.excerpt].filter(Boolean).join(" · ")} ${i.years||i.year||""}</span>
-        ${i.pubUrl ? `<span style="color:var(--clr-accent);font-size:0.78rem">🔗 ${i.pubUrl.substring(0,50)}…</span>` : ""}
+        <strong>${i.title||i.name||i.label||""}</strong>
+        <span>${[i.place,i.journal,i.authors,i.excerpt,i.url].filter(Boolean).join(" · ")} ${i.years||i.year||""}</span>
+        ${i.pubUrl?`<span style="color:var(--clr-accent);font-size:0.78rem">🔗 ${i.pubUrl.substring(0,50)}</span>`:""}
       </div>
       <div class="item-actions">
         <button class="btn btn-outline btn-xs edit-btn" data-id="${i.id}">Edit</button>
         <button class="btn btn-danger btn-xs del-btn" data-id="${i.id}" data-col="${colName}">Delete</button>
       </div>
     </div>`).join("");
-
   el.querySelectorAll(".del-btn").forEach(btn => btn.addEventListener("click", async () => {
-    if(!confirm("Delete this entry? This cannot be undone.")) return;
+    if(!confirm("Delete this entry?")) return;
     await deleteDoc(doc(db, btn.dataset.col, btn.dataset.id));
     loadAll();
   }));
   el.querySelectorAll(".edit-btn").forEach(btn => btn.addEventListener("click", () => {
     const item = items.find(i => i.id === btn.dataset.id);
     if(!item) return;
-    const fields = editFields.map(f => ({...f, value: item[f.key] || ""}));
-    openEditModal("Edit Entry", fields, async data => {
+    openEditModal("Edit Entry", editFields.map(f=>({...f,value:item[f.key]||""})), async data => {
       await updateDoc(doc(db, colName, btn.dataset.id), data);
       loadAll();
     });
@@ -427,7 +442,7 @@ function renderList(containerId, items, colName, editFields){
 // ── Load all ───────────────────────────────────────────
 async function loadAll(){
   // Hero
-  const hSnap = await getDoc(doc(db, "site", "hero"));
+  const hSnap = await getDoc(doc(db,"site","hero"));
   if(hSnap.exists()){
     const d = hSnap.data();
     document.getElementById("heroPosition").value    = d.position    || "";
@@ -437,46 +452,103 @@ async function loadAll(){
     document.getElementById("heroStatPubs").value    = d.statPubs    || "";
     document.getElementById("heroStatCites").value   = d.statCites   || "";
     document.getElementById("heroStatYears").value   = d.statYears   || "";
-    if(d.photoURL){ photoPreview.src = d.photoURL; photoPreview.style.display = "block"; document.getElementById("photoUploadHint").style.display = "none"; }
+    if(d.photoURL){ photoPreview.src=d.photoURL; photoPreview.style.display="block"; document.getElementById("photoUploadHint").style.display="none"; }
   }
   // About
-  const aSnap = await getDoc(doc(db, "site", "about"));
+  const aSnap = await getDoc(doc(db,"site","about"));
   if(aSnap.exists()){
     document.getElementById("aboutBio").value      = aSnap.data().bio      || "";
     document.getElementById("aboutAmbition").value = aSnap.data().ambition || "";
   }
   // Contact
-  const cSnap = await getDoc(doc(db, "site", "contact"));
+  const cSnap = await getDoc(doc(db,"site","contact"));
   if(cSnap.exists()){
     const d = cSnap.data();
-    const map = { ctEmail:"email", ctOffice:"office", ctGithub:"github", ctScholar:"scholar", ctRg:"researchgate", ctOrcid:"orcid", ctLinkedin:"linkedin" };
-    Object.entries(map).forEach(([id, key]) => { document.getElementById(id).value = d[key] || ""; });
+    const map = {ctEmail:"email",ctOffice:"office",ctGithub:"github",ctScholar:"scholar",ctRg:"researchgate",ctOrcid:"orcid",ctLinkedin:"linkedin"};
+    Object.entries(map).forEach(([id,key]) => { document.getElementById(id).value = d[key]||""; });
   }
 
-  await loadLinks();
-
-  const load = async (col, ord = "order") => {
-    const s = await getDocs(query(collection(db, col), orderBy(ord)));
-    return s.docs.map(d => ({id: d.id, ...d.data()}));
+  const load = async (col, ord="order") => {
+    const s = await getDocs(query(collection(db,col), orderBy(ord)));
+    return s.docs.map(d => ({id:d.id,...d.data()}));
   };
   const tlFields = [{key:"title",label:"Title"},{key:"place",label:"Institution / Organization"},{key:"years",label:"Years"}];
-  renderList("positionsList",  await load("positions"),              "positions",    tlFields);
-  renderList("experienceList", await load("experience"),             "experience",   tlFields);
-  renderList("educationList",  await load("education"),              "education",    tlFields);
-  renderList("researchList",   await load("research"),               "research",     [{key:"icon",label:"Icon (emoji)"},{key:"title",label:"Title"},{key:"description",label:"Description",textarea:true}]);
-  renderList("pubsList",       await load("publications","year"),    "publications", [
-    {key:"title",label:"Title"},{key:"authors",label:"Authors"},{key:"journal",label:"Journal"},
-    {key:"year",label:"Year",type:"number"},{key:"citations",label:"Citations",type:"number"},
-    {key:"pubUrl",label:"Publication URL (main link)"},{key:"pdfUrl",label:"PDF URL"},{key:"doiUrl",label:"DOI URL"}
-  ]);
-  renderList("blogList",       await load("blog","date"),            "blog",         [
-    {key:"title",label:"Title"},{key:"category",label:"Category"},{key:"excerpt",label:"Excerpt",textarea:true},{key:"url",label:"Post URL"}
-  ]);
+  renderList("positionsList",  await load("positions"),           "positions",    tlFields);
+  renderList("experienceList", await load("experience"),          "experience",   tlFields);
+  renderList("educationList",  await load("education"),           "education",    tlFields);
+  renderList("researchList",   await load("research"),            "research",     [{key:"icon",label:"Icon"},{key:"title",label:"Title"},{key:"description",label:"Description",textarea:true}]);
+  renderList("pubsList",       await load("publications","year"), "publications", [{key:"title",label:"Title"},{key:"authors",label:"Authors"},{key:"journal",label:"Journal"},{key:"year",label:"Year",type:"number"},{key:"citations",label:"Citations",type:"number"},{key:"pubUrl",label:"Publication URL"},{key:"pdfUrl",label:"PDF URL"},{key:"doiUrl",label:"DOI URL"}]);
+  renderList("blogList",       await load("blog","date"),         "blog",         [{key:"title",label:"Title"},{key:"category",label:"Category"},{key:"excerpt",label:"Excerpt",textarea:true},{key:"url",label:"Post URL"}]);
+
+  // Links
+  await loadLinks();
 }
+
+// ── HOME LINKS ─────────────────────────────────────────
+async function loadLinks(){
+  const snap  = await getDocs(query(collection(db,"hero_links"), orderBy("order")));
+  const links = snap.docs.map(d => ({id:d.id,...d.data()}));
+  const el    = document.getElementById("linksList");
+  if(!links.length){
+    el.innerHTML = `<p style="color:var(--clr-muted);font-size:0.88rem;margin-bottom:16px">No links added yet. Use the form below to add your first link.</p>`;
+    return;
+  }
+  el.innerHTML = links.map(l => `
+    <div class="item-row">
+      <div class="item-row-info">
+        <strong>${l.emoji||""} ${l.label}</strong>
+        <span>${l.url} · Order: ${l.order}</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-outline btn-xs edit-link" data-id="${l.id}">Edit</button>
+        <button class="btn btn-danger btn-xs del-link" data-id="${l.id}">Delete</button>
+      </div>
+    </div>`).join("");
+
+  el.querySelectorAll(".del-link").forEach(btn => btn.addEventListener("click", async () => {
+    if(!confirm("Delete this link from the Home page?")) return;
+    await deleteDoc(doc(db,"hero_links",btn.dataset.id));
+    loadLinks();
+  }));
+  el.querySelectorAll(".edit-link").forEach(btn => btn.addEventListener("click", () => {
+    const l = links.find(x => x.id === btn.dataset.id);
+    if(!l) return;
+    openEditModal("Edit Link", [
+      {key:"label", label:"Label",              value:l.label},
+      {key:"url",   label:"URL",                value:l.url},
+      {key:"emoji", label:"Emoji (optional)",   value:l.emoji||""},
+      {key:"order", label:"Order (1 = first)",  value:l.order, type:"number"}
+    ], async data => {
+      await updateDoc(doc(db,"hero_links",btn.dataset.id), {
+        label: data.label, url: data.url,
+        emoji: data.emoji, order: parseInt(data.order)||1
+      });
+      loadLinks();
+    });
+  }));
+}
+
+document.getElementById("addLinkBtn").addEventListener("click", async () => {
+  const label = document.getElementById("linkLabel").value.trim();
+  const url   = document.getElementById("linkUrl").value.trim();
+  if(!label || !url){ showStatus("linkStatus","Label and URL are both required.",false); return; }
+  await addDoc(collection(db,"hero_links"), {
+    label,
+    url,
+    emoji: document.getElementById("linkEmoji").value.trim(),
+    order: parseInt(document.getElementById("linkOrder").value) || 1,
+  });
+  document.getElementById("linkLabel").value = "";
+  document.getElementById("linkUrl").value   = "";
+  document.getElementById("linkEmoji").value = "";
+  document.getElementById("linkOrder").value = "1";
+  showStatus("linkStatus","✅ Link added! It now appears on your Home page.");
+  loadLinks();
+});
 
 // ── Save Hero ──────────────────────────────────────────
 document.getElementById("saveHeroBtn").addEventListener("click", async () => {
-  await setDoc(doc(db, "site", "hero"), {
+  await setDoc(doc(db,"site","hero"), {
     position:    document.getElementById("heroPosition").value.trim(),
     institution: document.getElementById("heroInstitution").value.trim(),
     tagline:     document.getElementById("heroTagline").value.trim(),
@@ -485,55 +557,62 @@ document.getElementById("saveHeroBtn").addEventListener("click", async () => {
     statCites:   document.getElementById("heroStatCites").value.trim(),
     statYears:   document.getElementById("heroStatYears").value.trim(),
   });
-  showStatus("heroStatus", "✅ Home page saved!");
+  showStatus("heroStatus","✅ Home page saved!");
 });
 
 // ── Save About ─────────────────────────────────────────
 document.getElementById("saveAboutBtn").addEventListener("click", async () => {
-  await setDoc(doc(db,"site","about"),{ bio: document.getElementById("aboutBio").value.trim(), ambition: document.getElementById("aboutAmbition").value.trim() });
+  await setDoc(doc(db,"site","about"), {
+    bio:      document.getElementById("aboutBio").value.trim(),
+    ambition: document.getElementById("aboutAmbition").value.trim()
+  });
   showStatus("aboutStatus","✅ Saved!");
 });
 
 // ── Timeline adds ──────────────────────────────────────
 async function addTimeline(col, ids, statusId){
   const title = document.getElementById(ids.title).value.trim();
-  if(!title){ showStatus(statusId, "Title / Role is required.", false); return; }
-  await addDoc(collection(db, col), {
+  if(!title){ showStatus(statusId,"Title is required.",false); return; }
+  await addDoc(collection(db,col), {
     title, place: document.getElementById(ids.place).value.trim(),
     years: document.getElementById(ids.years).value.trim(),
-    order: parseInt(document.getElementById(ids.order).value) || 1,
+    order: parseInt(document.getElementById(ids.order).value)||1,
   });
-  [ids.title, ids.place, ids.years].forEach(id => document.getElementById(id).value = "");
-  showStatus(statusId, "✅ Added!"); loadAll();
+  [ids.title,ids.place,ids.years].forEach(id => document.getElementById(id).value="");
+  showStatus(statusId,"✅ Added!"); loadAll();
 }
-document.getElementById("addPositionBtn").addEventListener("click", () => addTimeline("positions", {title:"posTitle",place:"posPlace",years:"posYears",order:"posOrder"}, "posStatus"));
-document.getElementById("addExpBtn").addEventListener("click",      () => addTimeline("experience",{title:"expTitle",place:"expPlace",years:"expYears",order:"expOrder"}, "expStatus"));
-document.getElementById("addEduBtn").addEventListener("click",      () => addTimeline("education", {title:"eduTitle",place:"eduPlace",years:"eduYears",order:"eduOrder"}, "eduStatus"));
+document.getElementById("addPositionBtn").addEventListener("click", () => addTimeline("positions",{title:"posTitle",place:"posPlace",years:"posYears",order:"posOrder"},"posStatus"));
+document.getElementById("addExpBtn").addEventListener("click",      () => addTimeline("experience",{title:"expTitle",place:"expPlace",years:"expYears",order:"expOrder"},"expStatus"));
+document.getElementById("addEduBtn").addEventListener("click",      () => addTimeline("education",{title:"eduTitle",place:"eduPlace",years:"eduYears",order:"eduOrder"},"eduStatus"));
 
 // ── Research ───────────────────────────────────────────
 document.getElementById("addResBtn").addEventListener("click", async () => {
   const title = document.getElementById("resTitle").value.trim();
   if(!title){ showStatus("resStatus","Title required.",false); return; }
-  await addDoc(collection(db,"research"),{ icon:document.getElementById("resIcon").value.trim()||"📌", title, description:document.getElementById("resDesc").value.trim(), order:parseInt(document.getElementById("resOrder").value)||1 });
-  ["resIcon","resTitle","resDesc"].forEach(id => document.getElementById(id).value = "");
+  await addDoc(collection(db,"research"), {
+    icon: document.getElementById("resIcon").value.trim()||"📌",
+    title, description: document.getElementById("resDesc").value.trim(),
+    order: parseInt(document.getElementById("resOrder").value)||1
+  });
+  ["resIcon","resTitle","resDesc"].forEach(id => document.getElementById(id).value="");
   showStatus("resStatus","✅ Added!"); loadAll();
 });
 
-// ── Publications (with URL field) ──────────────────────
+// ── Publications ───────────────────────────────────────
 document.getElementById("addPubBtn").addEventListener("click", async () => {
   const title = document.getElementById("pubTitle").value.trim();
   if(!title){ showStatus("pubStatus","Title required.",false); return; }
-  await addDoc(collection(db,"publications"),{
+  await addDoc(collection(db,"publications"), {
     title,
     authors:   document.getElementById("pubAuthors").value.trim(),
     journal:   document.getElementById("pubJournal").value.trim(),
-    year:      parseInt(document.getElementById("pubYear").value) || new Date().getFullYear(),
-    citations: parseInt(document.getElementById("pubCitations").value) || 0,
+    year:      parseInt(document.getElementById("pubYear").value)||new Date().getFullYear(),
+    citations: parseInt(document.getElementById("pubCitations").value)||0,
     pubUrl:    document.getElementById("pubUrl").value.trim(),
     pdfUrl:    document.getElementById("pubPdf").value.trim(),
     doiUrl:    document.getElementById("pubDoi").value.trim(),
   });
-  ["pubTitle","pubAuthors","pubJournal","pubYear","pubCitations","pubUrl","pubPdf","pubDoi"].forEach(id => document.getElementById(id).value = "");
+  ["pubTitle","pubAuthors","pubJournal","pubYear","pubCitations","pubUrl","pubPdf","pubDoi"].forEach(id => document.getElementById(id).value="");
   showStatus("pubStatus","✅ Publication added!"); loadAll();
 });
 
@@ -542,19 +621,19 @@ document.getElementById("addBlogBtn").addEventListener("click", async () => {
   const title = document.getElementById("blogTitle").value.trim();
   if(!title){ showStatus("blogStatus","Title required.",false); return; }
   const dateVal = document.getElementById("blogDate").value;
-  await addDoc(collection(db,"blog"),{
-    title, category:document.getElementById("blogCat").value.trim(),
-    excerpt:document.getElementById("blogExcerpt").value.trim(),
-    url:document.getElementById("blogUrl").value.trim(),
-    date: dateVal ? Timestamp.fromDate(new Date(dateVal)) : Timestamp.now(),
+  await addDoc(collection(db,"blog"), {
+    title, category: document.getElementById("blogCat").value.trim(),
+    excerpt: document.getElementById("blogExcerpt").value.trim(),
+    url:     document.getElementById("blogUrl").value.trim(),
+    date:    dateVal ? Timestamp.fromDate(new Date(dateVal)) : Timestamp.now(),
   });
-  ["blogTitle","blogCat","blogExcerpt","blogUrl","blogDate"].forEach(id => document.getElementById(id).value = "");
+  ["blogTitle","blogCat","blogExcerpt","blogUrl","blogDate"].forEach(id => document.getElementById(id).value="");
   showStatus("blogStatus","✅ Post added!"); loadAll();
 });
 
 // ── Contact ────────────────────────────────────────────
 document.getElementById("saveContactBtn").addEventListener("click", async () => {
-  await setDoc(doc(db,"site","contact"),{
+  await setDoc(doc(db,"site","contact"), {
     email:        document.getElementById("ctEmail").value.trim(),
     office:       document.getElementById("ctOffice").value.trim(),
     github:       document.getElementById("ctGithub").value.trim(),
@@ -565,56 +644,5 @@ document.getElementById("saveContactBtn").addEventListener("click", async () => 
   });
   showStatus("contactStatus","✅ Saved!");
 });
-
-// ── Hero Links ─────────────────────────────────────────
-async function loadLinks(){
-  const snap = await getDocs(query(collection(db,"hero_links"), orderBy("order")));
-  const links = snap.docs.map(d=>({id:d.id,...d.data()}));
-  const el = document.getElementById("linksList");
-  if(!links.length){ el.innerHTML=`<p style="color:var(--clr-muted);font-size:0.88rem">No links yet. Add one below.</p>`; return; }
-  el.innerHTML = links.map(l=>`
-    <div class="item-row">
-      <div class="item-row-info">
-        <strong>${l.emoji||""} ${l.label}</strong>
-        <span>${l.url} &nbsp;·&nbsp; Order: ${l.order}</span>
-      </div>
-      <div class="item-actions">
-        <button class="btn btn-outline btn-xs edit-link-btn" data-id="${l.id}">Edit</button>
-        <button class="btn btn-danger btn-xs del-link-btn" data-id="${l.id}">Delete</button>
-      </div>
-    </div>`).join("");
-  el.querySelectorAll(".del-link-btn").forEach(btn=>btn.addEventListener("click",async()=>{
-    if(!confirm("Delete this link?")) return;
-    await deleteDoc(doc(db,"hero_links",btn.dataset.id));
-    loadLinks();
-  }));
-  el.querySelectorAll(".edit-link-btn").forEach(btn=>btn.addEventListener("click",()=>{
-    const l=links.find(x=>x.id===btn.dataset.id);
-    openEditModal("Edit Link",[
-      {key:"label",label:"Label",value:l.label},
-      {key:"url",label:"URL",value:l.url},
-      {key:"emoji",label:"Emoji (optional)",value:l.emoji||""},
-      {key:"order",label:"Order",value:l.order,type:"number"}
-    ],async data=>{
-      await updateDoc(doc(db,"hero_links",btn.dataset.id),{label:data.label,url:data.url,emoji:data.emoji,order:parseInt(data.order)||1});
-      loadLinks();
-    });
-  }));
-}
-
-document.getElementById("addLinkBtn").addEventListener("click", async () => {
-  const label = document.getElementById("linkLabel").value.trim();
-  const url   = document.getElementById("linkUrl").value.trim();
-  if(!label||!url){ showStatus("linkStatus","Label and URL are required.",false); return; }
-  await addDoc(collection(db,"hero_links"),{
-    label, url,
-    emoji: document.getElementById("linkEmoji").value.trim(),
-    order: parseInt(document.getElementById("linkOrder").value)||1,
-  });
-  ["linkLabel","linkUrl","linkEmoji"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("linkOrder").value="1";
-  showStatus("linkStatus","✅ Link added! It will appear on the Home page."); loadLinks();
-});
-
 </script>
 </body></html>
