@@ -1,4 +1,4 @@
-// shared.js
+// shared.js — academic site
 import { auth, ADMIN_EMAIL } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -10,7 +10,7 @@ window.addEventListener("scroll", () => {
   if (navbar) navbar.classList.toggle("scrolled", window.scrollY > 20);
 }, { passive: true });
 
-const navToggle = document.getElementById("navToggle");
+const navToggle  = document.getElementById("navToggle");
 const navLinksEl = document.getElementById("navLinks");
 if (navToggle) {
   navToggle.addEventListener("click", () => navLinksEl.classList.toggle("open"));
@@ -47,12 +47,15 @@ export function formatDate(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
-export function emptyState(icon, msg) {
-  return `<div class="empty-state"><div class="empty-icon">${icon}</div><p>${msg}</p></div>`;
-}
+
 export function showToast(msg, ok = true) {
   let t = document.getElementById("toast");
-  if (!t) { t = document.createElement("div"); t.id = "toast"; t.style.cssText = "position:fixed;bottom:80px;right:24px;z-index:3000;padding:12px 20px;border-radius:8px;font-size:0.9rem;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s"; document.body.appendChild(t); }
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.style.cssText = "position:fixed;bottom:80px;right:24px;z-index:3000;padding:12px 20px;border-radius:8px;font-size:0.9rem;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s";
+    document.body.appendChild(t);
+  }
   t.textContent = msg;
   t.style.background = ok ? "#2e7d32" : "#c62828";
   t.style.color = "#fff";

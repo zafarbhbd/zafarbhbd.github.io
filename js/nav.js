@@ -15,11 +15,12 @@ export function insertNav() {
           <a href="positions.html">Academic Positions</a>
           <a href="education.html">Education</a>
           <a href="research.html">Research</a>
+          <a href="publications.html">Publications</a>
         </div>
       </li>
-      <li><a href="publications.html">Publications</a></li>
       <li><a href="blog.html">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
+      <li><a href="admin.html" style="color:var(--clr-accent);font-weight:600">Admin</a></li>
     </ul>
   </div>`;
 }
