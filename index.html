@@ -1,78 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Abu Zafar | Political Scientist</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Portal</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav id="navbar"></nav>
-<section class="hero">
-  <div class="hero-inner">
-    <div id="heroPhoto">
-      <div class="photo-placeholder">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" style="width:72px;height:72px;margin-bottom:8px"><circle cx="40" cy="30" r="16" fill="#c2c8d4"/><ellipse cx="40" cy="68" rx="24" ry="16" fill="#c2c8d4"/></svg>
-        <p style="font-size:0.72rem;color:var(--clr-muted)">Add photo via Admin</p>
-      </div>
+  <div class="wrap">
+    <div class="card">
+      <p class="eyebrow">Attendance</p>
+      <h1>Mark your attendance</h1>
     </div>
-    <div>
-      <p class="hero-eyebrow">Political Scientist &amp; Researcher</p>
-      <h1 class="hero-name">Abu Zafar</h1>
-      <p class="hero-position" id="heroPosition">Assistant Professor</p>
-      <p class="hero-institution" id="heroInstitution">Department of Political Science</p>
-      <p class="hero-tagline" id="heroTagline">Researching climate change, adaptation, public policy &amp; machine learning for social science.</p>
-      <div class="hero-cta">
-        <a href="research.html" class="btn btn-primary">My Research</a>
-        <a href="publications.html" class="btn btn-outline">Publications</a>
-        <a href="https://github.com/zafarbhbd" target="_blank" class="btn btn-ghost">GitHub ↗</a>
+
+    <div class="card" id="yearCard">
+      <label>Select your year</label>
+      <div class="pill-row" id="yearPills"></div>
+    </div>
+
+    <div class="card" id="subjectCard" style="display:none;">
+      <label>Select your subject</label>
+      <div class="pill-row" id="subjectPills"></div>
+    </div>
+
+    <div class="card" id="attCard" style="display:none;">
+      <div id="loadingRow" class="msg info">Checking session status&hellip;</div>
+
+      <div id="openArea" style="display:none;">
+        <p class="eyebrow" id="sessionLabel"></p>
+        <h2 style="margin-bottom:14px;">Session is open</h2>
+
+        <div style="margin-bottom:14px;">
+          <label>Registration number</label>
+          <div class="skeleton" id="regSkeleton"></div>
+          <select id="regSelect" style="display:none;" onchange="onRegChange()"></select>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label>Name</label>
+          <div class="skeleton" id="nameSkeleton"></div>
+          <select id="nameSelect" style="display:none;" onchange="onNameChange()"></select>
+        </div>
+
+        <button class="btn-primary" id="submitBtn" disabled onclick="submitAttendance()">Submit attendance</button>
+        <div id="submitMsg"></div>
       </div>
-      <div class="hero-stats">
-        <div><span class="stat-num" id="statPubs">5</span><span class="stat-label">Publications</span></div>
-        <div><span class="stat-num" id="statCites">35+</span><span class="stat-label">Citations</span></div>
-        <div><span class="stat-num" id="statYears">5+</span><span class="stat-label">Years Research</span></div>
-      </div>
-      <!-- DYNAMIC LINKS SECTION -->
-      <div class="hero-links-section" id="heroLinksSection" style="display:none">
-        <p class="hero-links-label">Connect &amp; Follow</p>
-        <div class="hero-links" id="heroLinks"></div>
+
+      <div id="closedArea" style="display:none;">
+        <div class="msg info">No attendance session is open right now for this section.</div>
+
+        <div style="margin-top:18px;">
+          <label>Check my attendance so far</label>
+          <div class="skeleton" id="ccSkeleton"></div>
+          <select id="ccRegSelect" style="display:none;" onchange="onCcRegChange()"></select>
+        </div>
+        <button class="btn-secondary" id="ccBtn" disabled style="margin-top:10px; width:100%;" onclick="checkMyAttendance()">Check attendance</button>
+        <div id="ccResult"></div>
       </div>
     </div>
   </div>
-  <div class="hero-scroll">scroll ↓</div>
-</section>
-<footer class="footer"><div class="container footer-inner"><p>&copy; <span id="year"></span> Abu Zafar. All rights reserved.</p><p>Hosted on Firebase</p></div></footer>
+
 <script type="module">
-import { insertNav } from "./js/nav.js";
-import { db } from "./js/firebase-config.js";
-import { doc, getDoc, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import "./js/shared.js";
-insertNav();
+import {
+  db, collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, serverTimestamp,
+  YEARS, YEAR_LABELS, NM_SUBJECTS, needsSubject, sectionLabel, studentDocId, attendanceDocId
+} from './firebase-config.js';
 
-// Hero data
-const snap = await getDoc(doc(db,"site","hero"));
-if(snap.exists()){
-  const d=snap.data();
-  if(d.position)    document.getElementById("heroPosition").textContent=d.position;
-  if(d.institution) document.getElementById("heroInstitution").textContent=d.institution;
-  if(d.tagline)     document.getElementById("heroTagline").textContent=d.tagline;
-  if(d.statPubs)    document.getElementById("statPubs").textContent=d.statPubs;
-  if(d.statCites)   document.getElementById("statCites").textContent=d.statCites;
-  if(d.statYears)   document.getElementById("statYears").textContent=d.statYears;
-  if(d.photoURL)    document.getElementById("heroPhoto").innerHTML=`<img src="${d.photoURL}" class="hero-photo" alt="Abu Zafar"/>`;
+let currentYear = null;
+let currentSubject = "";
+let students = [];
+let selectedReg = null;
+let currentSession = null; // {id, label, status}
+
+// ---- Year / Subject selection ----
+const yearPills = document.getElementById('yearPills');
+YEARS.forEach(yk => {
+  const btn = document.createElement('button');
+  btn.className = 'pill';
+  btn.textContent = YEAR_LABELS[yk];
+  btn.onclick = () => selectYear(yk, btn);
+  yearPills.appendChild(btn);
+});
+
+function selectYear(yearKey, btn) {
+  currentYear = yearKey;
+  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.getElementById('subjectCard').style.display = 'none';
+  document.getElementById('attCard').style.display = 'none';
+
+  if (needsSubject(yearKey)) {
+    const subjectPills = document.getElementById('subjectPills');
+    subjectPills.innerHTML = '';
+    NM_SUBJECTS[yearKey].forEach(sub => {
+      const b = document.createElement('button');
+      b.className = 'pill';
+      b.textContent = sub;
+      b.onclick = () => selectSubject(sub, b);
+      subjectPills.appendChild(b);
+    });
+    document.getElementById('subjectCard').style.display = 'block';
+  } else {
+    currentSubject = "";
+    loadSection();
+  }
 }
 
-// Dynamic links
-const linksSnap = await getDocs(query(collection(db,"hero_links"), orderBy("order")));
-const links = linksSnap.docs.map(d=>({id:d.id,...d.data()}));
-if(links.length){
-  document.getElementById("heroLinks").innerHTML = links.map(l=>`
-    <a href="${l.url}" target="_blank" rel="noopener" class="hero-link-pill">
-      ${l.emoji ? `<span class="hero-link-emoji">${l.emoji}</span>` : ""}
-      <span>${l.label}</span>
-    </a>`).join("");
-  document.getElementById("heroLinksSection").style.display = "block";
+function selectSubject(subject, btn) {
+  currentSubject = subject;
+  [...document.getElementById('subjectPills').children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadSection();
 }
+
+// ---- Load current session + roster for the chosen section ----
+async function loadSection() {
+  resetForm();
+  document.getElementById('attCard').style.display = 'block';
+  document.getElementById('loadingRow').style.display = 'block';
+  document.getElementById('openArea').style.display = 'none';
+  document.getElementById('closedArea').style.display = 'none';
+
+  try {
+    const sessQ = query(collection(db, 'sessions'),
+      where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('status', '==', 'open'));
+    const sessSnap = await getDocs(sessQ);
+
+    const studQ = query(collection(db, 'students'),
+      where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+    const studSnap = await getDocs(studQ);
+    students = studSnap.docs.map(d => d.data());
+
+    document.getElementById('loadingRow').style.display = 'none';
+
+    if (!sessSnap.empty) {
+      const d = sessSnap.docs[0];
+      currentSession = { id: d.id, ...d.data() };
+      document.getElementById('sessionLabel').textContent = sectionLabel(currentYear, currentSubject) + ' \u00b7 ' + currentSession.label;
+      populateDropdowns();
+      document.getElementById('openArea').style.display = 'block';
+    } else {
+      currentSession = null;
+      populateCcDropdown();
+      document.getElementById('closedArea').style.display = 'block';
+    }
+  } catch (err) {
+    document.getElementById('loadingRow').className = 'msg error';
+    document.getElementById('loadingRow').textContent = 'Could not load this section: ' + err.message;
+  }
+}
+
+function resetForm() {
+  selectedReg = null;
+  document.getElementById('submitMsg').innerHTML = '';
+  document.getElementById('ccResult').innerHTML = '';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('ccBtn').disabled = true;
+}
+
+function populateDropdowns() {
+  const regSel = document.getElementById('regSelect');
+  const nameSel = document.getElementById('nameSelect');
+  regSel.innerHTML = '<option value="" disabled selected>\u2014 Select your registration no \u2014</option>';
+  nameSel.innerHTML = '<option value="" disabled selected>\u2014 Select your name \u2014</option>';
+  students.forEach(s => {
+    regSel.innerHTML += `<option value="${s.reg}">${s.reg}</option>`;
+    nameSel.innerHTML += `<option value="${s.reg}">${s.name}</option>`;
+  });
+  document.getElementById('regSkeleton').style.display = 'none';
+  document.getElementById('nameSkeleton').style.display = 'none';
+  regSel.style.display = 'block';
+  nameSel.style.display = 'block';
+}
+
+function populateCcDropdown() {
+  const sel = document.getElementById('ccRegSelect');
+  sel.innerHTML = '<option value="" disabled selected>\u2014 Select your registration no \u2014</option>';
+  students.forEach(s => { sel.innerHTML += `<option value="${s.reg}">${s.reg} \u2014 ${s.name}</option>`; });
+  document.getElementById('ccSkeleton').style.display = 'none';
+  sel.style.display = 'block';
+}
+
+window.onRegChange = function () {
+  const reg = document.getElementById('regSelect').value;
+  const student = students.find(s => s.reg === reg);
+  selectedReg = student || null;
+  document.getElementById('nameSelect').value = student ? student.reg : '';
+  document.getElementById('submitBtn').disabled = !student;
+  document.getElementById('submitMsg').innerHTML = '';
+};
+window.onNameChange = function () {
+  const reg = document.getElementById('nameSelect').value;
+  const student = students.find(s => s.reg === reg);
+  selectedReg = student || null;
+  document.getElementById('regSelect').value = student ? student.reg : '';
+  document.getElementById('submitBtn').disabled = !student;
+  document.getElementById('submitMsg').innerHTML = '';
+};
+window.onCcRegChange = function () {
+  document.getElementById('ccBtn').disabled = !document.getElementById('ccRegSelect').value;
+};
+
+// ---- Submit attendance ----
+window.submitAttendance = async function () {
+  if (!selectedReg || !currentSession) return;
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('submitMsg');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Submitting\u2026';
+  msg.innerHTML = '';
+
+  const id = attendanceDocId(currentSession.id, selectedReg.reg);
+  try {
+    await setDoc(doc(db, 'attendance', id), {
+      yearKey: currentYear, subject: currentSubject,
+      sessionId: currentSession.id, sessionLabel: currentSession.label,
+      reg: selectedReg.reg, name: selectedReg.name,
+      timestamp: serverTimestamp()
+    });
+    msg.innerHTML = `<div class="msg ok">Attendance recorded for ${selectedReg.reg} \u2014 ${selectedReg.name}.</div>`;
+    btn.textContent = 'Submitted';
+  } catch (err) {
+    if (err.code === 'permission-denied') {
+      msg.innerHTML = '<div class="msg error">You have already submitted attendance for this session.</div>';
+      btn.textContent = 'Already submitted';
+    } else {
+      msg.innerHTML = `<div class="msg error">${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Submit attendance';
+    }
+  }
+};
+
+// ---- Check my attendance (session closed) ----
+window.checkMyAttendance = async function () {
+  const reg = document.getElementById('ccRegSelect').value;
+  const student = students.find(s => s.reg === reg);
+  if (!student) return;
+
+  const resultBox = document.getElementById('ccResult');
+  resultBox.innerHTML = '<div class="msg info"><span class="spinner dark"></span> Loading\u2026</div>';
+
+  try {
+    const attQ = query(collection(db, 'attendance'),
+      where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('reg', '==', reg));
+    const attSnap = await getDocs(attQ);
+    const present = attSnap.size;
+
+    const sessQAll = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+    const sessSnapAll = await getDocs(sessQAll);
+    const total = sessSnapAll.size;
+    const pct = total ? Math.round((present / total) * 1000) / 10 : 0;
+
+    const recent = attSnap.docs
+      .map(d => d.data())
+      .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+      .slice(0, 5);
+
+    let html = `<div class="msg ok"><strong>${student.name}</strong> (${student.reg})<br>
+      Present: ${present} / ${total} sessions (${pct}%)</div>`;
+    if (recent.length) {
+      html += '<div style="margin-top:10px;">';
+      recent.forEach(r => { html += `<div class="list-row"><span class="secondary">${r.sessionLabel}</span><span class="status-pill open">Present</span></div>`; });
+      html += '</div>';
+    }
+    resultBox.innerHTML = html;
+  } catch (err) {
+    resultBox.innerHTML = `<div class="msg error">${err.message}</div>`;
+  }
+};
 </script>
-</body></html>
+</body>
+</html>
