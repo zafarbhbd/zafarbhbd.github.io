@@ -64,7 +64,7 @@
 <script type="module">
 import {
   db, collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, serverTimestamp,
-  YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, needsSubject, sectionLabel, attendanceDocId
+  YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, YEAR_TINTS, needsSubject, sectionLabel, attendanceDocId
 } from './firebase-config.js';
 
 let currentYear = null;
@@ -85,7 +85,8 @@ let yearButtons = {};
 YEARS.forEach(yk => {
   const btn = document.createElement('button');
   btn.className = 'pill';
-  btn.style.setProperty('--pill-color', YEAR_COLORS[yk]);
+  btn.style.background = YEAR_TINTS[yk].bg;
+  btn.style.borderColor = YEAR_TINTS[yk].border;
   btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
   btn.onclick = () => selectYear(yk, btn);
   yearPills.appendChild(btn);
@@ -94,7 +95,13 @@ YEARS.forEach(yk => {
 
 function selectYear(yearKey, btn) {
   currentYear = yearKey;
-  [...yearPills.children].forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.color = ''; b.style.borderColor = ''; });
+  [...yearPills.children].forEach((b, i) => {
+    const yk = YEARS[i];
+    b.classList.remove('active');
+    b.style.background = YEAR_TINTS[yk].bg;
+    b.style.borderColor = YEAR_TINTS[yk].border;
+    b.style.color = '';
+  });
   btn.classList.add('active');
   btn.style.background = YEAR_COLORS[yearKey];
   btn.style.borderColor = YEAR_COLORS[yearKey];

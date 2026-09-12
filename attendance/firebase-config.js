@@ -51,6 +51,17 @@ export const YEAR_COLORS = {
   NM2: "#0891b2"   // teal
 };
 
+// Soft background + border for the INACTIVE state of each year pill, so all six
+// look distinct at a glance, not just the one currently selected.
+export const YEAR_TINTS = {
+  Y1: { bg: "#dbeafe", border: "#93c5fd" },
+  Y2: { bg: "#d1fae5", border: "#6ee7b7" },
+  Y3: { bg: "#fef3c7", border: "#fcd34d" },
+  Y4: { bg: "#fee2e2", border: "#fca5a5" },
+  NM1: { bg: "#ede9fe", border: "#c4b5fd" },
+  NM2: { bg: "#cffafe", border: "#67e8f9" }
+};
+
 export function needsSubject(yearKey) {
   return NM_YEARS.indexOf(yearKey) !== -1;
 }

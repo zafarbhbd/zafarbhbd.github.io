@@ -147,7 +147,7 @@ import {
   db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
   query, where, serverTimestamp, onSnapshot,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, needsSubject, sectionLabel, studentDocId, attendanceDocId
+  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, YEAR_TINTS, needsSubject, sectionLabel, studentDocId, attendanceDocId
 } from './firebase-config.js';
 
 let currentYear = null, currentSubject = "";
@@ -182,6 +182,8 @@ const yearPills = document.getElementById('yearPills');
 YEARS.forEach(yk => {
   const btn = document.createElement('button');
   btn.className = 'pill';
+  btn.style.background = YEAR_TINTS[yk].bg;
+  btn.style.borderColor = YEAR_TINTS[yk].border;
   btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
   btn.onclick = () => selectYear(yk, btn);
   yearPills.appendChild(btn);
@@ -189,7 +191,13 @@ YEARS.forEach(yk => {
 
 function selectYear(yearKey, btn) {
   currentYear = yearKey;
-  [...yearPills.children].forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.borderColor = ''; b.style.color = ''; });
+  [...yearPills.children].forEach((b, i) => {
+    const yk = YEARS[i];
+    b.classList.remove('active');
+    b.style.background = YEAR_TINTS[yk].bg;
+    b.style.borderColor = YEAR_TINTS[yk].border;
+    b.style.color = '';
+  });
   btn.classList.add('active');
   btn.style.background = YEAR_COLORS[yearKey];
   btn.style.borderColor = YEAR_COLORS[yearKey];
@@ -332,6 +340,7 @@ function renderSessions() {
     } else if (isMostRecent) {
       actionBtn = `<button class="btn-secondary btn-sm" data-resume="${s.id}">Resume</button>`;
     }
+    actionBtn += `<button class="btn-danger btn-sm" data-delete="${s.id}">Delete</button>`;
 
     row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${s.label}</div></div>
       <div class="row-actions">${pill}${actionBtn}</div>`;
@@ -340,13 +349,16 @@ function renderSessions() {
     if (closeBtn) closeBtn.onclick = () => closeSession(s.id);
     const resumeBtn = row.querySelector('[data-resume]');
     if (resumeBtn) resumeBtn.onclick = () => resumeSession(s.id);
+    const deleteBtn = row.querySelector('[data-delete]');
+    if (deleteBtn) deleteBtn.onclick = () => deleteSession(s.id, s.label);
     el.appendChild(row);
 
     if (s.status === 'open') {
       const q = query(collection(db, 'attendance'), where('sessionId', '==', s.id));
+      const rosterRegs = new Set(roster.map(r => r.reg));
       liveUnsub = onSnapshot(q, snap => {
         const cEl = document.getElementById('liveCount_' + s.id);
-        if (cEl) cEl.textContent = snap.size;
+        if (cEl) cEl.textContent = snap.docs.filter(d => rosterRegs.has(d.data().reg)).length;
       });
     }
   });
@@ -382,6 +394,22 @@ async function resumeSession(id) {
   loadSessions();
 }
 
+async function deleteSession(id, label) {
+  // Guard: only ever delete a session that has zero real submissions, so we
+  // can never silently orphan a student's attendance history.
+  const q = query(collection(db, 'attendance'), where('sessionId', '==', id));
+  const snap = await getDocs(q);
+  if (snap.size > 0) {
+    alert('"' + label + '" already has ' + snap.size + ' submission(s), so it can\'t be deleted \u2014 ' +
+      'deleting it would leave those students\' attendance records disconnected from any session. ' +
+      'Use "Mark absent" inside the session instead if you need to correct individual entries.');
+    return;
+  }
+  if (!confirm('Delete "' + label + '"? This session has no submissions yet, so this is safe and cannot be undone.')) return;
+  await deleteDoc(doc(db, 'sessions', id));
+  loadSessions();
+}
+
 /* ---------------- SESSION DETAIL / CSV / mark absent ---------------- */
 async function openSessionDetail(session) {
   currentSessionForExport = session;
@@ -398,8 +426,9 @@ async function refreshSessionDetail(session) {
   snap.docs.forEach(d => { presentDocs[d.data().reg] = d.id; });
 
   const rows = roster.map(s => ({ reg: s.reg, name: s.name, present: !!presentDocs[s.reg], attId: presentDocs[s.reg] || null }));
+  const presentInRoster = rows.filter(r => r.present).length;
   document.getElementById('sessionModalSummary').textContent =
-    Object.keys(presentDocs).length + ' of ' + roster.length + ' students present.';
+    presentInRoster + ' of ' + roster.length + ' students present.';
 
   const body = document.getElementById('sessionTableBody');
   body.innerHTML = '';
