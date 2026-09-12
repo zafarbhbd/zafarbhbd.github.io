@@ -65,7 +65,7 @@
               <div id="transferStep1" style="display:none;">
                 <p style="font-size:13.5px; color:var(--muted); margin-bottom:10px;" id="transferExplain"></p>
                 <button class="btn-danger btn-sm" id="transferConfirmBtn" onclick="doTransfer()"></button>
-                <button class="btn-secondary btn-sm" onclick="cancelTransfer()">Cancel</button>
+                <button class="btn-secondary btn-sm" id="transferCancelBtn" onclick="cancelTransfer()">Cancel</button>
                 <div id="transferMsg"></div>
               </div>
             </div>
@@ -390,6 +390,8 @@ window.cancelTransfer = function () {
   document.getElementById('transferStep0').style.display = 'block';
   document.getElementById('transferStep1').style.display = 'none';
   document.getElementById('transferMsg').innerHTML = '';
+  document.getElementById('transferConfirmBtn').style.display = 'inline-flex';
+  document.getElementById('transferCancelBtn').style.display = 'inline-flex';
 };
 
 window.doTransfer = async function () {
@@ -399,7 +401,10 @@ window.doTransfer = async function () {
     ' and permanently reset ' + YEAR_LABELS[currentYear] + '? This cannot be undone.')) return;
 
   const btn = document.getElementById('transferConfirmBtn');
+  const cancelBtn = document.getElementById('transferCancelBtn');
+  const originalLabel = btn.textContent;
   btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Transferring\u2026';
+  cancelBtn.disabled = true;
 
   try {
     const destSnap = await getDocs(query(collection(db, 'students'), where('yearKey', '==', nextYear), where('subject', '==', '')));
@@ -422,12 +427,20 @@ window.doTransfer = async function () {
 
     document.getElementById('transferMsg').innerHTML =
       `<div class="msg ok">${transferred} transferred${skipped ? ', ' + skipped + ' skipped (already existed in ' + YEAR_LABELS[nextYear] + ')' : ''}. ${YEAR_LABELS[currentYear]} has been reset.</div>`;
+
+    // Transfer is complete and there's nothing left to transfer — hide the
+    // action buttons entirely rather than leaving a stale spinner state.
+    btn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+
     await loadRoster();
     await loadSessions();
   } catch (e) {
     document.getElementById('transferMsg').innerHTML = `<div class="msg error">${e.message}</div>`;
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    cancelBtn.disabled = false;
   }
-  btn.disabled = false;
 };
 
 window.revealReset = function () {
