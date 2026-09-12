@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Panel</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap wide">
+
+    <div id="authBar" class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+      <div>
+        <p class="eyebrow">Teacher panel</p>
+        <h1 id="authStatus" style="font-size:18px;">Please sign in to continue</h1>
+      </div>
+      <div>
+        <button id="signInBtn" class="gsi-btn" onclick="signIn()">
+          <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+          Sign in with Google
+        </button>
+        <button id="signOutBtn" class="btn-secondary" style="display:none;" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div id="appArea" style="display:none;">
+
+      <div class="card">
+        <label>Year</label>
+        <div class="pill-row" id="yearPills"></div>
+        <div id="subjectBlock" style="display:none; margin-top:14px;">
+          <label>Subject</label>
+          <div class="pill-row" id="subjectPills"></div>
+        </div>
+      </div>
+
+      <div id="sectionArea" style="display:none;">
+        <div class="tabs">
+          <button id="tabRosterBtn" class="active" onclick="showTab('roster')">Roster</button>
+          <button id="tabSessionBtn" onclick="showTab('sessions')">Sessions</button>
+          <button id="tabReportBtn" onclick="showTab('report')">Report</button>
+        </div>
+
+        <div id="rosterPanel">
+          <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+            <button class="btn-secondary btn-sm btn-icon" onclick="openModal('addStudentModal')">+ Add student</button>
+            <button class="btn-secondary btn-sm btn-icon" onclick="openModal('bulkModal')">Paste list</button>
+          </div>
+          <div class="card">
+            <div id="rosterList"></div>
+            <div class="empty-state" id="emptyRoster" style="display:none;">No students in this section yet.</div>
+          </div>
+        </div>
+
+        <div id="sessionPanel" style="display:none;">
+          <div style="margin-bottom:14px;">
+            <button class="btn-primary btn-icon" id="newSessionBtn" onclick="startNewSession()">+ Start new session</button>
+          </div>
+          <div class="card">
+            <div id="sessionList"></div>
+            <div class="empty-state" id="emptySessions" style="display:none;">No sessions yet for this section.</div>
+          </div>
+        </div>
+
+        <div id="reportPanel" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <span class="eyebrow" id="reportSummary" style="margin:0;"></span>
+            <button class="btn-secondary btn-sm" onclick="exportReportCsv()">Export CSV</button>
+          </div>
+          <div class="card">
+            <table class="responsive" id="reportTable">
+              <thead><tr><th>Reg</th><th>Name</th><th>Present</th><th>Total sessions</th><th>Percentage</th></tr></thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyReport" style="display:none;">No students in this section yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add student -->
+  <div class="overlay" id="addStudentModal">
+    <div class="modal">
+      <div class="modal-header"><strong>Add student</strong><button class="close-btn" onclick="closeModal('addStudentModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <div style="margin-bottom:14px;"><label>Registration no.</label><input type="text" id="newReg"></div>
+        <div><label>Name</label><input type="text" id="newName"></div>
+        <div id="addStudentError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addStudentModal')">Cancel</button>
+        <button class="btn-primary" id="addStudentBtn" onclick="submitAddStudent()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk paste -->
+  <div class="overlay" id="bulkModal">
+    <div class="modal wide">
+      <div class="modal-header"><strong>Paste a student list</strong><button class="close-btn" onclick="closeModal('bulkModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <label>One student per line: registration no, name</label>
+        <textarea id="bulkText" rows="8" placeholder="1001, Aisha Rahman&#10;1002, Tanvir Ahmed"></textarea>
+        <div id="bulkResult" class="msg ok" style="display:none;"></div>
+        <div id="bulkError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('bulkModal')">Close</button>
+        <button class="btn-primary" id="bulkBtn" onclick="submitBulk()">Add students</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session detail -->
+  <div class="overlay" id="sessionModal">
+    <div class="modal wide">
+      <div class="modal-header"><strong id="sessionModalTitle"></strong><button class="close-btn" onclick="closeModal('sessionModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <div id="sessionModalSummary" class="msg info"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+          <button class="btn-secondary btn-sm" onclick="exportSessionCsv()">Export CSV</button>
+        </div>
+        <div style="margin-top:10px;">
+          <table class="responsive" id="sessionTable">
+            <thead><tr><th>Reg</th><th>Name</th><th>Status</th></tr></thead>
+            <tbody id="sessionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('sessionModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import {
+  db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, serverTimestamp, onSnapshot,
+  GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, needsSubject, sectionLabel, studentDocId
+} from './firebase-config.js';
+
+let currentYear = null, currentSubject = "";
+let roster = [];
+let sessions = [];
+let liveUnsub = null;
+let currentSessionForExport = null;
+
+/* ---------------- AUTH ---------------- */
+window.signIn = function () {
+  signInWithPopup(auth, new GoogleAuthProvider()).catch(err => alert(err.message));
+};
+window.doSignOut = function () { signOut(auth); };
+
+onAuthStateChanged(auth, user => {
+  if (user && user.email === ADMIN_EMAIL) {
+    document.getElementById('authStatus').textContent = 'Signed in as ' + user.email;
+    document.getElementById('signInBtn').style.display = 'none';
+    document.getElementById('signOutBtn').style.display = 'inline-flex';
+    document.getElementById('appArea').style.display = 'block';
+  } else {
+    if (user) { document.getElementById('authStatus').textContent = user.email + ' is not authorized.'; signOut(auth); }
+    else document.getElementById('authStatus').textContent = 'Please sign in to continue';
+    document.getElementById('signInBtn').style.display = 'inline-flex';
+    document.getElementById('signOutBtn').style.display = 'none';
+    document.getElementById('appArea').style.display = 'none';
+  }
+});
+
+/* ---------------- YEAR / SUBJECT ---------------- */
+const yearPills = document.getElementById('yearPills');
+YEARS.forEach(yk => {
+  const btn = document.createElement('button');
+  btn.className = 'pill'; btn.textContent = YEAR_LABELS[yk];
+  btn.onclick = () => selectYear(yk, btn);
+  yearPills.appendChild(btn);
+});
+
+function selectYear(yearKey, btn) {
+  currentYear = yearKey;
+  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sectionArea').style.display = 'none';
+
+  if (needsSubject(yearKey)) {
+    const sp = document.getElementById('subjectPills');
+    sp.innerHTML = '';
+    NM_SUBJECTS[yearKey].forEach(sub => {
+      const b = document.createElement('button');
+      b.className = 'pill'; b.textContent = sub;
+      b.onclick = () => selectSubject(sub, b);
+      sp.appendChild(b);
+    });
+    document.getElementById('subjectBlock').style.display = 'block';
+  } else {
+    document.getElementById('subjectBlock').style.display = 'none';
+    currentSubject = "";
+    openSection();
+  }
+}
+function selectSubject(subject, btn) {
+  currentSubject = subject;
+  [...document.getElementById('subjectPills').children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  openSection();
+}
+
+function openSection() {
+  document.getElementById('sectionArea').style.display = 'block';
+  showTab('roster');
+  loadRoster();
+  loadSessions();
+}
+
+window.showTab = function (tab) {
+  document.getElementById('tabRosterBtn').className = tab === 'roster' ? 'active' : '';
+  document.getElementById('tabSessionBtn').className = tab === 'sessions' ? 'active' : '';
+  document.getElementById('tabReportBtn').className = tab === 'report' ? 'active' : '';
+  document.getElementById('rosterPanel').style.display = tab === 'roster' ? 'block' : 'none';
+  document.getElementById('sessionPanel').style.display = tab === 'sessions' ? 'block' : 'none';
+  document.getElementById('reportPanel').style.display = tab === 'report' ? 'block' : 'none';
+  if (tab === 'report') loadReport();
+};
+
+/* ---------------- ROSTER ---------------- */
+async function loadRoster() {
+  document.getElementById('rosterList').innerHTML = '<div class="skeleton"></div>';
+  const q = query(collection(db, 'students'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  const snap = await getDocs(q);
+  roster = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.reg.localeCompare(b.reg, undefined, { numeric: true }));
+  renderRoster();
+}
+function renderRoster() {
+  const el = document.getElementById('rosterList');
+  el.innerHTML = '';
+  document.getElementById('emptyRoster').style.display = roster.length ? 'none' : 'block';
+  roster.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `<div class="primary">${s.reg} \u2014 ${s.name}</div>
+      <div class="row-actions"><button class="btn-danger btn-sm" data-id="${s.id}">Remove</button></div>`;
+    row.querySelector('button').onclick = () => removeStudent(s.id, s.reg);
+    el.appendChild(row);
+  });
+}
+async function removeStudent(id, reg) {
+  if (!confirm('Remove ' + reg + ' from this section?')) return;
+  await deleteDoc(doc(db, 'students', id));
+  loadRoster();
+}
+window.submitAddStudent = async function () {
+  const reg = document.getElementById('newReg').value.trim();
+  const name = document.getElementById('newName').value.trim();
+  const err = document.getElementById('addStudentError');
+  err.style.display = 'none';
+  if (!reg || !name) { err.textContent = 'Both fields are required.'; err.style.display = 'block'; return; }
+
+  const id = studentDocId(currentYear, currentSubject, reg);
+  try {
+    await setDoc(doc(db, 'students', id), { yearKey: currentYear, subject: currentSubject, reg, name });
+    document.getElementById('newReg').value = ''; document.getElementById('newName').value = '';
+    closeModal('addStudentModal');
+    loadRoster();
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+};
+window.submitBulk = async function () {
+  const text = document.getElementById('bulkText').value;
+  const resultBox = document.getElementById('bulkResult'), errBox = document.getElementById('bulkError');
+  resultBox.style.display = 'none'; errBox.style.display = 'none';
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { errBox.textContent = 'Paste at least one line.'; errBox.style.display = 'block'; return; }
+
+  let added = 0;
+  for (const line of lines) {
+    const parts = line.indexOf('\t') !== -1 ? line.split('\t') : line.split(',');
+    const reg = (parts[0] || '').trim(), name = (parts[1] || '').trim();
+    if (!reg || !name) continue;
+    const id = studentDocId(currentYear, currentSubject, reg);
+    await setDoc(doc(db, 'students', id), { yearKey: currentYear, subject: currentSubject, reg, name });
+    added++;
+  }
+  resultBox.textContent = added + ' student(s) added.';
+  resultBox.style.display = 'block';
+  document.getElementById('bulkText').value = '';
+  loadRoster();
+};
+
+/* ---------------- SESSIONS ---------------- */
+async function loadSessions() {
+  document.getElementById('sessionList').innerHTML = '<div class="skeleton"></div>';
+  const q = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  const snap = await getDocs(q);
+  sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  renderSessions();
+}
+function renderSessions() {
+  const el = document.getElementById('sessionList');
+  el.innerHTML = '';
+  document.getElementById('emptySessions').style.display = sessions.length ? 'none' : 'block';
+  if (liveUnsub) { liveUnsub(); liveUnsub = null; }
+
+  sessions.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    const pill = s.status === 'open'
+      ? `<span class="status-pill open"><span class="dot"></span>Open \u00b7 <span id="liveCount_${s.id}">\u2026</span> present</span>`
+      : `<span class="status-pill closed"><span class="dot"></span>Closed</span>`;
+    row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${s.label}</div></div>
+      <div class="row-actions">${pill}
+      ${s.status === 'open' ? `<button class="btn-secondary btn-sm" data-close="${s.id}">Close</button>` : ''}
+      </div>`;
+    row.querySelector('.primary').onclick = () => openSessionDetail(s);
+    const closeBtn = row.querySelector('[data-close]');
+    if (closeBtn) closeBtn.onclick = () => closeSession(s.id);
+    el.appendChild(row);
+
+    if (s.status === 'open') {
+      const q = query(collection(db, 'attendance'), where('sessionId', '==', s.id));
+      liveUnsub = onSnapshot(q, snap => {
+        const cEl = document.getElementById('liveCount_' + s.id);
+        if (cEl) cEl.textContent = snap.size;
+      });
+    }
+  });
+}
+
+window.startNewSession = async function () {
+  const btn = document.getElementById('newSessionBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Starting\u2026';
+  try {
+    // Close any currently open session for this section first.
+    const openOnes = sessions.filter(s => s.status === 'open');
+    for (const s of openOnes) await updateDoc(doc(db, 'sessions', s.id), { status: 'closed' });
+
+    const label = new Date().toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    await addDoc(collection(db, 'sessions'), {
+      yearKey: currentYear, subject: currentSubject, label, status: 'open', createdAt: serverTimestamp()
+    });
+    await loadSessions();
+  } catch (e) { alert(e.message); }
+  btn.disabled = false; btn.textContent = '+ Start new session';
+};
+
+async function closeSession(id) {
+  await updateDoc(doc(db, 'sessions', id), { status: 'closed' });
+  loadSessions();
+}
+
+/* ---------------- REPORT (present count + percentage per student) ---------------- */
+let reportRows = [];
+
+async function loadReport() {
+  document.getElementById('reportTableBody').innerHTML = '';
+  document.getElementById('reportSummary').textContent = 'Loading\u2026';
+
+  // Total sessions ever run for this section (open + closed both count once finished/started).
+  const sessQ = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  const sessSnap = await getDocs(sessQ);
+  const totalSessions = sessSnap.size;
+
+  // All attendance records for this section, counted per registration number.
+  const attQ = query(collection(db, 'attendance'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  const attSnap = await getDocs(attQ);
+  const presentCount = {};
+  attSnap.docs.forEach(d => {
+    const reg = d.data().reg;
+    presentCount[reg] = (presentCount[reg] || 0) + 1;
+  });
+
+  reportRows = roster.map(s => {
+    const present = presentCount[s.reg] || 0;
+    const pct = totalSessions ? Math.round((present / totalSessions) * 1000) / 10 : 0;
+    return { reg: s.reg, name: s.name, present, total: totalSessions, pct };
+  });
+
+  document.getElementById('reportSummary').textContent =
+    sectionLabel(currentYear, currentSubject) + ' \u00b7 ' + totalSessions + ' session(s) run \u00b7 ' + roster.length + ' student(s)';
+  document.getElementById('emptyReport').style.display = reportRows.length ? 'none' : 'block';
+
+  const body = document.getElementById('reportTableBody');
+  body.innerHTML = '';
+  reportRows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>
+      <td data-label="Present">${r.present}</td><td data-label="Total sessions">${r.total}</td>
+      <td data-label="Percentage">${r.pct}%</td>`;
+    body.appendChild(tr);
+  });
+}
+
+window.exportReportCsv = function () {
+  if (!reportRows.length) return;
+  const lines = ['Reg,Name,Present,Total Sessions,Percentage'];
+  reportRows.forEach(r => lines.push(`${r.reg},${r.name},${r.present},${r.total},${r.pct}%`));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = sectionLabel(currentYear, currentSubject) + ' - attendance report.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/* ---------------- SESSION DETAIL / CSV ---------------- */
+async function openSessionDetail(session) {
+  currentSessionForExport = session;
+  document.getElementById('sessionModalTitle').textContent = session.label;
+  document.getElementById('sessionModalSummary').textContent = 'Loading\u2026';
+  openModal('sessionModal');
+
+  const q = query(collection(db, 'attendance'), where('sessionId', '==', session.id));
+  const snap = await getDocs(q);
+  const presentRegs = new Set(snap.docs.map(d => d.data().reg));
+
+  const rows = roster.map(s => ({ reg: s.reg, name: s.name, present: presentRegs.has(s.reg) }));
+  document.getElementById('sessionModalSummary').textContent =
+    presentRegs.size + ' of ' + roster.length + ' students present.';
+
+  const body = document.getElementById('sessionTableBody');
+  body.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>
+      <td data-label="Status">${r.present ? '<span class="status-pill open">Present</span>' : '<span class="status-pill closed">Absent</span>'}</td>`;
+    body.appendChild(tr);
+  });
+  currentSessionForExport.rows = rows;
+}
+
+window.exportSessionCsv = function () {
+  if (!currentSessionForExport) return;
+  const lines = ['Reg,Name,Status'];
+  currentSessionForExport.rows.forEach(r => lines.push(`${r.reg},${r.name},${r.present ? 'Present' : 'Absent'}`));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = sectionLabel(currentYear, currentSubject) + ' - ' + currentSessionForExport.label + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/* ---------------- MODALS ---------------- */
+window.openModal = function (id) { document.getElementById(id).classList.add('open'); };
+window.closeModal = function (id) { document.getElementById(id).classList.remove('open'); };
+</script>
+</body>
+</html>
