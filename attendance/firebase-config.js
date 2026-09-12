@@ -42,6 +42,10 @@ export const NM_SUBJECTS = {
 };
 export const NM_YEARS = ["NM1", "NM2"];
 
+// Only these three years have somewhere to promote into — Fourth Year and
+// both Non-Major years intentionally have no entry here.
+export const NEXT_YEAR_MAP = { Y1: "Y2", Y2: "Y3", Y3: "Y4" };
+
 export const YEAR_COLORS = {
   Y1: "#2563eb",   // blue
   Y2: "#059669",   // green

@@ -53,6 +53,35 @@
             <div id="rosterList"></div>
             <div class="empty-state" id="emptyRoster" style="display:none;">No students in this section yet.</div>
           </div>
+
+          <div class="card" id="endOfYearCard">
+            <h3 style="margin-bottom:4px;">End of year / term</h3>
+            <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Use these once a year or term is finished for this section.</p>
+
+            <div id="transferBlock" style="display:none; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--border);">
+              <div id="transferStep0">
+                <button class="btn-secondary btn-sm" id="transferRevealBtn" onclick="revealTransfer()"></button>
+              </div>
+              <div id="transferStep1" style="display:none;">
+                <p style="font-size:13.5px; color:var(--muted); margin-bottom:10px;" id="transferExplain"></p>
+                <button class="btn-danger btn-sm" id="transferConfirmBtn" onclick="doTransfer()"></button>
+                <button class="btn-secondary btn-sm" onclick="cancelTransfer()">Cancel</button>
+                <div id="transferMsg"></div>
+              </div>
+            </div>
+
+            <div id="resetStep0">
+              <button class="btn-secondary btn-sm" onclick="revealReset()">Proceed to delete all students</button>
+            </div>
+            <div id="resetStep1" style="display:none;">
+              <p style="font-size:13.5px; color:var(--muted); margin-bottom:10px;">
+                This permanently deletes every student, session, and attendance record for this section. This cannot be undone.
+              </p>
+              <button class="btn-danger btn-sm" onclick="doFullReset(this)">Delete everything for this section</button>
+              <button class="btn-secondary btn-sm" onclick="cancelReset()">Cancel</button>
+              <div id="resetMsg"></div>
+            </div>
+          </div>
         </div>
 
         <div id="sessionPanel" style="display:none;">
@@ -147,7 +176,7 @@ import {
   db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, writeBatch,
   query, where, serverTimestamp, onSnapshot,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, YEAR_TINTS, needsSubject, sectionLabel, studentDocId, attendanceDocId
+  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, YEAR_TINTS, NEXT_YEAR_MAP, needsSubject, sectionLabel, studentDocId, attendanceDocId
 } from './firebase-config.js';
 
 let currentYear = null, currentSubject = "";
@@ -164,7 +193,7 @@ window.doSignOut = function () { signOut(auth); };
 
 onAuthStateChanged(auth, user => {
   if (user && user.email === ADMIN_EMAIL) {
-    document.getElementById('authStatus').textContent = 'Signed in as ' + user.email;
+    document.getElementById('authStatus').textContent = '';
     document.getElementById('signInBtn').style.display = 'none';
     document.getElementById('signOutBtn').style.display = 'inline-flex';
     document.getElementById('appArea').style.display = 'block';
@@ -230,9 +259,23 @@ function selectSubject(subject, btn) {
 function openSection() {
   document.getElementById('sectionArea').style.display = 'block';
   document.getElementById('rosterSearch').value = '';
+  setupEndOfYearBlock();
   showTab('roster');
   loadRoster();
   loadSessions();
+}
+
+function setupEndOfYearBlock() {
+  cancelTransfer();
+  cancelReset();
+  const nextYear = NEXT_YEAR_MAP[currentYear];
+  const transferBlock = document.getElementById('transferBlock');
+  if (nextYear && !currentSubject) {
+    transferBlock.style.display = 'block';
+    document.getElementById('transferRevealBtn').textContent = 'Proceed to transfer to ' + YEAR_LABELS[nextYear];
+  } else {
+    transferBlock.style.display = 'none';
+  }
 }
 
 window.showTab = function (tab) {
@@ -310,6 +353,107 @@ window.submitBulk = async function () {
   resultBox.style.display = 'block';
   document.getElementById('bulkText').value = '';
   loadRoster();
+};
+
+/* ---------------- END OF YEAR: transfer + full reset ---------------- */
+
+// Firestore batches cap at 500 operations, so large sections are deleted in safe chunks.
+async function deleteInBatches(refs) {
+  const chunkSize = 450;
+  for (let i = 0; i < refs.length; i += chunkSize) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + chunkSize).forEach(ref => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
+async function fullResetSection(yearKey, subject) {
+  const [studSnap, sessSnap, attSnap] = await Promise.all([
+    getDocs(query(collection(db, 'students'), where('yearKey', '==', yearKey), where('subject', '==', subject))),
+    getDocs(query(collection(db, 'sessions'), where('yearKey', '==', yearKey), where('subject', '==', subject))),
+    getDocs(query(collection(db, 'attendance'), where('yearKey', '==', yearKey), where('subject', '==', subject)))
+  ]);
+  const allRefs = [...studSnap.docs, ...sessSnap.docs, ...attSnap.docs].map(d => d.ref);
+  await deleteInBatches(allRefs);
+}
+
+window.revealTransfer = function () {
+  const nextYear = NEXT_YEAR_MAP[currentYear];
+  document.getElementById('transferExplain').textContent =
+    'This moves all ' + roster.length + ' student(s) from ' + YEAR_LABELS[currentYear] + ' to ' + YEAR_LABELS[nextYear] +
+    ', then permanently clears ' + YEAR_LABELS[currentYear] + '\u2019s roster, sessions, and attendance so it\u2019s ready for a new intake. This cannot be undone.';
+  document.getElementById('transferConfirmBtn').textContent = 'Transfer to ' + YEAR_LABELS[nextYear] + ' now';
+  document.getElementById('transferStep0').style.display = 'none';
+  document.getElementById('transferStep1').style.display = 'block';
+};
+window.cancelTransfer = function () {
+  document.getElementById('transferStep0').style.display = 'block';
+  document.getElementById('transferStep1').style.display = 'none';
+  document.getElementById('transferMsg').innerHTML = '';
+};
+
+window.doTransfer = async function () {
+  const nextYear = NEXT_YEAR_MAP[currentYear];
+  if (!nextYear) return;
+  if (!confirm('Transfer all ' + roster.length + ' student(s) to ' + YEAR_LABELS[nextYear] +
+    ' and permanently reset ' + YEAR_LABELS[currentYear] + '? This cannot be undone.')) return;
+
+  const btn = document.getElementById('transferConfirmBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Transferring\u2026';
+
+  try {
+    const destSnap = await getDocs(query(collection(db, 'students'), where('yearKey', '==', nextYear), where('subject', '==', '')));
+    const destRegs = new Set(destSnap.docs.map(d => d.data().reg));
+
+    let transferred = 0, skipped = 0;
+    const toAdd = roster.filter(s => !destRegs.has(s.reg));
+    skipped = roster.length - toAdd.length;
+
+    for (let i = 0; i < toAdd.length; i += 450) {
+      const batch = writeBatch(db);
+      toAdd.slice(i, i + 450).forEach(s => {
+        batch.set(doc(db, 'students', studentDocId(nextYear, '', s.reg)), { yearKey: nextYear, subject: '', reg: s.reg, name: s.name });
+      });
+      await batch.commit();
+      transferred += Math.min(450, toAdd.length - i);
+    }
+
+    await fullResetSection(currentYear, currentSubject);
+
+    document.getElementById('transferMsg').innerHTML =
+      `<div class="msg ok">${transferred} transferred${skipped ? ', ' + skipped + ' skipped (already existed in ' + YEAR_LABELS[nextYear] + ')' : ''}. ${YEAR_LABELS[currentYear]} has been reset.</div>`;
+    await loadRoster();
+    await loadSessions();
+  } catch (e) {
+    document.getElementById('transferMsg').innerHTML = `<div class="msg error">${e.message}</div>`;
+  }
+  btn.disabled = false;
+};
+
+window.revealReset = function () {
+  document.getElementById('resetStep0').style.display = 'none';
+  document.getElementById('resetStep1').style.display = 'block';
+};
+window.cancelReset = function () {
+  document.getElementById('resetStep0').style.display = 'block';
+  document.getElementById('resetStep1').style.display = 'none';
+  document.getElementById('resetMsg').innerHTML = '';
+};
+
+window.doFullReset = async function (btn) {
+  if (!confirm('Permanently delete all students, sessions, and attendance for ' + sectionLabel(currentYear, currentSubject) + '? This cannot be undone.')) return;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Deleting\u2026';
+
+  try {
+    await fullResetSection(currentYear, currentSubject);
+    document.getElementById('resetMsg').innerHTML = '<div class="msg ok">This section has been fully reset.</div>';
+    await loadRoster();
+    await loadSessions();
+  } catch (e) {
+    document.getElementById('resetMsg').innerHTML = `<div class="msg error">${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Delete everything for this section';
 };
 
 /* ---------------- SESSIONS ---------------- */
