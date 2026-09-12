@@ -144,7 +144,7 @@
 
 <script type="module">
 import {
-  db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
+  db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, writeBatch,
   query, where, serverTimestamp, onSnapshot,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
   ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, YEAR_TINTS, needsSubject, sectionLabel, studentDocId, attendanceDocId
@@ -242,6 +242,7 @@ window.showTab = function (tab) {
   document.getElementById('rosterPanel').style.display = tab === 'roster' ? 'block' : 'none';
   document.getElementById('sessionPanel').style.display = tab === 'sessions' ? 'block' : 'none';
   document.getElementById('reportPanel').style.display = tab === 'report' ? 'block' : 'none';
+  if (tab === 'sessions') loadSessions();
   if (tab === 'report') loadReport();
 };
 
@@ -355,10 +356,11 @@ function renderSessions() {
 
     if (s.status === 'open') {
       const q = query(collection(db, 'attendance'), where('sessionId', '==', s.id));
-      const rosterRegs = new Set(roster.map(r => r.reg));
       liveUnsub = onSnapshot(q, snap => {
         const cEl = document.getElementById('liveCount_' + s.id);
-        if (cEl) cEl.textContent = snap.docs.filter(d => rosterRegs.has(d.data().reg)).length;
+        if (!cEl) return;
+        const rosterRegs = new Set(roster.map(r => r.reg)); // read fresh each time this fires, never a stale snapshot
+        cEl.textContent = snap.docs.filter(d => rosterRegs.has(d.data().reg)).length;
       });
     }
   });
@@ -395,18 +397,16 @@ async function resumeSession(id) {
 }
 
 async function deleteSession(id, label) {
-  // Guard: only ever delete a session that has zero real submissions, so we
-  // can never silently orphan a student's attendance history.
+  if (!confirm('Delete this session?')) return;
+
+  // Clean up its attendance records too, so nothing orphaned is left behind.
   const q = query(collection(db, 'attendance'), where('sessionId', '==', id));
   const snap = await getDocs(q);
-  if (snap.size > 0) {
-    alert('"' + label + '" already has ' + snap.size + ' submission(s), so it can\'t be deleted \u2014 ' +
-      'deleting it would leave those students\' attendance records disconnected from any session. ' +
-      'Use "Mark absent" inside the session instead if you need to correct individual entries.');
-    return;
-  }
-  if (!confirm('Delete "' + label + '"? This session has no submissions yet, so this is safe and cannot be undone.')) return;
-  await deleteDoc(doc(db, 'sessions', id));
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, 'sessions', id));
+  await batch.commit();
+
   loadSessions();
 }
 
@@ -454,8 +454,8 @@ async function refreshSessionDetail(session) {
 
 window.exportSessionCsv = function () {
   if (!currentSessionForExport) return;
-  const lines = ['Reg,Name,Status'];
-  currentSessionForExport.rows.forEach(r => lines.push(`${r.reg},${r.name},${r.present ? 'Present' : 'Absent'}`));
+  const lines = [csvRow(['Reg', 'Name', 'Status'])];
+  currentSessionForExport.rows.forEach(r => lines.push(csvRow([r.reg, r.name, r.present ? 'Present' : 'Absent'])));
   downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - ' + currentSessionForExport.label + '.csv');
 };
 
@@ -510,8 +510,8 @@ window.renderReportTable = function () {
 
 window.exportReportCsv = function () {
   if (!reportRows.length) return;
-  const lines = ['Reg,Name,Present,Total Sessions,Percentage'];
-  reportRows.forEach(r => lines.push(`${r.reg},${r.name},${r.present},${r.total},${r.pct}%`));
+  const lines = [csvRow(['Reg', 'Name', 'Present', 'Total Sessions', 'Percentage'])];
+  reportRows.forEach(r => lines.push(csvRow([r.reg, r.name, r.present, r.total, r.pct + '%'])));
   downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - attendance report.csv');
 };
 
@@ -536,13 +536,13 @@ window.exportAllSessionsCsv = async function (btn) {
     });
 
     const header = ['Reg', 'Name', ...allSessions.map(s => s.label), 'Total Present', 'Percentage'];
-    const lines = [header.join(',')];
+    const lines = [csvRow(header)];
     roster.forEach(s => {
       const presentSet = lookup[s.reg] || new Set();
       const cells = allSessions.map(sess => presentSet.has(sess.id) ? 'P' : '');
       const present = presentSet.size;
       const pct = allSessions.length ? Math.round((present / allSessions.length) * 1000) / 10 : 0;
-      lines.push([s.reg, s.name, ...cells, present, pct + '%'].join(','));
+      lines.push(csvRow([s.reg, s.name, ...cells, present, pct + '%']));
     });
 
     downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - all sessions.csv');
@@ -551,6 +551,12 @@ window.exportAllSessionsCsv = async function (btn) {
   }
   btn.disabled = false; btn.textContent = originalText;
 };
+
+function csvField(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function csvRow(fields) { return fields.map(csvField).join(','); }
 
 function downloadCsv(lines, filename) {
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
