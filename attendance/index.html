@@ -41,6 +41,8 @@
           <select id="nameSelect" style="display:none;" onchange="onNameChange()"></select>
         </div>
 
+        <div id="dupWarning" class="msg error" style="display:none;">You have already submitted attendance for this session.</div>
+
         <button class="btn-primary" id="submitBtn" disabled onclick="submitAttendance()">Submit attendance</button>
         <div id="submitMsg"></div>
       </div>
@@ -61,30 +63,42 @@
 
 <script type="module">
 import {
-  db, collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, serverTimestamp,
-  YEARS, YEAR_LABELS, NM_SUBJECTS, needsSubject, sectionLabel, studentDocId, attendanceDocId
+  db, collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, serverTimestamp,
+  YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, needsSubject, sectionLabel, attendanceDocId
 } from './firebase-config.js';
 
 let currentYear = null;
 let currentSubject = "";
 let students = [];
-let selectedReg = null;
-let currentSession = null; // {id, label, status}
+let selectedStudent = null;
+let currentSession = null; // {id, label, status} — kept live via onSnapshot
+let sessionUnsub = null;
 
-// ---- Year / Subject selection ----
+// ---- Read a direct link like ?year=Y2&subject=Islamic%20History ----
+const urlParams = new URLSearchParams(location.search);
+const linkedYear = urlParams.get('year');
+const linkedSubject = urlParams.get('subject');
+
+// ---- Year pills (colored) ----
 const yearPills = document.getElementById('yearPills');
+let yearButtons = {};
 YEARS.forEach(yk => {
   const btn = document.createElement('button');
   btn.className = 'pill';
-  btn.textContent = YEAR_LABELS[yk];
+  btn.style.setProperty('--pill-color', YEAR_COLORS[yk]);
+  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
   btn.onclick = () => selectYear(yk, btn);
   yearPills.appendChild(btn);
+  yearButtons[yk] = btn;
 });
 
 function selectYear(yearKey, btn) {
   currentYear = yearKey;
-  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  [...yearPills.children].forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.color = ''; b.style.borderColor = ''; });
   btn.classList.add('active');
+  btn.style.background = YEAR_COLORS[yearKey];
+  btn.style.borderColor = YEAR_COLORS[yearKey];
+  btn.style.color = '#fff';
 
   document.getElementById('subjectCard').style.display = 'none';
   document.getElementById('attCard').style.display = 'none';
@@ -100,6 +114,11 @@ function selectYear(yearKey, btn) {
       subjectPills.appendChild(b);
     });
     document.getElementById('subjectCard').style.display = 'block';
+
+    if (linkedYear === yearKey && linkedSubject && NM_SUBJECTS[yearKey].includes(linkedSubject)) {
+      const matchBtn = [...subjectPills.children].find(b => b.textContent === linkedSubject);
+      if (matchBtn) selectSubject(linkedSubject, matchBtn);
+    }
   } else {
     currentSubject = "";
     loadSection();
@@ -113,37 +132,52 @@ function selectSubject(subject, btn) {
   loadSection();
 }
 
-// ---- Load current session + roster for the chosen section ----
+// Auto-select from a direct link, if valid.
+if (linkedYear && YEARS.includes(linkedYear) && yearButtons[linkedYear]) {
+  selectYear(linkedYear, yearButtons[linkedYear]);
+}
+
+// ---- Load roster + live session status for the chosen section ----
 async function loadSection() {
   resetForm();
   document.getElementById('attCard').style.display = 'block';
   document.getElementById('loadingRow').style.display = 'block';
+  document.getElementById('loadingRow').className = 'msg info';
+  document.getElementById('loadingRow').textContent = 'Checking session status\u2026';
   document.getElementById('openArea').style.display = 'none';
   document.getElementById('closedArea').style.display = 'none';
 
-  try {
-    const sessQ = query(collection(db, 'sessions'),
-      where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('status', '==', 'open'));
-    const sessSnap = await getDocs(sessQ);
+  if (sessionUnsub) { sessionUnsub(); sessionUnsub = null; }
 
-    const studQ = query(collection(db, 'students'),
-      where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  try {
+    const studQ = query(collection(db, 'students'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
     const studSnap = await getDocs(studQ);
     students = studSnap.docs.map(d => d.data());
 
     document.getElementById('loadingRow').style.display = 'none';
 
-    if (!sessSnap.empty) {
-      const d = sessSnap.docs[0];
-      currentSession = { id: d.id, ...d.data() };
-      document.getElementById('sessionLabel').textContent = sectionLabel(currentYear, currentSubject) + ' \u00b7 ' + currentSession.label;
-      populateDropdowns();
-      document.getElementById('openArea').style.display = 'block';
-    } else {
-      currentSession = null;
-      populateCcDropdown();
-      document.getElementById('closedArea').style.display = 'block';
-    }
+    // Live-updating: the moment the teacher opens/closes a session, this page reflects it immediately.
+    const sessQ = query(collection(db, 'sessions'),
+      where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('status', '==', 'open'));
+    sessionUnsub = onSnapshot(sessQ, sessSnap => {
+      if (!sessSnap.empty) {
+        const d = sessSnap.docs[0];
+        currentSession = { id: d.id, ...d.data() };
+        document.getElementById('sessionLabel').textContent = sectionLabel(currentYear, currentSubject) + ' \u00b7 ' + currentSession.label;
+        populateDropdowns();
+        document.getElementById('openArea').style.display = 'block';
+        document.getElementById('closedArea').style.display = 'none';
+      } else {
+        currentSession = null;
+        populateCcDropdown();
+        document.getElementById('closedArea').style.display = 'block';
+        document.getElementById('openArea').style.display = 'none';
+      }
+    }, err => {
+      document.getElementById('loadingRow').style.display = 'block';
+      document.getElementById('loadingRow').className = 'msg error';
+      document.getElementById('loadingRow').textContent = 'Could not load this section: ' + err.message;
+    });
   } catch (err) {
     document.getElementById('loadingRow').className = 'msg error';
     document.getElementById('loadingRow').textContent = 'Could not load this section: ' + err.message;
@@ -151,11 +185,12 @@ async function loadSection() {
 }
 
 function resetForm() {
-  selectedReg = null;
+  selectedStudent = null;
   document.getElementById('submitMsg').innerHTML = '';
   document.getElementById('ccResult').innerHTML = '';
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('ccBtn').disabled = true;
+  document.getElementById('dupWarning').style.display = 'none';
 }
 
 function populateDropdowns() {
@@ -181,21 +216,45 @@ function populateCcDropdown() {
   sel.style.display = 'block';
 }
 
+// ---- Immediate duplicate check the moment a student identifies themselves ----
+async function checkAlreadySubmitted(student) {
+  if (!currentSession) return;
+  const dup = document.getElementById('dupWarning');
+  const btn = document.getElementById('submitBtn');
+  dup.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Checking\u2026';
+
+  try {
+    const id = attendanceDocId(currentSession.id, student.reg);
+    const snap = await getDoc(doc(db, 'attendance', id));
+    if (snap.exists()) {
+      dup.style.display = 'flex';
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.disabled = false; // fail open on the pre-check; the real enforcement is server-side anyway
+  }
+  btn.textContent = 'Submit attendance';
+}
+
 window.onRegChange = function () {
   const reg = document.getElementById('regSelect').value;
   const student = students.find(s => s.reg === reg);
-  selectedReg = student || null;
+  selectedStudent = student || null;
   document.getElementById('nameSelect').value = student ? student.reg : '';
-  document.getElementById('submitBtn').disabled = !student;
   document.getElementById('submitMsg').innerHTML = '';
+  if (student) checkAlreadySubmitted(student);
 };
 window.onNameChange = function () {
   const reg = document.getElementById('nameSelect').value;
   const student = students.find(s => s.reg === reg);
-  selectedReg = student || null;
+  selectedStudent = student || null;
   document.getElementById('regSelect').value = student ? student.reg : '';
-  document.getElementById('submitBtn').disabled = !student;
   document.getElementById('submitMsg').innerHTML = '';
+  if (student) checkAlreadySubmitted(student);
 };
 window.onCcRegChange = function () {
   document.getElementById('ccBtn').disabled = !document.getElementById('ccRegSelect').value;
@@ -203,31 +262,62 @@ window.onCcRegChange = function () {
 
 // ---- Submit attendance ----
 window.submitAttendance = async function () {
-  if (!selectedReg || !currentSession) return;
+  if (!selectedStudent || !currentSession) return;
   const btn = document.getElementById('submitBtn');
   const msg = document.getElementById('submitMsg');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Submitting\u2026';
   msg.innerHTML = '';
 
-  const id = attendanceDocId(currentSession.id, selectedReg.reg);
+  const id = attendanceDocId(currentSession.id, selectedStudent.reg);
   try {
     await setDoc(doc(db, 'attendance', id), {
       yearKey: currentYear, subject: currentSubject,
       sessionId: currentSession.id, sessionLabel: currentSession.label,
-      reg: selectedReg.reg, name: selectedReg.name,
+      reg: selectedStudent.reg, name: selectedStudent.name,
       timestamp: serverTimestamp()
     });
-    msg.innerHTML = `<div class="msg ok">Attendance recorded for ${selectedReg.reg} \u2014 ${selectedReg.name}.</div>`;
+
+    // Personal summary right after submitting.
+    let summaryHtml = '';
+    try {
+      const attQ = query(collection(db, 'attendance'),
+        where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('reg', '==', selectedStudent.reg));
+      const attSnap = await getDocs(attQ);
+      const sessQAll = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+      const sessSnapAll = await getDocs(sessQAll);
+      const present = attSnap.size, total = sessSnapAll.size;
+      const pct = total ? Math.round((present / total) * 1000) / 10 : 0;
+      summaryHtml = `<br>Present in ${present} of ${total} session(s) so far (${pct}%).`;
+    } catch (e) { /* summary is a nice-to-have; ignore failures here */ }
+
+    msg.innerHTML = `<div class="msg ok">Attendance recorded for ${selectedStudent.reg} \u2014 ${selectedStudent.name}.${summaryHtml}</div>`;
     btn.textContent = 'Submitted';
   } catch (err) {
     if (err.code === 'permission-denied') {
-      msg.innerHTML = '<div class="msg error">You have already submitted attendance for this session.</div>';
-      btn.textContent = 'Already submitted';
+      // Find out exactly why, so the message is accurate rather than a generic denial.
+      try {
+        const [sessSnap, attSnap] = await Promise.all([
+          getDoc(doc(db, 'sessions', currentSession.id)),
+          getDoc(doc(db, 'attendance', id))
+        ]);
+        if (attSnap.exists()) {
+          msg.innerHTML = '<div class="msg error">You have already submitted attendance for this session.</div>';
+        } else if (!sessSnap.exists() || sessSnap.data().status !== 'open') {
+          msg.innerHTML = '<div class="msg error">This attendance session is now CLOSED. Please contact your teacher.</div>';
+        } else {
+          msg.innerHTML = '<div class="msg error">Submission was not accepted. Please try again.</div>';
+        }
+      } catch (e2) {
+        msg.innerHTML = '<div class="msg error">Submission was not accepted. Please try again.</div>';
+      }
+      btn.textContent = 'Not submitted';
     } else {
-      msg.innerHTML = `<div class="msg error">${err.message}</div>`;
-      btn.disabled = false;
+      msg.innerHTML = `<div class="msg error">Could not submit \u2014 check your connection and try again.
+        <button class="btn-secondary btn-sm" style="margin-top:8px;" onclick="submitAttendance()">Retry</button></div>`;
       btn.textContent = 'Submit attendance';
+      btn.disabled = false;
+      return;
     }
   }
 };
@@ -266,7 +356,8 @@ window.checkMyAttendance = async function () {
     }
     resultBox.innerHTML = html;
   } catch (err) {
-    resultBox.innerHTML = `<div class="msg error">${err.message}</div>`;
+    resultBox.innerHTML = `<div class="msg error">Could not load \u2014 check your connection and try again.
+      <button class="btn-secondary btn-sm" style="margin-top:8px;" onclick="checkMyAttendance()">Retry</button></div>`;
   }
 };
 </script>

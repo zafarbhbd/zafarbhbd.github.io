@@ -42,9 +42,12 @@
         </div>
 
         <div id="rosterPanel">
-          <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
-            <button class="btn-secondary btn-sm btn-icon" onclick="openModal('addStudentModal')">+ Add student</button>
-            <button class="btn-secondary btn-sm btn-icon" onclick="openModal('bulkModal')">Paste list</button>
+          <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:space-between;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-secondary btn-sm btn-icon" onclick="openModal('addStudentModal')">+ Add student</button>
+              <button class="btn-secondary btn-sm btn-icon" onclick="openModal('bulkModal')">Paste list</button>
+            </div>
+            <input type="text" id="rosterSearch" placeholder="Search reg or name\u2026" style="max-width:220px;" oninput="renderRoster()">
           </div>
           <div class="card">
             <div id="rosterList"></div>
@@ -63,9 +66,14 @@
         </div>
 
         <div id="reportPanel" style="display:none;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <span class="eyebrow" id="reportSummary" style="margin:0;"></span>
-            <button class="btn-secondary btn-sm" onclick="exportReportCsv()">Export CSV</button>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <input type="text" id="reportSearch" placeholder="Search reg or name\u2026" style="max-width:200px;" oninput="renderReportTable()">
+              <span class="threshold-input">Flag below <input type="text" id="thresholdInput" value="75" oninput="renderReportTable()">%</span>
+              <button class="btn-secondary btn-sm" onclick="exportReportCsv()">Export CSV</button>
+              <button class="btn-secondary btn-sm" onclick="exportAllSessionsCsv(this)">Download all sessions</button>
+            </div>
           </div>
           <div class="card">
             <table class="responsive" id="reportTable">
@@ -123,7 +131,7 @@
         </div>
         <div style="margin-top:10px;">
           <table class="responsive" id="sessionTable">
-            <thead><tr><th>Reg</th><th>Name</th><th>Status</th></tr></thead>
+            <thead><tr><th>Reg</th><th>Name</th><th>Status</th><th></th></tr></thead>
             <tbody id="sessionTableBody"></tbody>
           </table>
         </div>
@@ -137,9 +145,9 @@
 <script type="module">
 import {
   db, auth, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, onSnapshot,
+  query, where, serverTimestamp, onSnapshot,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, needsSubject, sectionLabel, studentDocId
+  ADMIN_EMAIL, YEARS, YEAR_LABELS, NM_SUBJECTS, YEAR_COLORS, needsSubject, sectionLabel, studentDocId, attendanceDocId
 } from './firebase-config.js';
 
 let currentYear = null, currentSubject = "";
@@ -169,19 +177,23 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-/* ---------------- YEAR / SUBJECT ---------------- */
+/* ---------------- YEAR / SUBJECT (colored pills) ---------------- */
 const yearPills = document.getElementById('yearPills');
 YEARS.forEach(yk => {
   const btn = document.createElement('button');
-  btn.className = 'pill'; btn.textContent = YEAR_LABELS[yk];
+  btn.className = 'pill';
+  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
   btn.onclick = () => selectYear(yk, btn);
   yearPills.appendChild(btn);
 });
 
 function selectYear(yearKey, btn) {
   currentYear = yearKey;
-  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  [...yearPills.children].forEach(b => { b.classList.remove('active'); b.style.background = ''; b.style.borderColor = ''; b.style.color = ''; });
   btn.classList.add('active');
+  btn.style.background = YEAR_COLORS[yearKey];
+  btn.style.borderColor = YEAR_COLORS[yearKey];
+  btn.style.color = '#fff';
   document.getElementById('sectionArea').style.display = 'none';
 
   if (needsSubject(yearKey)) {
@@ -209,6 +221,7 @@ function selectSubject(subject, btn) {
 
 function openSection() {
   document.getElementById('sectionArea').style.display = 'block';
+  document.getElementById('rosterSearch').value = '';
   showTab('roster');
   loadRoster();
   loadSessions();
@@ -232,11 +245,14 @@ async function loadRoster() {
   roster = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.reg.localeCompare(b.reg, undefined, { numeric: true }));
   renderRoster();
 }
-function renderRoster() {
+window.renderRoster = function () {
+  const q = (document.getElementById('rosterSearch').value || '').trim().toLowerCase();
+  const rows = q ? roster.filter(s => s.reg.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) : roster;
+
   const el = document.getElementById('rosterList');
   el.innerHTML = '';
-  document.getElementById('emptyRoster').style.display = roster.length ? 'none' : 'block';
-  roster.forEach(s => {
+  document.getElementById('emptyRoster').style.display = rows.length ? 'none' : 'block';
+  rows.forEach(s => {
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `<div class="primary">${s.reg} \u2014 ${s.name}</div>
@@ -244,7 +260,7 @@ function renderRoster() {
     row.querySelector('button').onclick = () => removeStudent(s.id, s.reg);
     el.appendChild(row);
   });
-}
+};
 async function removeStudent(id, reg) {
   if (!confirm('Remove ' + reg + ' from this section?')) return;
   await deleteDoc(doc(db, 'students', id));
@@ -302,19 +318,28 @@ function renderSessions() {
   document.getElementById('emptySessions').style.display = sessions.length ? 'none' : 'block';
   if (liveUnsub) { liveUnsub(); liveUnsub = null; }
 
-  sessions.forEach(s => {
+  sessions.forEach((s, idx) => {
+    const isMostRecent = idx === 0; // sessions[] is sorted newest first
     const row = document.createElement('div');
     row.className = 'list-row';
     const pill = s.status === 'open'
       ? `<span class="status-pill open"><span class="dot"></span>Open \u00b7 <span id="liveCount_${s.id}">\u2026</span> present</span>`
       : `<span class="status-pill closed"><span class="dot"></span>Closed</span>`;
+
+    let actionBtn = '';
+    if (s.status === 'open') {
+      actionBtn = `<button class="btn-secondary btn-sm" data-close="${s.id}">Close</button>`;
+    } else if (isMostRecent) {
+      actionBtn = `<button class="btn-secondary btn-sm" data-resume="${s.id}">Resume</button>`;
+    }
+
     row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${s.label}</div></div>
-      <div class="row-actions">${pill}
-      ${s.status === 'open' ? `<button class="btn-secondary btn-sm" data-close="${s.id}">Close</button>` : ''}
-      </div>`;
+      <div class="row-actions">${pill}${actionBtn}</div>`;
     row.querySelector('.primary').onclick = () => openSessionDetail(s);
     const closeBtn = row.querySelector('[data-close]');
     if (closeBtn) closeBtn.onclick = () => closeSession(s.id);
+    const resumeBtn = row.querySelector('[data-resume]');
+    if (resumeBtn) resumeBtn.onclick = () => resumeSession(s.id);
     el.appendChild(row);
 
     if (s.status === 'open') {
@@ -331,7 +356,6 @@ window.startNewSession = async function () {
   const btn = document.getElementById('newSessionBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Starting\u2026';
   try {
-    // Close any currently open session for this section first.
     const openOnes = sessions.filter(s => s.status === 'open');
     for (const s of openOnes) await updateDoc(doc(db, 'sessions', s.id), { status: 'closed' });
 
@@ -345,23 +369,79 @@ window.startNewSession = async function () {
 };
 
 async function closeSession(id) {
+  const q = query(collection(db, 'attendance'), where('sessionId', '==', id));
+  const snap = await getDocs(q);
+  if (!confirm(snap.size + ' student(s) have submitted so far. Close this session now?')) return;
   await updateDoc(doc(db, 'sessions', id), { status: 'closed' });
   loadSessions();
 }
+
+async function resumeSession(id) {
+  if (!confirm('Reopen this session so late students can still submit?')) return;
+  await updateDoc(doc(db, 'sessions', id), { status: 'open' });
+  loadSessions();
+}
+
+/* ---------------- SESSION DETAIL / CSV / mark absent ---------------- */
+async function openSessionDetail(session) {
+  currentSessionForExport = session;
+  document.getElementById('sessionModalTitle').textContent = session.label;
+  document.getElementById('sessionModalSummary').textContent = 'Loading\u2026';
+  openModal('sessionModal');
+  await refreshSessionDetail(session);
+}
+
+async function refreshSessionDetail(session) {
+  const q = query(collection(db, 'attendance'), where('sessionId', '==', session.id));
+  const snap = await getDocs(q);
+  const presentDocs = {};
+  snap.docs.forEach(d => { presentDocs[d.data().reg] = d.id; });
+
+  const rows = roster.map(s => ({ reg: s.reg, name: s.name, present: !!presentDocs[s.reg], attId: presentDocs[s.reg] || null }));
+  document.getElementById('sessionModalSummary').textContent =
+    Object.keys(presentDocs).length + ' of ' + roster.length + ' students present.';
+
+  const body = document.getElementById('sessionTableBody');
+  body.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const statusHtml = r.present ? '<span class="status-pill open">Present</span>' : '<span class="status-pill closed">Absent</span>';
+    const actionHtml = r.present
+      ? `<button class="btn-danger btn-sm" data-markabsent="${r.attId}">Mark absent</button>`
+      : '<span class="secondary">\u2014</span>';
+    tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>
+      <td data-label="Status">${statusHtml}</td><td data-label="">${actionHtml}</td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-markabsent]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Cancel this attendance and mark them absent for this session?')) return;
+      await deleteDoc(doc(db, 'attendance', btn.getAttribute('data-markabsent')));
+      refreshSessionDetail(session);
+    };
+  });
+  currentSessionForExport.rows = rows;
+}
+
+window.exportSessionCsv = function () {
+  if (!currentSessionForExport) return;
+  const lines = ['Reg,Name,Status'];
+  currentSessionForExport.rows.forEach(r => lines.push(`${r.reg},${r.name},${r.present ? 'Present' : 'Absent'}`));
+  downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - ' + currentSessionForExport.label + '.csv');
+};
 
 /* ---------------- REPORT (present count + percentage per student) ---------------- */
 let reportRows = [];
 
 async function loadReport() {
+  document.getElementById('reportSearch').value = '';
   document.getElementById('reportTableBody').innerHTML = '';
   document.getElementById('reportSummary').textContent = 'Loading\u2026';
 
-  // Total sessions ever run for this section (open + closed both count once finished/started).
   const sessQ = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
   const sessSnap = await getDocs(sessQ);
   const totalSessions = sessSnap.size;
 
-  // All attendance records for this section, counted per registration number.
   const attQ = query(collection(db, 'attendance'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
   const attSnap = await getDocs(attQ);
   const presentCount = {};
@@ -378,68 +458,79 @@ async function loadReport() {
 
   document.getElementById('reportSummary').textContent =
     sectionLabel(currentYear, currentSubject) + ' \u00b7 ' + totalSessions + ' session(s) run \u00b7 ' + roster.length + ' student(s)';
-  document.getElementById('emptyReport').style.display = reportRows.length ? 'none' : 'block';
+  renderReportTable();
+}
 
+window.renderReportTable = function () {
+  const q = (document.getElementById('reportSearch').value || '').trim().toLowerCase();
+  const threshold = parseFloat(document.getElementById('thresholdInput').value) || 0;
+  const rows = q ? reportRows.filter(r => r.reg.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) : reportRows;
+
+  document.getElementById('emptyReport').style.display = rows.length ? 'none' : 'block';
   const body = document.getElementById('reportTableBody');
   body.innerHTML = '';
-  reportRows.forEach(r => {
+  rows.forEach(r => {
     const tr = document.createElement('tr');
+    if (r.total > 0 && r.pct < threshold) tr.className = 'low-attendance';
     tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>
       <td data-label="Present">${r.present}</td><td data-label="Total sessions">${r.total}</td>
       <td data-label="Percentage">${r.pct}%</td>`;
     body.appendChild(tr);
   });
-}
+};
 
 window.exportReportCsv = function () {
   if (!reportRows.length) return;
   const lines = ['Reg,Name,Present,Total Sessions,Percentage'];
   reportRows.forEach(r => lines.push(`${r.reg},${r.name},${r.present},${r.total},${r.pct}%`));
+  downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - attendance report.csv');
+};
+
+// Wide matrix: one column per session ever run, like the original spreadsheet layout.
+window.exportAllSessionsCsv = async function (btn) {
+  const originalText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing\u2026';
+
+  try {
+    const sessQ = query(collection(db, 'sessions'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+    const sessSnap = await getDocs(sessQ);
+    const allSessions = sessSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
+    const attQ = query(collection(db, 'attendance'), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+    const attSnap = await getDocs(attQ);
+    const lookup = {}; // reg -> Set of sessionIds present in
+    attSnap.docs.forEach(d => {
+      const data = d.data();
+      if (!lookup[data.reg]) lookup[data.reg] = new Set();
+      lookup[data.reg].add(data.sessionId);
+    });
+
+    const header = ['Reg', 'Name', ...allSessions.map(s => s.label), 'Total Present', 'Percentage'];
+    const lines = [header.join(',')];
+    roster.forEach(s => {
+      const presentSet = lookup[s.reg] || new Set();
+      const cells = allSessions.map(sess => presentSet.has(sess.id) ? 'P' : '');
+      const present = presentSet.size;
+      const pct = allSessions.length ? Math.round((present / allSessions.length) * 1000) / 10 : 0;
+      lines.push([s.reg, s.name, ...cells, present, pct + '%'].join(','));
+    });
+
+    downloadCsv(lines, sectionLabel(currentYear, currentSubject) + ' - all sessions.csv');
+  } catch (e) {
+    alert('Could not prepare the export: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = originalText;
+};
+
+function downloadCsv(lines, filename) {
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = sectionLabel(currentYear, currentSubject) + ' - attendance report.csv';
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-};
-
-/* ---------------- SESSION DETAIL / CSV ---------------- */
-async function openSessionDetail(session) {
-  currentSessionForExport = session;
-  document.getElementById('sessionModalTitle').textContent = session.label;
-  document.getElementById('sessionModalSummary').textContent = 'Loading\u2026';
-  openModal('sessionModal');
-
-  const q = query(collection(db, 'attendance'), where('sessionId', '==', session.id));
-  const snap = await getDocs(q);
-  const presentRegs = new Set(snap.docs.map(d => d.data().reg));
-
-  const rows = roster.map(s => ({ reg: s.reg, name: s.name, present: presentRegs.has(s.reg) }));
-  document.getElementById('sessionModalSummary').textContent =
-    presentRegs.size + ' of ' + roster.length + ' students present.';
-
-  const body = document.getElementById('sessionTableBody');
-  body.innerHTML = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>
-      <td data-label="Status">${r.present ? '<span class="status-pill open">Present</span>' : '<span class="status-pill closed">Absent</span>'}</td>`;
-    body.appendChild(tr);
-  });
-  currentSessionForExport.rows = rows;
 }
-
-window.exportSessionCsv = function () {
-  if (!currentSessionForExport) return;
-  const lines = ['Reg,Name,Status'];
-  currentSessionForExport.rows.forEach(r => lines.push(`${r.reg},${r.name},${r.present ? 'Present' : 'Absent'}`));
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = sectionLabel(currentYear, currentSubject) + ' - ' + currentSessionForExport.label + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
 
 /* ---------------- MODALS ---------------- */
 window.openModal = function (id) { document.getElementById(id).classList.add('open'); };

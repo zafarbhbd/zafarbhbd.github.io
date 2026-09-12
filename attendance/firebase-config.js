@@ -42,6 +42,15 @@ export const NM_SUBJECTS = {
 };
 export const NM_YEARS = ["NM1", "NM2"];
 
+export const YEAR_COLORS = {
+  Y1: "#2563eb",   // blue
+  Y2: "#059669",   // green
+  Y3: "#d97706",   // amber
+  Y4: "#dc2626",   // red
+  NM1: "#7c3aed",  // purple
+  NM2: "#0891b2"   // teal
+};
+
 export function needsSubject(yearKey) {
   return NM_YEARS.indexOf(yearKey) !== -1;
 }
