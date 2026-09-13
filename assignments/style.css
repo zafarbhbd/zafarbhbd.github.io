@@ -207,6 +207,14 @@ tr.low-attendance td { color: var(--red); font-weight: 600; }
   .course-grid { grid-template-columns: 1fr; }
 }
 
+.banner-card {
+  background: linear-gradient(135deg, #eef0ff 0%, #f5f3ff 100%);
+  border: 1px solid var(--border);
+  text-align: center;
+  padding: 30px 22px;
+}
+.banner-card h1 { font-size: 21px; }
+
 @media (max-width: 560px) {
   body { padding: 16px 12px 40px 12px; }
   .card { padding: 18px 16px; }

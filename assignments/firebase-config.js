@@ -22,6 +22,25 @@ const firebaseConfig = {
 export const ADMIN_EMAIL = "zafarbhbd@gmail.com";
 export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
+// ---- Year navigation (same structure/colors as the Attendance System, for
+// a consistent feel across the whole suite). Courses now belong to a Year. ----
+export const YEARS = ["Y1", "Y2", "Y3", "Y4", "NM1", "NM2"];
+export const YEAR_LABELS = {
+  Y1: "First Year", Y2: "Second Year", Y3: "Third Year", Y4: "Fourth Year",
+  NM1: "Non-Major First Year", NM2: "Non-Major Second Year"
+};
+export const YEAR_COLORS = {
+  Y1: "#2563eb", Y2: "#059669", Y3: "#d97706", Y4: "#dc2626", NM1: "#7c3aed", NM2: "#0891b2"
+};
+export const YEAR_TINTS = {
+  Y1: { bg: "#dbeafe", border: "#93c5fd" },
+  Y2: { bg: "#d1fae5", border: "#6ee7b7" },
+  Y3: { bg: "#fef3c7", border: "#fcd34d" },
+  Y4: { bg: "#fee2e2", border: "#fca5a5" },
+  NM1: { bg: "#ede9fe", border: "#c4b5fd" },
+  NM2: { bg: "#cffafe", border: "#67e8f9" }
+};
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);

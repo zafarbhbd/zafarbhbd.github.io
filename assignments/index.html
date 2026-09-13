@@ -3,49 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Assignment Submission</title>
+<title>Assignment Portal</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <p class="eyebrow">Assignments</p>
-      <h1>Submit your work</h1>
+    <div class="card banner-card">
+      <p class="eyebrow" style="justify-content:center;">Assignments</p>
+      <h1>Welcome to Assignment Portal</h1>
     </div>
 
     <div class="card" id="loadingScreen">Loading&hellip;</div>
 
+    <!-- YEAR -->
+    <div class="card" id="yearScreen" style="display:none;">
+      <label>Select your year</label>
+      <div class="pill-row" id="yearPills"></div>
+    </div>
+
+    <!-- COURSE -->
     <div class="card" id="courseScreen" style="display:none;">
+      <p class="back-link" onclick="goToYear()">&larr; Back to years</p>
       <label>Select your course</label>
       <div id="courseList"></div>
-      <div class="empty-state" id="noCourses" style="display:none;">No courses are set up yet. Please check with your teacher.</div>
+      <div class="empty-state" id="noCourses" style="display:none;">No courses are set up yet for this year.</div>
     </div>
 
-    <div class="card" id="closedScreen" style="display:none;">
-      <p class="secondary" style="cursor:pointer; color:var(--accent); font-weight:600; margin-bottom:14px;" onclick="goToCourses()">&larr; Back to courses</p>
-      <div class="msg info">No assignment is open right now for this course. Check back once your teacher opens a new submission window.</div>
-    </div>
-
-    <div class="card" id="formScreen" style="display:none;">
-      <p style="cursor:pointer; color:var(--accent); font-weight:600; margin-bottom:14px; font-size:13.5px;" onclick="goToCourses()">&larr; Back to courses</p>
-      <p class="eyebrow" id="assignmentLabel"></p>
-      <h1 style="font-size:19px; margin-bottom:6px;">Submit your assignment</h1>
-      <div class="deadline-badge" id="deadlineBadge" style="display:none;"></div>
-
-      <div style="margin-top:20px; margin-bottom:14px;">
-        <label>Roll number</label>
-        <select id="rollSelect" onchange="onRollChange()">
-          <option value="">Select your roll&hellip;</option>
-        </select>
-      </div>
-      <div style="margin-bottom:14px;">
+    <!-- ROLL -->
+    <div class="card" id="rollScreen" style="display:none;">
+      <p class="back-link" onclick="goToCourses()">&larr; Back to courses</p>
+      <p class="eyebrow" id="rollCourseLabel"></p>
+      <label>Roll number</label>
+      <select id="rollSelect" onchange="onRollChange()"><option value="">Select your roll&hellip;</option></select>
+      <div style="margin-top:14px;">
         <label>Name</label>
         <div id="nameDisplay" style="font-size:14px; font-weight:600; padding:11px 12px; background:var(--s2); border:1px solid var(--border); border-radius:10px; color:var(--light);">Select your roll to see your name</div>
       </div>
+      <button class="btn-primary" id="continueBtn" style="margin-top:16px;" disabled onclick="goToAssignmentList()">Continue</button>
+    </div>
 
-      <div id="statusMsg"></div>
+    <!-- ASSIGNMENT LIST -->
+    <div class="card" id="listScreen" style="display:none;">
+      <p class="back-link" onclick="goToRoll()">&larr; Change roll</p>
+      <p class="eyebrow" id="listCourseLabel"></p>
+      <h2 style="margin-bottom:14px;">Your assignments</h2>
+      <div id="assignmentListEl"></div>
+      <div class="empty-state" id="noAssignments" style="display:none;">No assignments have been posted for this course yet.</div>
+    </div>
 
-      <div id="uploadSection" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--border);">
+    <!-- ASSIGNMENT DETAIL -->
+    <div class="card" id="detailScreen" style="display:none;">
+      <p class="back-link" onclick="goToAssignmentList()">&larr; Back to assignments</p>
+      <p class="eyebrow" id="detailLabel"></p>
+      <h2 id="detailTitle" style="margin-bottom:6px;"></h2>
+      <div class="deadline-badge" id="deadlineBadge" style="display:none;"></div>
+      <div id="instructionsBox" style="margin-top:14px; font-size:14px; color:var(--muted); white-space:pre-line; display:none;"></div>
+
+      <div id="statusMsg" style="margin-top:14px;"></div>
+
+      <div id="uploadSection" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
         <label>Your file (JPG, JPEG or PDF, up to 10&nbsp;MB)</label>
         <div class="dropzone" id="dropzone">
           <div id="dzDefault">
@@ -60,188 +76,248 @@
           </div>
         </div>
         <input type="file" id="fileInput" accept=".jpg,.jpeg,.pdf,image/jpeg,application/pdf" style="display:none;">
-        <button class="btn-primary" id="submitBtn" style="margin-top:14px;" onclick="submitAssignment()">Submit assignment</button>
+        <button class="btn-primary" id="submitBtn" style="margin-top:14px;" onclick="confirmAndSubmit()">Submit assignment</button>
         <div id="formError"></div>
       </div>
     </div>
 
+    <!-- DONE -->
     <div class="card" id="doneScreen" style="display:none; text-align:center;">
       <div style="width:46px; height:46px; border-radius:50%; background:var(--green-bg); color:var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <h2>Submission received</h2>
       <p style="color:var(--muted); margin-top:8px; font-size:14px;" id="doneDetail"></p>
-      <button class="btn-secondary" style="margin-top:18px;" onclick="goToCourses()">Back to courses</button>
+      <p style="color:var(--light); margin-top:16px; font-size:12.5px;">Returning to start in <span id="countdownEl">20</span>s&hellip;</p>
     </div>
   </div>
+
+<style>
+  .back-link { cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; margin-bottom:14px; }
+</style>
 
 <script type="module">
 import {
   db, storage, collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot,
   serverTimestamp, ref, uploadBytes, getDownloadURL,
-  COURSES, STUDENTS, ASSIGNMENTS, SUBMISSIONS, MAX_FILE_BYTES, courseColor, submissionDocId
+  COURSES, STUDENTS, ASSIGNMENTS, SUBMISSIONS, MAX_FILE_BYTES, submissionDocId,
+  YEARS, YEAR_LABELS, YEAR_COLORS, YEAR_TINTS
 } from './firebase-config.js';
 
-let courses = [];
+let currentYear = null;
 let currentCourse = null;
 let students = [];
 let selectedStudent = null;
+let assignments = [];
+let mySubmissions = {}; // assignmentId -> submission
 let currentAssignment = null;
 let selectedFile = null;
-let assignmentUnsub = null;
+let detailUnsub = null;
+let resetTimer = null;
 
 function show(id) {
-  ['loadingScreen', 'courseScreen', 'closedScreen', 'formScreen', 'doneScreen'].forEach(s => {
+  ['loadingScreen','yearScreen','courseScreen','rollScreen','listScreen','detailScreen','doneScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
   });
 }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+/* ---------------- YEAR ---------------- */
+const yearPills = document.getElementById('yearPills');
+YEARS.forEach(yk => {
+  const btn = document.createElement('button');
+  btn.className = 'pill';
+  btn.style.background = YEAR_TINTS[yk].bg;
+  btn.style.borderColor = YEAR_TINTS[yk].border;
+  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
+  btn.onclick = () => selectYear(yk, btn);
+  yearPills.appendChild(btn);
+});
+function selectYear(yearKey, btn) {
+  currentYear = yearKey;
+  [...yearPills.children].forEach((b, i) => {
+    const yk = YEARS[i];
+    b.classList.remove('active'); b.style.background = YEAR_TINTS[yk].bg; b.style.borderColor = YEAR_TINTS[yk].border; b.style.color = '';
+  });
+  btn.classList.add('active'); btn.style.background = YEAR_COLORS[yearKey]; btn.style.borderColor = YEAR_COLORS[yearKey]; btn.style.color = '#fff';
+  loadCourses();
+}
+window.goToYear = function () { clearDetailListener(); show('yearScreen'); };
+
+async function loadYearScreen() {
+  show('yearScreen');
+}
+
+/* ---------------- COURSE ---------------- */
 async function loadCourses() {
+  show('loadingScreen');
   try {
-    const q = query(collection(db, COURSES), where('archived', '==', false));
+    const q = query(collection(db, COURSES), where('yearKey', '==', currentYear), where('archived', '==', false));
     const snap = await getDocs(q);
-    courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderCourseList();
+    const courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const container = document.getElementById('courseList');
+    container.innerHTML = '';
+    document.getElementById('noCourses').style.display = courses.length ? 'none' : 'block';
+    courses.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'course-pick';
+      el.innerHTML = `<span>${c.name}</span><span style="color:var(--light);">&rarr;</span>`;
+      el.onclick = () => selectCourse(c);
+      container.appendChild(el);
+    });
     show('courseScreen');
   } catch (err) {
-    document.getElementById('loadingScreen').innerHTML = `<div class="msg error">Could not load courses: ${err.message}</div>`;
+    document.getElementById('loadingScreen').innerHTML = `<div class="msg error">${err.message}</div>`;
   }
 }
-
-function renderCourseList() {
-  const container = document.getElementById('courseList');
-  container.innerHTML = '';
-  document.getElementById('noCourses').style.display = courses.length ? 'none' : 'block';
-  courses.forEach(c => {
-    const btn = document.createElement('div');
-    btn.className = 'course-pick';
-    btn.innerHTML = `<span>${c.name}</span><span style="color:var(--light);">&rarr;</span>`;
-    btn.onclick = () => selectCourse(c);
-    container.appendChild(btn);
-  });
-}
-
-window.goToCourses = function () {
-  if (assignmentUnsub) { assignmentUnsub(); assignmentUnsub = null; }
-  currentCourse = null;
-  show('courseScreen');
-};
+window.goToCourses = function () { clearDetailListener(); loadCourses(); };
 
 async function selectCourse(course) {
   currentCourse = course;
   show('loadingScreen');
-  document.getElementById('loadingScreen').innerHTML = 'Loading&hellip;';
+  const studQ = query(collection(db, STUDENTS), where('courseId', '==', course.id));
+  const studSnap = await getDocs(studQ);
+  students = studSnap.docs.map(d => d.data());
 
-  if (assignmentUnsub) { assignmentUnsub(); assignmentUnsub = null; }
-
-  try {
-    const studQ = query(collection(db, STUDENTS), where('courseId', '==', course.id));
-    const studSnap = await getDocs(studQ);
-    students = studSnap.docs.map(d => d.data());
-
-    const assignQ = query(collection(db, ASSIGNMENTS), where('courseId', '==', course.id), where('status', '==', 'open'));
-    assignmentUnsub = onSnapshot(assignQ, snap => {
-      if (!snap.empty) {
-        const d = snap.docs[0];
-        currentAssignment = { id: d.id, ...d.data() };
-        renderOpenAssignment();
-      } else {
-        currentAssignment = null;
-        show('closedScreen');
-      }
-    }, err => {
-      document.getElementById('loadingScreen').innerHTML = `<div class="msg error">${err.message}</div>`;
-      show('loadingScreen');
-    });
-  } catch (err) {
-    document.getElementById('loadingScreen').innerHTML = `<div class="msg error">Could not load this course: ${err.message}</div>`;
-    show('loadingScreen');
-  }
-}
-
-function renderOpenAssignment() {
-  document.getElementById('assignmentLabel').textContent = currentCourse.name + ' \u00b7 ' + currentAssignment.name;
-
-  const badge = document.getElementById('deadlineBadge');
-  if (currentAssignment.deadline) {
-    const d = new Date(currentAssignment.deadline);
-    badge.style.display = 'inline-flex';
-    badge.textContent = 'Due ' + d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-  } else {
-    badge.style.display = 'none';
-  }
-
+  document.getElementById('rollCourseLabel').textContent = course.name;
   const select = document.getElementById('rollSelect');
   select.innerHTML = '<option value="">Select your roll\u2026</option>';
   students.forEach(s => { select.innerHTML += `<option value="${s.roll}">${s.roll}</option>`; });
-  select.value = selectedStudent ? selectedStudent.roll : '';
-
-  document.getElementById('statusMsg').innerHTML = '';
-  document.getElementById('uploadSection').style.display = 'none';
-  show('formScreen');
-
-  if (selectedStudent) checkStatus(selectedStudent.roll);
+  select.value = '';
+  document.getElementById('nameDisplay').textContent = 'Select your roll to see your name';
+  document.getElementById('nameDisplay').style.color = 'var(--light)';
+  document.getElementById('continueBtn').disabled = true;
+  selectedStudent = null;
+  show('rollScreen');
 }
 
+/* ---------------- ROLL ---------------- */
 window.onRollChange = function () {
   const roll = document.getElementById('rollSelect').value;
   selectedStudent = students.find(s => s.roll === roll) || null;
   document.getElementById('nameDisplay').textContent = selectedStudent ? selectedStudent.name : 'Select your roll to see your name';
   document.getElementById('nameDisplay').style.color = selectedStudent ? 'var(--text)' : 'var(--light)';
-  document.getElementById('statusMsg').innerHTML = '';
-  document.getElementById('uploadSection').style.display = 'none';
-  if (selectedStudent) checkStatus(roll);
+  document.getElementById('continueBtn').disabled = !selectedStudent;
+};
+window.goToRoll = function () { clearDetailListener(); show('rollScreen'); };
+
+/* ---------------- ASSIGNMENT LIST ---------------- */
+window.goToAssignmentList = async function () {
+  if (!selectedStudent) return;
+  clearDetailListener();
+  show('loadingScreen');
+
+  const assignQ = query(collection(db, ASSIGNMENTS), where('courseId', '==', currentCourse.id));
+  const assignSnap = await getDocs(assignQ);
+  assignments = assignSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.num || 0) - (b.num || 0));
+
+  const subQ = query(collection(db, SUBMISSIONS), where('courseId', '==', currentCourse.id), where('roll', '==', selectedStudent.roll));
+  const subSnap = await getDocs(subQ);
+  mySubmissions = {};
+  subSnap.docs.forEach(d => { mySubmissions[d.data().assignmentId] = d.data(); });
+
+  document.getElementById('listCourseLabel').textContent = currentCourse.name + ' \u00b7 ' + selectedStudent.roll + ' \u2014 ' + selectedStudent.name;
+  renderAssignmentList();
+  show('listScreen');
 };
 
-async function checkStatus(roll) {
-  const msg = document.getElementById('statusMsg');
-  msg.innerHTML = '<div class="msg info"><span class="spinner dark"></span> Checking\u2026</div>';
-  try {
-    const id = submissionDocId(currentAssignment.id, roll);
-    const snap = await getDoc(doc(db, SUBMISSIONS, id));
-    if (snap.exists()) {
-      const sub = snap.data();
-      if (sub.marks !== null && sub.marks !== undefined) {
-        msg.innerHTML = `<div class="msg ok">You submitted this assignment. Your mark: <strong>${sub.marks} / 10</strong>.
-          ${sub.feedback ? '<br><span style="color:var(--muted);">' + escapeHtml(sub.feedback) + '</span>' : ''}</div>`;
-      } else {
-        msg.innerHTML = '<div class="msg info">You have already submitted this assignment. Your teacher hasn\u2019t marked it yet.</div>';
-      }
-      document.getElementById('uploadSection').style.display = 'none';
-    } else {
-      msg.innerHTML = '';
-      document.getElementById('uploadSection').style.display = 'block';
-    }
-  } catch (err) {
-    msg.innerHTML = `<div class="msg error">${err.message}</div>`;
-  }
+function renderAssignmentList() {
+  const el = document.getElementById('assignmentListEl');
+  el.innerHTML = '';
+  document.getElementById('noAssignments').style.display = assignments.length ? 'none' : 'block';
+
+  assignments.slice().reverse().forEach(a => {
+    const sub = mySubmissions[a.id];
+    let statusHtml, clickable = true;
+    if (sub && sub.marks !== null && sub.marks !== undefined) statusHtml = `<span class="status-pill submitted">Graded: ${sub.marks}/10</span>`;
+    else if (sub) statusHtml = '<span class="status-pill pending">Awaiting grading</span>';
+    else if (a.status === 'open') statusHtml = '<span class="status-pill open">Open</span>';
+    else statusHtml = '<span class="status-pill closed">Closed</span>';
+
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.style.cursor = 'pointer';
+    row.innerHTML = `<div class="primary">${a.name}</div><div class="row-actions">${statusHtml}</div>`;
+    row.onclick = () => openAssignmentDetail(a);
+    el.appendChild(row);
+  });
 }
 
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+/* ---------------- ASSIGNMENT DETAIL ---------------- */
+function clearDetailListener() { if (detailUnsub) { detailUnsub(); detailUnsub = null; } }
+
+function openAssignmentDetail(assignment) {
+  clearDetailListener();
+  currentAssignment = assignment;
+  selectedFile = null;
+
+  document.getElementById('detailLabel').textContent = currentCourse.name;
+  document.getElementById('detailTitle').textContent = assignment.name;
+
+  const badge = document.getElementById('deadlineBadge');
+  if (assignment.deadline) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = 'Due ' + new Date(assignment.deadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  } else badge.style.display = 'none';
+
+  const instrBox = document.getElementById('instructionsBox');
+  if (assignment.instructions) { instrBox.style.display = 'block'; instrBox.textContent = assignment.instructions; }
+  else instrBox.style.display = 'none';
+
+  document.getElementById('dzDefault').style.display = 'block';
+  document.getElementById('dzSelected').style.display = 'none';
+  document.getElementById('dropzone').classList.remove('has-file');
+  document.getElementById('formError').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = 'Submit assignment';
+
+  show('detailScreen');
+
+  // Live status: if this assignment gets closed while the student is on this
+  // screen, it's reflected immediately, and submit is blocked either way at
+  // the database level regardless of what this screen happens to show.
+  detailUnsub = onSnapshot(doc(db, ASSIGNMENTS, assignment.id), snap => {
+    if (snap.exists()) currentAssignment = { id: snap.id, ...snap.data() };
+    renderDetailStatus();
+  });
+}
+
+function renderDetailStatus() {
+  const sub = mySubmissions[currentAssignment.id];
+  const msg = document.getElementById('statusMsg');
+  const uploadSection = document.getElementById('uploadSection');
+
+  if (sub) {
+    if (sub.marks !== null && sub.marks !== undefined) {
+      msg.innerHTML = `<div class="msg ok">You submitted this assignment. Your mark: <strong>${sub.marks} / 10</strong>.
+        ${sub.feedback ? '<br><span style="color:var(--muted);">' + escapeHtml(sub.feedback) + '</span>' : ''}</div>`;
+    } else {
+      msg.innerHTML = '<div class="msg info">You\u2019ve already submitted this assignment. Your teacher hasn\u2019t marked it yet.</div>';
+    }
+    uploadSection.style.display = 'none';
+  } else if (currentAssignment.status === 'open') {
+    msg.innerHTML = '';
+    uploadSection.style.display = 'block';
+  } else {
+    msg.innerHTML = '<div class="msg info">This assignment is closed and you did not submit anything for it.</div>';
+    uploadSection.style.display = 'none';
+  }
+}
 
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-dropzone.addEventListener('drop', e => {
-  e.preventDefault(); dropzone.classList.remove('dragover');
-  if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFileSelect(e.dataTransfer.files[0]); }
-});
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFileSelect(e.dataTransfer.files[0]); } });
 fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFileSelect(fileInput.files[0]); });
 
 function handleFileSelect(file) {
   const errorBox = document.getElementById('formError');
   errorBox.innerHTML = '';
   const allowed = ['image/jpeg', 'application/pdf'];
-  if (allowed.indexOf(file.type) === -1) {
-    errorBox.innerHTML = '<div class="msg error">Only JPG, JPEG or PDF files are allowed.</div>';
-    selectedFile = null; return;
-  }
-  if (file.size > MAX_FILE_BYTES) {
-    errorBox.innerHTML = '<div class="msg error">That file is larger than 10 MB. Please choose a smaller file.</div>';
-    selectedFile = null; return;
-  }
+  if (allowed.indexOf(file.type) === -1) { errorBox.innerHTML = '<div class="msg error">Only JPG, JPEG or PDF files are allowed.</div>'; selectedFile = null; return; }
+  if (file.size > MAX_FILE_BYTES) { errorBox.innerHTML = '<div class="msg error">That file is larger than 10 MB.</div>'; selectedFile = null; return; }
   selectedFile = file;
   document.getElementById('dzDefault').style.display = 'none';
   document.getElementById('dzSelected').style.display = 'block';
@@ -249,15 +325,18 @@ function handleFileSelect(file) {
   dropzone.classList.add('has-file');
 }
 
-window.submitAssignment = async function () {
+window.confirmAndSubmit = function () {
   const errorBox = document.getElementById('formError');
   errorBox.innerHTML = '';
-  if (!selectedStudent) { errorBox.innerHTML = '<div class="msg error">Please select your roll number first.</div>'; return; }
   if (!selectedFile) { errorBox.innerHTML = '<div class="msg error">Please choose a file to upload.</div>'; return; }
+  if (!confirm('Submit "' + currentAssignment.name + '" for ' + selectedStudent.roll + ' \u2014 ' + selectedStudent.name + '? You will not be able to change it after this.')) return;
+  doSubmit();
+};
 
+async function doSubmit() {
+  const errorBox = document.getElementById('formError');
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Submitting\u2026';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Submitting\u2026';
 
   const ext = selectedFile.name.includes('.') ? selectedFile.name.split('.').pop() : 'dat';
   const storagePath = `assignment-submissions/${currentCourse.id}/${currentAssignment.id}/${selectedStudent.roll}.${ext}`;
@@ -277,31 +356,48 @@ window.submitAssignment = async function () {
 
     document.getElementById('doneDetail').textContent =
       selectedStudent.roll + ' \u2014 ' + selectedStudent.name + ' \u00b7 ' + currentCourse.name + ' \u00b7 ' + currentAssignment.name;
+    clearDetailListener();
     show('doneScreen');
+    startResetCountdown();
   } catch (err) {
     if (err.code === 'permission-denied') {
       try {
-        const [assignSnap, subSnap] = await Promise.all([
-          getDoc(doc(db, ASSIGNMENTS, currentAssignment.id)),
-          getDoc(doc(db, SUBMISSIONS, subId))
-        ]);
+        const [assignSnap, subSnap] = await Promise.all([getDoc(doc(db, ASSIGNMENTS, currentAssignment.id)), getDoc(doc(db, SUBMISSIONS, subId))]);
         if (subSnap.exists()) errorBox.innerHTML = '<div class="msg error">You have already submitted this assignment.</div>';
         else if (!assignSnap.exists() || assignSnap.data().status !== 'open') errorBox.innerHTML = '<div class="msg error">This assignment is now CLOSED. Please contact your teacher.</div>';
         else errorBox.innerHTML = '<div class="msg error">Submission was not accepted. Please try again.</div>';
-      } catch (e2) {
-        errorBox.innerHTML = '<div class="msg error">Submission was not accepted. Please try again.</div>';
-      }
+      } catch (e2) { errorBox.innerHTML = '<div class="msg error">Submission was not accepted. Please try again.</div>'; }
     } else {
       errorBox.innerHTML = `<div class="msg error">Could not submit \u2014 check your connection and try again.
-        <button class="btn-secondary btn-sm" style="margin-top:8px;" onclick="submitAssignment()">Retry</button></div>`;
-      btn.disabled = false; btn.textContent = 'Submit assignment';
-      return;
+        <button class="btn-secondary btn-sm" style="margin-top:8px;" onclick="confirmAndSubmit()">Retry</button></div>`;
     }
+    btn.disabled = false; btn.textContent = 'Submit assignment';
   }
-  btn.disabled = false; btn.textContent = 'Submit assignment';
-};
+}
 
-loadCourses();
+/* ---------------- AUTO-RESET AFTER 20s ---------------- */
+function startResetCountdown() {
+  let remaining = 20;
+  document.getElementById('countdownEl').textContent = remaining;
+  if (resetTimer) clearInterval(resetTimer);
+  resetTimer = setInterval(() => {
+    remaining--;
+    document.getElementById('countdownEl').textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(resetTimer);
+      resetTimer = null;
+      resetToStart();
+    }
+  }, 1000);
+}
+function resetToStart() {
+  currentYear = null; currentCourse = null; selectedStudent = null; currentAssignment = null; selectedFile = null;
+  [...yearPills.children].forEach((b, i) => { const yk = YEARS[i]; b.classList.remove('active'); b.style.background = YEAR_TINTS[yk].bg; b.style.borderColor = YEAR_TINTS[yk].border; b.style.color = ''; });
+  show('yearScreen');
+}
+
+show('loadingScreen');
+loadYearScreen();
 </script>
 </body>
 </html>
