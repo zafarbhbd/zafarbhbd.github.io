@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignment Admin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap wide">
+
+    <div id="authBar" class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h1 id="authStatus" style="font-size:18px;">Please sign in to continue</h1>
+      </div>
+      <div>
+        <button id="signInBtn" class="gsi-btn" onclick="signIn()">
+          <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+          Sign in with Google
+        </button>
+        <button id="signOutBtn" class="btn-secondary" style="display:none;" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- COURSES SCREEN -->
+    <div id="coursesScreen" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+        <h1 style="font-size:20px;">Your courses</h1>
+        <button class="btn-primary btn-icon" onclick="openModal('addCourseModal')">+ Add course</button>
+      </div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; color:var(--muted); margin-bottom:14px; cursor:pointer;">
+        <input type="checkbox" id="showArchived" onchange="renderCourses()"> Show archived courses
+      </label>
+      <div class="course-grid" id="courseGrid"></div>
+      <div class="card empty-state" id="noCoursesState" style="display:none;">No courses yet. Add your first course to get started.</div>
+    </div>
+
+    <!-- COURSE DETAIL SCREEN -->
+    <div id="courseScreen" style="display:none;">
+      <p style="cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; margin-bottom:14px;" onclick="goToCourses()">&larr; All courses</p>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+        <div class="course-avatar" id="courseAvatar" style="width:40px; height:40px; font-size:17px;">A</div>
+        <h1 id="courseTitle" style="font-size:19px;"></h1>
+        <button class="btn-secondary btn-sm" id="archiveToggleBtn" onclick="toggleArchiveCurrentCourse()" style="margin-left:auto;"></button>
+      </div>
+
+      <div class="tabs">
+        <button id="tabRosterBtn" class="active" onclick="showTab('roster')">Roster</button>
+        <button id="tabAssignBtn" onclick="showTab('assignments')">Assignments</button>
+      </div>
+
+      <div id="rosterPanel">
+        <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:space-between;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-secondary btn-sm" onclick="openModal('addStudentModal')">+ Add student</button>
+            <button class="btn-secondary btn-sm" onclick="openModal('bulkModal')">Paste list</button>
+          </div>
+          <input type="text" id="rosterSearch" placeholder="Search roll or name\u2026" style="max-width:220px;" oninput="renderRoster()">
+        </div>
+        <div class="card"><div id="rosterList"></div><div class="empty-state" id="emptyRoster" style="display:none;">No students in this course yet.</div></div>
+      </div>
+
+      <div id="assignPanel" style="display:none;">
+        <div style="margin-bottom:14px;"><button class="btn-primary btn-icon" onclick="openModal('newAssignmentModal')">+ New assignment</button></div>
+        <div class="card"><div id="assignList"></div><div class="empty-state" id="emptyAssign" style="display:none;">No assignments yet. Create one to start collecting submissions.</div></div>
+      </div>
+    </div>
+
+    <!-- ASSIGNMENT DASHBOARD -->
+    <div id="dashScreen" style="display:none;">
+      <p style="cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; margin-bottom:14px;" onclick="backToCourse()">&larr; <span id="dashCourseLabel"></span></p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+        <h1 id="dashTitle" style="font-size:19px;"></h1>
+        <button class="btn-secondary btn-sm" onclick="exportMarksCsv()">Export CSV</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
+          <span style="font-size:14px; color:var(--muted);"><strong id="summaryCount" style="color:var(--text); font-size:16px;">\u2014</strong> submitted</span>
+          <span style="font-size:13px; color:var(--muted);" id="avgNote"></span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <input type="text" id="dashSearch" placeholder="Search roll or name\u2026" style="max-width:220px;" oninput="renderDashTable()">
+          <span style="font-size:12px; color:var(--light);" id="rowCountLabel"></span>
+        </div>
+        <table class="responsive" id="dashTable">
+          <thead><tr><th>Roll</th><th>Name</th><th>Status</th><th>Mark</th><th></th></tr></thead>
+          <tbody id="dashTableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyDash" style="display:none;">No students match your search.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add course -->
+  <div class="overlay" id="addCourseModal">
+    <div class="modal">
+      <div class="modal-header"><strong>Add a course</strong><button class="close-btn" onclick="closeModal('addCourseModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <label>Course name</label><input type="text" id="newCourseName" placeholder="e.g. Physics 101">
+        <div id="addCourseError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addCourseModal')">Cancel</button>
+        <button class="btn-primary" id="addCourseBtn" onclick="submitAddCourse()">Add course</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add student -->
+  <div class="overlay" id="addStudentModal">
+    <div class="modal">
+      <div class="modal-header"><strong>Add student</strong><button class="close-btn" onclick="closeModal('addStudentModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <div style="margin-bottom:14px;"><label>Roll number</label><input type="text" id="newRoll"></div>
+        <div><label>Name</label><input type="text" id="newName"></div>
+        <div id="addStudentError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addStudentModal')">Cancel</button>
+        <button class="btn-primary" id="addStudentBtn" onclick="submitAddStudent()">Add student</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk paste -->
+  <div class="overlay" id="bulkModal">
+    <div class="modal wide">
+      <div class="modal-header"><strong>Paste a student list</strong><button class="close-btn" onclick="closeModal('bulkModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <label>One student per line: roll, name</label>
+        <textarea id="bulkText" rows="8" placeholder="101, Aisha Rahman&#10;102, Tanvir Ahmed"></textarea>
+        <div id="bulkResult" class="msg ok" style="display:none;"></div>
+        <div id="bulkError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('bulkModal')">Close</button>
+        <button class="btn-primary" id="bulkBtn" onclick="submitBulk()">Add students</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New assignment -->
+  <div class="overlay" id="newAssignmentModal">
+    <div class="modal">
+      <div class="modal-header"><strong>Create new assignment</strong><button class="close-btn" onclick="closeModal('newAssignmentModal')">&#10005;</button></div>
+      <div class="modal-body">
+        <p style="font-size:13.5px; color:var(--muted);">This creates the next assignment for this course. It starts <strong>closed</strong> \u2014 use "Allow" when you're ready for submissions.</p>
+        <div style="margin-top:16px;"><label>Deadline (optional)</label><input type="date" id="newDeadline"></div>
+        <div id="newAssignError" class="msg error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('newAssignmentModal')">Cancel</button>
+        <button class="btn-primary" id="newAssignBtn" onclick="submitNewAssignment()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View + mark -->
+  <div class="overlay" id="viewModal">
+    <div class="modal wide">
+      <div class="modal-header"><strong id="viewModalTitle"></strong><button class="close-btn" onclick="closeModal('viewModal')">&#10005;</button></div>
+      <div class="modal-body" style="padding:0;">
+        <div id="previewArea" style="background:#F4F5F8; min-height:280px; display:flex; align-items:center; justify-content:center;"></div>
+        <div style="padding:18px;">
+          <label>Mark (out of 10)</label>
+          <div class="mark-row" id="markButtons"></div>
+          <div style="margin-top:14px;"><label>Feedback (optional)</label><textarea id="feedbackText" rows="2"></textarea></div>
+          <div id="markError" class="msg error" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('viewModal')">Close</button>
+        <button class="btn-primary" id="saveMarkBtn" onclick="submitMark()">Save mark</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import {
+  db, auth, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
+  query, where, serverTimestamp,
+  GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  ADMIN_EMAIL, COURSES, STUDENTS, ASSIGNMENTS, SUBMISSIONS, courseColor, studentDocId
+} from './firebase-config.js';
+
+let allCourses = [];
+let currentCourse = null;
+let roster = [];
+let assignments = [];
+let currentAssignment = null;
+let dashRows = [];
+let currentMarkRoll = null;
+let selectedMarkValue = null;
+
+/* ---------------- AUTH ---------------- */
+window.signIn = function () { signInWithPopup(auth, new GoogleAuthProvider()).catch(e => alert(e.message)); };
+window.doSignOut = function () { signOut(auth); };
+
+onAuthStateChanged(auth, user => {
+  if (user && user.email === ADMIN_EMAIL) {
+    document.getElementById('authStatus').textContent = 'Signed in';
+    document.getElementById('signInBtn').style.display = 'none';
+    document.getElementById('signOutBtn').style.display = 'inline-flex';
+    loadCourses();
+  } else {
+    if (user) { document.getElementById('authStatus').textContent = user.email + ' is not authorized.'; signOut(auth); }
+    else document.getElementById('authStatus').textContent = 'Please sign in to continue';
+    document.getElementById('signInBtn').style.display = 'inline-flex';
+    document.getElementById('signOutBtn').style.display = 'none';
+    ['coursesScreen', 'courseScreen', 'dashScreen'].forEach(id => document.getElementById(id).style.display = 'none');
+  }
+});
+
+function show(id) {
+  ['coursesScreen', 'courseScreen', 'dashScreen'].forEach(s => document.getElementById(s).style.display = (s === id) ? 'block' : 'none');
+}
+
+/* ---------------- COURSES ---------------- */
+async function loadCourses() {
+  const snap = await getDocs(collection(db, COURSES));
+  allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderCourses();
+  show('coursesScreen');
+}
+
+window.renderCourses = function () {
+  const showArchived = document.getElementById('showArchived').checked;
+  const grid = document.getElementById('courseGrid');
+  grid.innerHTML = '';
+  const visible = allCourses.filter(c => showArchived || !c.archived);
+  document.getElementById('noCoursesState').style.display = visible.length ? 'none' : 'block';
+
+  visible.forEach(c => {
+    const color = courseColor(c.name);
+    const card = document.createElement('div');
+    card.className = 'course-card' + (c.archived ? ' archived' : '');
+    card.innerHTML = `
+      <div class="course-card-top">
+        <div class="course-avatar" style="background:${color};">${c.name.charAt(0).toUpperCase()}</div>
+        <div><h3 style="font-size:15px;">${c.name}</h3><div style="font-size:12.5px; color:var(--muted);">${c.studentCount || 0} student(s)</div></div>
+      </div>
+      <div class="course-card-body">${c.archived ? '<span style="color:var(--red); font-size:12.5px;">Archived</span>' : ''}</div>
+      <div class="course-card-footer">
+        <span class="open-course-link">Open course &rarr;</span>
+        <button class="archive-link" data-name="${c.name}" data-archived="${c.archived ? '1' : '0'}">${c.archived ? 'Unarchive' : 'Archive'}</button>
+      </div>`;
+    card.addEventListener('click', e => { if (e.target.closest('.archive-link')) return; openCourse(c); });
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll('.archive-link').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const name = btn.getAttribute('data-name');
+      const isArchived = btn.getAttribute('data-archived') === '1';
+      const course = allCourses.find(c => c.name === name);
+      await updateDoc(doc(db, COURSES, course.id), { archived: !isArchived });
+      await loadCourses();
+    });
+  });
+};
+
+window.submitAddCourse = async function () {
+  const name = document.getElementById('newCourseName').value.trim();
+  const err = document.getElementById('addCourseError');
+  err.style.display = 'none';
+  if (!name) { err.textContent = 'Please enter a course name.'; err.style.display = 'block'; return; }
+  if (allCourses.some(c => c.name.toLowerCase() === name.toLowerCase())) { err.textContent = 'A course with this name already exists.'; err.style.display = 'block'; return; }
+
+  const btn = document.getElementById('addCourseBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Adding\u2026';
+  try {
+    const ref = await addDoc(collection(db, COURSES), { name, archived: false, createdAt: serverTimestamp() });
+    document.getElementById('newCourseName').value = '';
+    closeModal('addCourseModal');
+    await loadCourses();
+    openCourse(allCourses.find(c => c.id === ref.id));
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Add course';
+};
+
+/* ---------------- COURSE DETAIL ---------------- */
+function openCourse(course) {
+  currentCourse = course;
+  document.getElementById('courseTitle').textContent = course.name;
+  document.getElementById('courseAvatar').style.background = courseColor(course.name);
+  document.getElementById('courseAvatar').textContent = course.name.charAt(0).toUpperCase();
+  updateArchiveButton();
+  show('courseScreen');
+  showTab('roster');
+  loadRoster();
+  loadAssignments();
+}
+window.goToCourses = function () { loadCourses(); };
+
+function updateArchiveButton() {
+  const c = allCourses.find(x => x.id === currentCourse.id);
+  document.getElementById('archiveToggleBtn').textContent = (c && c.archived) ? 'Unarchive course' : 'Archive course';
+}
+window.toggleArchiveCurrentCourse = async function () {
+  const c = allCourses.find(x => x.id === currentCourse.id);
+  await updateDoc(doc(db, COURSES, currentCourse.id), { archived: !c.archived });
+  c.archived = !c.archived;
+  updateArchiveButton();
+};
+
+window.showTab = function (tab) {
+  document.getElementById('tabRosterBtn').className = tab === 'roster' ? 'active' : '';
+  document.getElementById('tabAssignBtn').className = tab === 'assignments' ? 'active' : '';
+  document.getElementById('rosterPanel').style.display = tab === 'roster' ? 'block' : 'none';
+  document.getElementById('assignPanel').style.display = tab === 'assignments' ? 'block' : 'none';
+  if (tab === 'assignments') loadAssignments();
+};
+
+/* ---------------- ROSTER ---------------- */
+async function loadRoster() {
+  document.getElementById('rosterList').innerHTML = '<div class="skeleton"></div>';
+  const q = query(collection(db, STUDENTS), where('courseId', '==', currentCourse.id));
+  const snap = await getDocs(q);
+  roster = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.roll.localeCompare(b.roll, undefined, { numeric: true }));
+  await updateDoc(doc(db, COURSES, currentCourse.id), { studentCount: roster.length }).catch(() => {});
+  renderRoster();
+}
+window.renderRoster = function () {
+  const q = (document.getElementById('rosterSearch').value || '').trim().toLowerCase();
+  const rows = q ? roster.filter(s => s.roll.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) : roster;
+  const el = document.getElementById('rosterList');
+  el.innerHTML = '';
+  document.getElementById('emptyRoster').style.display = rows.length ? 'none' : 'block';
+  rows.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `<div class="primary">${s.roll} \u2014 ${s.name}</div>
+      <div class="row-actions"><button class="btn-danger btn-sm">Remove</button></div>`;
+    row.querySelector('button').onclick = async () => {
+      if (!confirm('Remove ' + s.roll + ' from this course?')) return;
+      await deleteDoc(doc(db, STUDENTS, s.id));
+      loadRoster();
+    };
+    el.appendChild(row);
+  });
+};
+window.submitAddStudent = async function () {
+  const roll = document.getElementById('newRoll').value.trim();
+  const name = document.getElementById('newName').value.trim();
+  const err = document.getElementById('addStudentError');
+  err.style.display = 'none';
+  if (!roll || !name) { err.textContent = 'Both fields are required.'; err.style.display = 'block'; return; }
+  if (roster.some(s => s.roll.toLowerCase() === roll.toLowerCase())) { err.textContent = 'Roll ' + roll + ' already exists.'; err.style.display = 'block'; return; }
+
+  await setDoc(doc(db, STUDENTS, studentDocId(currentCourse.id, roll)), { courseId: currentCourse.id, roll, name });
+  document.getElementById('newRoll').value = ''; document.getElementById('newName').value = '';
+  closeModal('addStudentModal');
+  loadRoster();
+};
+window.submitBulk = async function () {
+  const text = document.getElementById('bulkText').value;
+  const resultBox = document.getElementById('bulkResult'), errBox = document.getElementById('bulkError');
+  resultBox.style.display = 'none'; errBox.style.display = 'none';
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { errBox.textContent = 'Paste at least one line.'; errBox.style.display = 'block'; return; }
+
+  const existing = new Set(roster.map(s => s.roll.toLowerCase()));
+  let added = 0, skipped = [];
+  for (const line of lines) {
+    const parts = line.indexOf('\t') !== -1 ? line.split('\t') : line.split(',');
+    const roll = (parts[0] || '').trim(), name = (parts[1] || '').trim();
+    if (!roll || !name) { skipped.push(line + ' (couldn\u2019t parse)'); continue; }
+    if (existing.has(roll.toLowerCase())) { skipped.push(roll + ' (duplicate)'); continue; }
+    await setDoc(doc(db, STUDENTS, studentDocId(currentCourse.id, roll)), { courseId: currentCourse.id, roll, name });
+    existing.add(roll.toLowerCase());
+    added++;
+  }
+  resultBox.textContent = added + ' student(s) added.' + (skipped.length ? ' Skipped: ' + skipped.join(', ') : '');
+  resultBox.style.display = 'block';
+  document.getElementById('bulkText').value = '';
+  loadRoster();
+};
+
+/* ---------------- ASSIGNMENTS ---------------- */
+async function loadAssignments() {
+  document.getElementById('assignList').innerHTML = '<div class="skeleton"></div>';
+  const q = query(collection(db, ASSIGNMENTS), where('courseId', '==', currentCourse.id));
+  const snap = await getDocs(q);
+  assignments = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.num || 0) - (b.num || 0));
+  renderAssignments();
+}
+function renderAssignments() {
+  const el = document.getElementById('assignList');
+  el.innerHTML = '';
+  document.getElementById('emptyAssign').style.display = assignments.length ? 'none' : 'block';
+  assignments.slice().reverse().forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    const pill = a.status === 'open' ? '<span class="status-pill open"><span class="dot"></span>Open</span>' : '<span class="status-pill closed"><span class="dot"></span>Closed</span>';
+    const deadline = a.deadline ? `<div class="secondary" style="margin-top:2px;">Due ${new Date(a.deadline).toLocaleDateString()}</div>` : '';
+    row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${a.name}</div>${deadline}</div>
+      <div class="row-actions">${pill}
+      ${a.status === 'open' ? `<button class="btn-secondary btn-sm" data-action="close">Close</button>` : `<button class="btn-secondary btn-sm" data-action="allow">Allow</button>`}
+      </div>`;
+    row.querySelector('.primary').onclick = () => openDashboard(a);
+    const actionBtn = row.querySelector('[data-action]');
+    actionBtn.onclick = async () => {
+      actionBtn.disabled = true;
+      if (actionBtn.getAttribute('data-action') === 'allow') {
+        const openOnes = assignments.filter(x => x.status === 'open');
+        for (const o of openOnes) await updateDoc(doc(db, ASSIGNMENTS, o.id), { status: 'closed' });
+        await updateDoc(doc(db, ASSIGNMENTS, a.id), { status: 'open' });
+      } else {
+        await updateDoc(doc(db, ASSIGNMENTS, a.id), { status: 'closed' });
+      }
+      await loadAssignments();
+    };
+    el.appendChild(row);
+  });
+}
+window.submitNewAssignment = async function () {
+  const deadline = document.getElementById('newDeadline').value;
+  const btn = document.getElementById('newAssignBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creating\u2026';
+  const num = assignments.length + 1;
+  await addDoc(collection(db, ASSIGNMENTS), {
+    courseId: currentCourse.id, name: 'Assignment ' + num, num, status: 'closed',
+    deadline: deadline ? new Date(deadline).toISOString() : null, createdAt: serverTimestamp()
+  });
+  document.getElementById('newDeadline').value = '';
+  closeModal('newAssignmentModal');
+  btn.disabled = false; btn.textContent = 'Create';
+  loadAssignments();
+};
+
+function backToCourse() { showTab('assignments'); show('courseScreen'); }
+window.backToCourse = backToCourse;
+
+/* ---------------- DASHBOARD ---------------- */
+async function openDashboard(assignment) {
+  currentAssignment = assignment;
+  document.getElementById('dashCourseLabel').textContent = currentCourse.name;
+  document.getElementById('dashTitle').textContent = assignment.name;
+  show('dashScreen');
+  document.getElementById('dashSearch').value = '';
+  await loadDashboard();
+}
+window.openDashboard = openDashboard;
+
+async function loadDashboard() {
+  const subQ = query(collection(db, SUBMISSIONS), where('assignmentId', '==', currentAssignment.id));
+  const subSnap = await getDocs(subQ);
+  const subMap = {};
+  subSnap.docs.forEach(d => { subMap[d.data().roll] = { id: d.id, ...d.data() }; });
+
+  let markSum = 0, markCount = 0;
+  dashRows = roster.map(s => {
+    const sub = subMap[s.roll];
+    const hasMarks = sub && sub.marks !== null && sub.marks !== undefined;
+    if (hasMarks) { markSum += sub.marks; markCount++; }
+    return {
+      roll: s.roll, name: s.name, submitted: !!sub,
+      fileURL: sub ? sub.fileURL : null, fileName: sub ? sub.fileName : null,
+      marks: hasMarks ? sub.marks : null, feedback: sub && sub.feedback ? sub.feedback : ''
+    };
+  });
+
+  const submittedCount = dashRows.filter(r => r.submitted).length;
+  document.getElementById('summaryCount').textContent = submittedCount + ' of ' + dashRows.length;
+  document.getElementById('avgNote').textContent = markCount ? 'Class average: ' + (Math.round((markSum / markCount) * 10) / 10) + ' / 10' : 'No marks entered yet';
+  document.getElementById('progressFill').style.width = (dashRows.length ? Math.round((submittedCount / dashRows.length) * 100) : 0) + '%';
+  renderDashTable();
+}
+window.renderDashTable = function () {
+  const q = (document.getElementById('dashSearch').value || '').trim().toLowerCase();
+  const rows = q ? dashRows.filter(r => r.roll.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) : dashRows;
+  document.getElementById('rowCountLabel').textContent = rows.length + (rows.length === 1 ? ' student' : ' students');
+  document.getElementById('emptyDash').style.display = rows.length ? 'none' : 'block';
+
+  const body = document.getElementById('dashTableBody');
+  body.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    const statusHtml = r.submitted ? '<span class="status-pill submitted"><span class="dot"></span>Submitted</span>' : '<span class="status-pill pending"><span class="dot"></span>Not submitted</span>';
+    const markHtml = r.marks !== null ? `<span class="mark-value">${r.marks} / 10</span>` : `<span class="mark-value ungraded">${r.submitted ? 'Ungraded' : '\u2014'}</span>`;
+    const actionHtml = r.submitted ? `<button class="btn-secondary btn-sm" data-roll="${r.roll}">View &amp; mark</button>` : '<span style="color:var(--light);">\u2014</span>';
+    tr.innerHTML = `<td data-label="">${r.roll}</td><td data-label="Name">${r.name}</td><td data-label="Status">${statusHtml}</td><td data-label="Mark">${markHtml}</td><td data-label="">${actionHtml}</td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-roll]').forEach(btn => btn.onclick = () => openMarkModal(btn.getAttribute('data-roll')));
+};
+
+function openMarkModal(roll) {
+  const row = dashRows.find(r => r.roll === roll);
+  if (!row) return;
+  currentMarkRoll = roll;
+  selectedMarkValue = row.marks;
+  document.getElementById('viewModalTitle').textContent = roll + ' \u2014 ' + row.name;
+  document.getElementById('feedbackText').value = row.feedback || '';
+  document.getElementById('markError').style.display = 'none';
+  renderMarkButtons();
+
+  const previewArea = document.getElementById('previewArea');
+  const ext = (row.fileName || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') previewArea.innerHTML = `<iframe src="${row.fileURL}" style="width:100%; height:60vh; border:none;"></iframe>`;
+  else previewArea.innerHTML = `<img src="${row.fileURL}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`;
+  openModal('viewModal');
+}
+window.openMarkModal = openMarkModal;
+
+function renderMarkButtons() {
+  const container = document.getElementById('markButtons');
+  container.innerHTML = '';
+  for (let i = 0; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'mark-btn' + (selectedMarkValue === i ? ' selected' : '');
+    btn.textContent = i;
+    btn.onclick = () => { selectedMarkValue = i; renderMarkButtons(); };
+    container.appendChild(btn);
+  }
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'mark-btn clear'; clearBtn.textContent = 'Clear';
+  clearBtn.onclick = () => { selectedMarkValue = null; renderMarkButtons(); };
+  container.appendChild(clearBtn);
+}
+window.submitMark = async function () {
+  const feedback = document.getElementById('feedbackText').value.trim();
+  const btn = document.getElementById('saveMarkBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving\u2026';
+  try {
+    const subId = currentAssignment.id + '_' + currentMarkRoll;
+    await updateDoc(doc(db, SUBMISSIONS, subId), { marks: selectedMarkValue, feedback });
+    await loadDashboard();
+    closeModal('viewModal');
+  } catch (e) {
+    document.getElementById('markError').textContent = e.message;
+    document.getElementById('markError').style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Save mark';
+};
+
+window.exportMarksCsv = function () {
+  function csvField(v) { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function csvRow(f) { return f.map(csvField).join(','); }
+  const lines = [csvRow(['Roll', 'Name', 'Status', 'Mark', 'Feedback'])];
+  dashRows.forEach(r => lines.push(csvRow([r.roll, r.name, r.submitted ? 'Submitted' : 'Not submitted', r.marks !== null ? r.marks : '', r.feedback || ''])));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = currentCourse.name + ' - ' + currentAssignment.name + ' - marks.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+/* ---------------- MODALS ---------------- */
+window.openModal = function (id) { document.getElementById(id).classList.add('open'); };
+window.closeModal = function (id) { document.getElementById(id).classList.remove('open'); };
+</script>
+</body>
+</html>
