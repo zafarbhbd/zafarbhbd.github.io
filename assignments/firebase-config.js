@@ -7,7 +7,7 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getStorage, ref, uploadBytes, getDownloadURL
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
@@ -20,26 +20,7 @@ const firebaseConfig = {
 };
 
 export const ADMIN_EMAIL = "zafarbhbd@gmail.com";
-export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-// ---- Year navigation (same structure/colors as the Attendance System, for
-// a consistent feel across the whole suite). Courses now belong to a Year. ----
-export const YEARS = ["Y1", "Y2", "Y3", "Y4", "NM1", "NM2"];
-export const YEAR_LABELS = {
-  Y1: "First Year", Y2: "Second Year", Y3: "Third Year", Y4: "Fourth Year",
-  NM1: "Non-Major First Year", NM2: "Non-Major Second Year"
-};
-export const YEAR_COLORS = {
-  Y1: "#2563eb", Y2: "#059669", Y3: "#d97706", Y4: "#dc2626", NM1: "#7c3aed", NM2: "#0891b2"
-};
-export const YEAR_TINTS = {
-  Y1: { bg: "#dbeafe", border: "#93c5fd" },
-  Y2: { bg: "#d1fae5", border: "#6ee7b7" },
-  Y3: { bg: "#fef3c7", border: "#fcd34d" },
-  Y4: { bg: "#fee2e2", border: "#fca5a5" },
-  NM1: { bg: "#ede9fe", border: "#c4b5fd" },
-  NM2: { bg: "#cffafe", border: "#67e8f9" }
-};
+export const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -50,31 +31,44 @@ export {
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
   query, where, onSnapshot, serverTimestamp, writeBatch,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  ref, uploadBytes, getDownloadURL
+  ref, uploadBytes, getDownloadURL, deleteObject
 };
 
-// ---- Collection names, prefixed so they never collide with other projects
-// sharing this same Firestore database (e.g. the Attendance System's own
-// "students"/"sessions" collections). ----
+// ---- Year navigation (same as Attendance) ----
+export const YEARS = ["Y1", "Y2", "Y3", "Y4", "NM1", "NM2"];
+export const YEAR_LABELS = {
+  Y1: "First Year", Y2: "Second Year", Y3: "Third Year", Y4: "Fourth Year",
+  NM1: "Non-Major First Year", NM2: "Non-Major Second Year"
+};
+export const YEAR_COLORS = { Y1: "#2563eb", Y2: "#059669", Y3: "#d97706", Y4: "#dc2626", NM1: "#7c3aed", NM2: "#0891b2" };
+export const YEAR_TINTS = {
+  Y1: { bg: "#dbeafe", border: "#93c5fd" }, Y2: { bg: "#d1fae5", border: "#6ee7b7" },
+  Y3: { bg: "#fef3c7", border: "#fcd34d" }, Y4: { bg: "#fee2e2", border: "#fca5a5" },
+  NM1: { bg: "#ede9fe", border: "#c4b5fd" }, NM2: { bg: "#cffafe", border: "#67e8f9" }
+};
+export const NEXT_YEAR_MAP = { Y1: "Y2", Y2: "Y3", Y3: "Y4" };
+
+// ---- Collection names (prefixed to avoid colliding with Attendance) ----
 export const COURSES = "asgn_courses";
-export const STUDENTS = "asgn_students";
+export const STUDENTS = "asgn_students";       // now YEAR-level roster, shared across a year's courses
+export const GROUPS = "asgn_groups";
 export const ASSIGNMENTS = "asgn_assignments";
 export const SUBMISSIONS = "asgn_submissions";
+export const ARCHIVED_REPORTS = "asgn_archivedReports";
 
-// ---- Deterministic IDs (prevent duplicates, and let Firestore rules block
-// a second submission simply by not granting "update" permission). ----
-export function studentDocId(courseId, roll) {
-  return (courseId + "_" + roll).replace(/\s+/g, "_");
-}
-export function submissionDocId(assignmentId, roll) {
-  return (assignmentId + "_" + roll).replace(/\s+/g, "_");
-}
+// ---- Deterministic IDs ----
+export function studentDocId(yearKey, reg) { return (yearKey + "_" + reg).replace(/\s+/g, "_"); }
+export function submissionDocId(assignmentId, reg) { return (assignmentId + "_" + reg).replace(/\s+/g, "_"); }
 
-// ---- A distinct color per course, derived from its name so it stays the
-// same forever without needing to store it separately. ----
-const COURSE_COLORS = ["#4f46e5", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
+// ---- Distinct colors, for courses (hash-based, stable) and groups (sequential) ----
+const PALETTE = ["#4f46e5", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
 export function courseColor(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return COURSE_COLORS[Math.abs(hash) % COURSE_COLORS.length];
+  return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+export function groupColor(index) { return PALETTE[index % PALETTE.length]; }
+
+export function groupLetterName(index) {
+  return "Group " + String.fromCharCode(65 + (index % 26));
 }
