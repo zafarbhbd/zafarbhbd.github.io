@@ -21,11 +21,17 @@
       <div class="pill-row" id="yearPills"></div>
     </div>
 
-    <div class="card" id="courseScreen" style="display:none;">
+    <div class="card" id="subjectScreen" style="display:none;">
       <p class="back-link" onclick="goToYear()">&larr; Back to years</p>
+      <label>Select your subject</label>
+      <div class="pill-row" id="subjectPills"></div>
+    </div>
+
+    <div class="card" id="courseScreen" style="display:none;">
+      <p class="back-link" onclick="goToSubjectOrYear()">&larr; Back</p>
       <label>Select your course</label>
       <div id="courseList"></div>
-      <div class="empty-state" id="noCourses" style="display:none;">No courses are set up yet for this year.</div>
+      <div class="empty-state" id="noCourses" style="display:none;">No courses are set up yet.</div>
     </div>
 
     <div class="card" id="listScreen" style="display:none;">
@@ -96,61 +102,96 @@
 import {
   db, storage, collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot,
   serverTimestamp, ref, uploadBytes, getDownloadURL,
-  COURSES, STUDENTS, GROUPS, ASSIGNMENTS, SUBMISSIONS, MAX_FILE_BYTES, submissionDocId,
-  YEARS, YEAR_LABELS, YEAR_COLORS, YEAR_TINTS
+  COURSES, STUDENTS, ASSIGNMENTS, SUBMISSIONS, MAX_FILE_BYTES, submissionDocId, studentDocId,
+  YEARS, YEAR_LABELS, YEAR_COLORS, YEAR_TINTS, NM_SUBJECTS, needsSubject
 } from './firebase-config.js';
 
 let currentYear = null;
+let currentSubject = "";
 let currentCourse = null;
-let yearRoster = [];      // full year roster: {reg, name, groupId}
-let groupsById = {};      // groupId -> {name, color}
+let courseRoster = [];
 let assignments = [];
 let currentAssignment = null;
 let resolvedStudent = null;
-let resolvedTopic = null;      // {topic, instructions} for groups-mode, or null
+let resolvedTask = null;     // {topic, instructions, deadline} for groups-mode, or null for everyone-mode
 let currentSubmission = null;
 let selectedFile = null;
-let detailUnsub = null;
+let courseUnsub = null, assignUnsub = null;
 let resetTimer = null;
 
 function show(id) {
-  ['loadingScreen','yearScreen','courseScreen','listScreen','detailScreen','doneScreen'].forEach(s => {
+  ['loadingScreen','yearScreen','subjectScreen','courseScreen','listScreen','detailScreen','doneScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
   });
 }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function clearListeners() { if (courseUnsub) { courseUnsub(); courseUnsub = null; } if (assignUnsub) { assignUnsub(); assignUnsub = null; } }
+
+/* ---------------- URL state (so a reload returns to the same place) ---------------- */
+function updateUrl() {
+  const p = new URLSearchParams();
+  if (currentYear) p.set('year', currentYear);
+  if (currentSubject) p.set('subject', currentSubject);
+  if (currentCourse) p.set('course', currentCourse.id);
+  history.replaceState(null, '', p.toString() ? '?' + p.toString() : location.pathname);
+}
 
 /* ---------------- YEAR ---------------- */
 const yearPills = document.getElementById('yearPills');
+let yearButtons = {};
 YEARS.forEach(yk => {
   const btn = document.createElement('button');
   btn.className = 'pill';
   btn.style.background = YEAR_TINTS[yk].bg; btn.style.borderColor = YEAR_TINTS[yk].border;
   btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
-  btn.onclick = () => selectYear(yk, btn);
+  btn.onclick = () => selectYear(yk);
   yearPills.appendChild(btn);
+  yearButtons[yk] = btn;
 });
-function selectYear(yearKey, btn) {
-  currentYear = yearKey;
+function highlightYearBtn(yearKey) {
   [...yearPills.children].forEach((b, i) => { const yk = YEARS[i]; b.classList.remove('active'); b.style.background = YEAR_TINTS[yk].bg; b.style.borderColor = YEAR_TINTS[yk].border; b.style.color = ''; });
-  btn.classList.add('active'); btn.style.background = YEAR_COLORS[yearKey]; btn.style.borderColor = YEAR_COLORS[yearKey]; btn.style.color = '#fff';
-  loadYearData();
+  if (yearKey) { const b = yearButtons[yearKey]; b.classList.add('active'); b.style.background = YEAR_COLORS[yearKey]; b.style.borderColor = YEAR_COLORS[yearKey]; b.style.color = '#fff'; }
 }
-window.goToYear = function () { clearDetailListener(); show('yearScreen'); };
+function selectYear(yearKey) {
+  currentYear = yearKey; currentSubject = ""; currentCourse = null;
+  highlightYearBtn(yearKey);
+  updateUrl();
+  if (needsSubject(yearKey)) {
+    const sp = document.getElementById('subjectPills');
+    sp.innerHTML = '';
+    NM_SUBJECTS[yearKey].forEach(sub => {
+      const b = document.createElement('button');
+      b.className = 'pill'; b.textContent = sub;
+      b.onclick = () => selectSubject(sub, b);
+      sp.appendChild(b);
+    });
+    show('subjectScreen');
+  } else {
+    loadCourses();
+  }
+}
+window.goToYear = function () { clearListeners(); currentYear = null; currentSubject = ""; currentCourse = null; updateUrl(); show('yearScreen'); };
+window.goToSubjectOrYear = function () {
+  clearListeners();
+  if (needsSubject(currentYear)) { currentCourse = null; updateUrl(); show('subjectScreen'); }
+  else window.goToYear();
+};
 
-async function loadYearData() {
+function selectSubject(subject, btn) {
+  currentSubject = subject;
+  [...document.getElementById('subjectPills').children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateUrl();
+  loadCourses();
+}
+
+/* ---------------- COURSES (live) ---------------- */
+function loadCourses() {
   show('loadingScreen');
-  try {
-    const [studSnap, groupSnap, courseSnap] = await Promise.all([
-      getDocs(query(collection(db, STUDENTS), where('yearKey', '==', currentYear))),
-      getDocs(query(collection(db, GROUPS), where('yearKey', '==', currentYear))),
-      getDocs(query(collection(db, COURSES), where('yearKey', '==', currentYear), where('archived', '==', false)))
-    ]);
-    yearRoster = studSnap.docs.map(d => d.data());
-    groupsById = {};
-    groupSnap.docs.forEach(d => { groupsById[d.id] = d.data(); });
-
-    const courses = courseSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  clearListeners();
+  const q = query(collection(db, COURSES), where('yearKey', '==', currentYear), where('subject', '==', currentSubject), where('archived', '==', false));
+  courseUnsub = onSnapshot(q, snap => {
+    const courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const container = document.getElementById('courseList');
     container.innerHTML = '';
     document.getElementById('noCourses').style.display = courses.length ? 'none' : 'block';
@@ -161,24 +202,27 @@ async function loadYearData() {
       el.onclick = () => selectCourse(c);
       container.appendChild(el);
     });
-    show('courseScreen');
-  } catch (err) {
-    document.getElementById('loadingScreen').innerHTML = `<div class="msg error">${err.message}</div>`;
-  }
+    if (document.getElementById('loadingScreen').style.display !== 'none' && document.getElementById('listScreen').style.display === 'none') show('courseScreen');
+  }, err => { document.getElementById('loadingScreen').innerHTML = `<div class="msg error">${err.message}</div>`; });
 }
-window.goToCourses = function () { clearDetailListener(); loadYearData(); };
+window.goToCourses = function () { if (assignUnsub) { assignUnsub(); assignUnsub = null; } currentCourse = null; updateUrl(); show('courseScreen'); };
 
-/* ---------------- COURSE -> ASSIGNMENT LIST ---------------- */
 async function selectCourse(course) {
   currentCourse = course;
+  updateUrl();
   show('loadingScreen');
-  const q = query(collection(db, ASSIGNMENTS), where('courseId', '==', course.id));
-  const snap = await getDocs(q);
-  assignments = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.num || 0) - (b.num || 0));
-
+  const studQ = query(collection(db, STUDENTS), where('yearKey', '==', currentYear), where('subject', '==', currentSubject));
+  const studSnap = await getDocs(studQ);
+  courseRoster = studSnap.docs.map(d => d.data());
   document.getElementById('listCourseLabel').textContent = course.name;
-  renderAssignmentList();
-  show('listScreen');
+
+  if (assignUnsub) assignUnsub();
+  const q = query(collection(db, ASSIGNMENTS), where('courseId', '==', course.id));
+  assignUnsub = onSnapshot(q, snap => {
+    assignments = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.num || 0) - (b.num || 0));
+    renderAssignmentList();
+    show('listScreen');
+  });
 }
 function renderAssignmentList() {
   const el = document.getElementById('assignmentListEl');
@@ -194,53 +238,42 @@ function renderAssignmentList() {
     el.appendChild(row);
   });
 }
-window.goToAssignmentList = function () { clearDetailListener(); show('listScreen'); };
+window.goToAssignmentList = function () { show('listScreen'); };
 
 /* ---------------- ASSIGNMENT DETAIL ---------------- */
-function clearDetailListener() { if (detailUnsub) { detailUnsub(); detailUnsub = null; } }
-
 function openAssignmentDetail(assignment) {
-  clearDetailListener();
   currentAssignment = assignment;
-  resolvedStudent = null; resolvedTopic = null; currentSubmission = null; selectedFile = null;
+  resolvedStudent = null; resolvedTask = null; currentSubmission = null; selectedFile = null;
 
   document.getElementById('detailCourseLabel').textContent = currentCourse.name;
   document.getElementById('detailTitle').textContent = assignment.name;
 
   const select = document.getElementById('regSelect');
   select.innerHTML = '<option value="">Select your registration no\u2026</option>';
-  yearRoster.forEach(s => { select.innerHTML += `<option value="${s.reg}">${s.reg}</option>`; });
+  courseRoster.forEach(s => { select.innerHTML += `<option value="${s.reg}">${s.reg}</option>`; });
   select.value = '';
   document.getElementById('nameDisplay').style.display = 'none';
   document.getElementById('taskArea').style.display = 'none';
-
   show('detailScreen');
-
-  detailUnsub = onSnapshot(doc(db, ASSIGNMENTS, assignment.id), snap => {
-    if (snap.exists()) currentAssignment = { id: snap.id, ...snap.data() };
-    if (resolvedStudent) renderTaskArea();
-  });
 }
 
 window.onRegChange = async function () {
   const reg = document.getElementById('regSelect').value;
-  resolvedStudent = yearRoster.find(s => s.reg === reg) || null;
+  resolvedStudent = courseRoster.find(s => s.reg === reg) || null;
   const nameEl = document.getElementById('nameDisplay');
   if (!resolvedStudent) { nameEl.style.display = 'none'; document.getElementById('taskArea').style.display = 'none'; return; }
   nameEl.style.display = 'block';
-  nameEl.textContent = resolvedStudent.name;
+  nameEl.textContent = 'Name: ' + resolvedStudent.name;
 
-  // Resolve the task: shared instructions ("everyone" mode) or this student's group's topic ("groups" mode).
   if (currentAssignment.mode === 'groups') {
-    const gt = currentAssignment.groupTopics && currentAssignment.groupTopics[resolvedStudent.groupId];
-    resolvedTopic = (resolvedStudent.groupId && gt) ? gt : null;
+    const task = (currentAssignment.groupTasks || []).find(t => (t.memberRegs || []).includes(reg));
+    resolvedTask = task || null;
   } else {
-    resolvedTopic = null;
+    resolvedTask = null;
   }
 
   const subSnap = await getDoc(doc(db, SUBMISSIONS, submissionDocId(currentAssignment.id, reg)));
   currentSubmission = subSnap.exists() ? subSnap.data() : null;
-
   renderTaskArea();
 };
 
@@ -253,23 +286,21 @@ function renderTaskArea() {
   const uploadSection = document.getElementById('uploadSection');
   taskArea.style.display = 'block';
 
-  if (currentAssignment.deadline) { badge.style.display = 'inline-flex'; badge.textContent = 'Due ' + new Date(currentAssignment.deadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+  const noTask = currentAssignment.mode === 'groups' && !resolvedTask;
+  const deadline = currentAssignment.mode === 'groups' ? (resolvedTask ? resolvedTask.deadline : null) : currentAssignment.deadline;
+  if (deadline) { badge.style.display = 'inline-flex'; badge.textContent = 'Due ' + new Date(deadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
   else badge.style.display = 'none';
 
-  const noGroupTask = currentAssignment.mode === 'groups' && !resolvedTopic;
-
-  if (currentAssignment.mode === 'groups' && resolvedTopic) {
-    topicBox.style.display = 'block'; topicBox.textContent = 'Topic: ' + resolvedTopic.topic;
-    instrBox.style.display = resolvedTopic.instructions ? 'block' : 'none'; instrBox.textContent = resolvedTopic.instructions || '';
+  if (currentAssignment.mode === 'groups' && resolvedTask) {
+    topicBox.style.display = 'block'; topicBox.textContent = 'Topic: ' + resolvedTask.topic;
+    instrBox.style.display = resolvedTask.instructions ? 'block' : 'none'; instrBox.textContent = resolvedTask.instructions || '';
   } else if (currentAssignment.mode !== 'groups') {
     topicBox.style.display = 'none';
     instrBox.style.display = currentAssignment.instructions ? 'block' : 'none'; instrBox.textContent = currentAssignment.instructions || '';
-  } else {
-    topicBox.style.display = 'none'; instrBox.style.display = 'none';
-  }
+  } else { topicBox.style.display = 'none'; instrBox.style.display = 'none'; }
 
-  if (noGroupTask) {
-    msg.innerHTML = '<div class="msg info">Your teacher hasn\u2019t published your group\u2019s task for this assignment yet. Please check back later.</div>';
+  if (noTask) {
+    msg.innerHTML = '<div class="msg info">Your teacher hasn\u2019t assigned your task for this assignment yet. Please check back later.</div>';
     uploadSection.style.display = 'none';
     return;
   }
@@ -293,8 +324,7 @@ function renderTaskArea() {
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('submitBtn').textContent = 'Submit assignment';
     document.getElementById('declareCheck').checked = false;
-    document.getElementById('declareLabel').textContent =
-      'I confirm this is my own work and that I am ' + resolvedStudent.reg + ' \u2014 ' + resolvedStudent.name + '.';
+    document.getElementById('declareLabel').textContent = 'I confirm this is my own work and that I am ' + resolvedStudent.reg + ' \u2014 ' + resolvedStudent.name + '.';
   } else {
     msg.innerHTML = '<div class="msg info">This assignment is closed and you did not submit anything for it.</div>';
     uploadSection.style.display = 'none';
@@ -353,15 +383,14 @@ async function doSubmit() {
     const fileURL = await getDownloadURL(storageRef);
 
     await setDoc(doc(db, SUBMISSIONS, subId), {
-      courseId: currentCourse.id, assignmentId: currentAssignment.id, yearKey: currentYear,
-      reg: resolvedStudent.reg, name: resolvedStudent.name, groupId: resolvedStudent.groupId || null,
+      courseId: currentCourse.id, assignmentId: currentAssignment.id, yearKey: currentYear, subject: currentSubject,
+      reg: resolvedStudent.reg, name: resolvedStudent.name, taskId: resolvedTask ? resolvedTask.id : null,
       fileName: selectedFile.name, storagePath, fileURL, fileHash,
       timestamp: serverTimestamp(), marks: null, feedback: ''
     });
 
     document.getElementById('doneDetail').textContent =
       resolvedStudent.reg + ' \u2014 ' + resolvedStudent.name + ' \u00b7 ' + currentCourse.name + ' \u00b7 ' + currentAssignment.name;
-    clearDetailListener();
     show('doneScreen');
     startResetCountdown();
   } catch (err) {
@@ -380,15 +409,12 @@ async function doSubmit() {
   }
 }
 
-/* ---------------- RECEIPT (client-side PDF) ---------------- */
+/* ---------------- RECEIPT ---------------- */
 window.downloadReceipt = function () {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  const groupName = resolvedStudent.groupId && groupsById[resolvedStudent.groupId] ? groupsById[resolvedStudent.groupId].name : null;
-
   pdf.setFontSize(16); pdf.text('Assignment Submission Receipt', 20, 22);
-  pdf.setFontSize(11); pdf.setTextColor(100);
-  pdf.text('Generated ' + new Date().toLocaleString(), 20, 29);
+  pdf.setFontSize(11); pdf.setTextColor(100); pdf.text('Generated ' + new Date().toLocaleString(), 20, 29);
 
   let y = 45;
   const line = (label, value) => { pdf.setTextColor(80); pdf.text(label, 20, y); pdf.setTextColor(20); pdf.text(String(value || '\u2014'), 75, y); y += 9; };
@@ -397,15 +423,14 @@ window.downloadReceipt = function () {
   line('Registration no:', resolvedStudent.reg);
   line('Course:', currentCourse.name);
   line('Assignment:', currentAssignment.name);
-  if (groupName) line('Group:', groupName);
-  if (resolvedTopic) line('Topic:', resolvedTopic.topic);
+  if (resolvedTask) line('Topic:', resolvedTask.topic);
   line('Submitted:', currentSubmission.timestamp && currentSubmission.timestamp.toDate ? currentSubmission.timestamp.toDate().toLocaleString() : '');
   line('Mark:', currentSubmission.marks + ' / 10');
   if (currentSubmission.feedback) line('Feedback:', currentSubmission.feedback);
 
   pdf.setDrawColor(200); pdf.line(20, y + 4, 190, y + 4);
   pdf.setFontSize(9); pdf.setTextColor(140);
-  pdf.text('This is a system-generated receipt confirming a graded assignment submission.', 20, y + 12);
+  pdf.text('This is a system-generated receipt confirming a graded assignment submission. No signature required.', 20, y + 12);
 
   pdf.save(resolvedStudent.reg + ' - ' + currentAssignment.name + ' - receipt.pdf');
 };
@@ -422,12 +447,47 @@ function startResetCountdown() {
   }, 1000);
 }
 function resetToStart() {
-  currentYear = null; currentCourse = null; resolvedStudent = null; currentAssignment = null; selectedFile = null;
-  [...yearPills.children].forEach((b, i) => { const yk = YEARS[i]; b.classList.remove('active'); b.style.background = YEAR_TINTS[yk].bg; b.style.borderColor = YEAR_TINTS[yk].border; b.style.color = ''; });
+  clearListeners();
+  currentYear = null; currentSubject = ""; currentCourse = null; resolvedStudent = null; currentAssignment = null; selectedFile = null;
+  highlightYearBtn(null);
+  updateUrl();
   show('yearScreen');
 }
 
-show('yearScreen');
+/* ---------------- INITIAL LOAD: restore position from the URL ---------------- */
+async function init() {
+  const p = new URLSearchParams(location.search);
+  const y = p.get('year'), s = p.get('subject') || "", c = p.get('course');
+
+  if (y && YEARS.includes(y)) {
+    currentYear = y; currentSubject = needsSubject(y) ? s : "";
+    highlightYearBtn(y);
+    if (needsSubject(y) && s) {
+      const sp = document.getElementById('subjectPills');
+      sp.innerHTML = '';
+      NM_SUBJECTS[y].forEach(sub => {
+        const b = document.createElement('button');
+        b.className = 'pill' + (sub === s ? ' active' : ''); b.textContent = sub;
+        b.onclick = () => selectSubject(sub, b);
+        sp.appendChild(b);
+      });
+    }
+    if (!needsSubject(y) || s) {
+      show('loadingScreen');
+      if (c) {
+        const snap = await getDoc(doc(db, COURSES, c));
+        if (snap.exists()) { await selectCourse({ id: snap.id, ...snap.data() }); return; }
+      }
+      loadCourses();
+      return;
+    } else {
+      show('subjectScreen');
+      return;
+    }
+  }
+  show('yearScreen');
+}
+init();
 </script>
 </body>
 </html>

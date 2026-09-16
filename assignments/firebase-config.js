@@ -34,7 +34,8 @@ export {
   ref, uploadBytes, getDownloadURL, deleteObject
 };
 
-// ---- Year navigation (same as Attendance) ----
+// ---- Year / Subject navigation (Subject only applies to Non-Major years,
+// same structure as the Attendance System) ----
 export const YEARS = ["Y1", "Y2", "Y3", "Y4", "NM1", "NM2"];
 export const YEAR_LABELS = {
   Y1: "First Year", Y2: "Second Year", Y3: "Third Year", Y4: "Fourth Year",
@@ -46,29 +47,37 @@ export const YEAR_TINTS = {
   Y3: { bg: "#fef3c7", border: "#fcd34d" }, Y4: { bg: "#fee2e2", border: "#fca5a5" },
   NM1: { bg: "#ede9fe", border: "#c4b5fd" }, NM2: { bg: "#cffafe", border: "#67e8f9" }
 };
+export const NM_SUBJECTS = { NM1: ["Islamic History"], NM2: ["Islamic History", "Bengali", "English", "Economics", "Philosophy"] };
+export const NM_YEARS = ["NM1", "NM2"];
+export function needsSubject(yearKey) { return NM_YEARS.indexOf(yearKey) !== -1; }
 export const NEXT_YEAR_MAP = { Y1: "Y2", Y2: "Y3", Y3: "Y4" };
 
-// ---- Collection names (prefixed to avoid colliding with Attendance) ----
+// ---- Collection names ----
 export const COURSES = "asgn_courses";
-export const STUDENTS = "asgn_students";       // now YEAR-level roster, shared across a year's courses
-export const GROUPS = "asgn_groups";
+export const STUDENTS = "asgn_students";
 export const ASSIGNMENTS = "asgn_assignments";
 export const SUBMISSIONS = "asgn_submissions";
 export const ARCHIVED_REPORTS = "asgn_archivedReports";
 
 // ---- Deterministic IDs ----
-export function studentDocId(yearKey, reg) { return (yearKey + "_" + reg).replace(/\s+/g, "_"); }
+export function studentDocId(yearKey, subject, reg) { return (yearKey + "_" + (subject || "none") + "_" + reg).replace(/\s+/g, "_"); }
 export function submissionDocId(assignmentId, reg) { return (assignmentId + "_" + reg).replace(/\s+/g, "_"); }
 
-// ---- Distinct colors, for courses (hash-based, stable) and groups (sequential) ----
+// ---- Distinct colors for courses (stable, hash-based) ----
 const PALETTE = ["#4f46e5", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
 export function courseColor(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return PALETTE[Math.abs(hash) % PALETTE.length];
 }
-export function groupColor(index) { return PALETTE[index % PALETTE.length]; }
 
-export function groupLetterName(index) {
-  return "Group " + String.fromCharCode(65 + (index % 26));
+// ---- Splits a roster into fixed-size chunks (registration order or shuffled).
+// Correct remainder behavior: size 3 on 7 students -> [3,3,1], not uneven groups. ----
+export function splitIntoGroups(students, size, order) {
+  let pool = students.slice();
+  if (order === 'reg') pool.sort((a, b) => a.reg.localeCompare(b.reg, undefined, { numeric: true }));
+  else for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const chunks = [];
+  for (let i = 0; i < pool.length; i += size) chunks.push(pool.slice(i, i + size));
+  return chunks;
 }
