@@ -48,32 +48,40 @@
     input[type=text], textarea, button.primary { font-size: 16px; }
   }
 
-  /* ---------- Off-screen print area used only for PDF capture ---------- */
-  #printHost { position: absolute; top: -10000px; left: -10000px; z-index: -1; pointer-events: none; }
+  /* ---------- Full-screen overlay shown only while the PDF is being captured ---------- */
+  #genOverlay {
+    display: none; position: fixed; inset: 0; background: #fbfbfd; z-index: 9999;
+    align-items: center; justify-content: center; font-size: 15px; color: #5b6b85;
+  }
+  #genOverlay.active { display: flex; }
+
+  /* ---------- Render target: sits at the real top-left of the viewport (fixed),
+     so html2canvas always captures it from a known, unambiguous origin.
+     It is only ever visible while #genOverlay (a higher z-index) is covering it. ---------- */
+  #printHost { position: fixed; top: 0; left: 0; z-index: 1; }
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
-    padding: 9mm; display: flex; gap: 10mm; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+    padding: 12mm 16mm; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
   }
-  .copy { flex: 1; min-width: 0; }
   .p-center { text-align: center; margin: 0 0 2pt 0; }
-  .p-dept { font-size: 15pt; }
-  .p-college, .p-year { font-size: 11pt; }
-  .p-examname { font-size: 12pt; font-weight: bold; }
-  .p-course { font-size: 12pt; text-decoration: underline; }
+  .p-dept { font-size: 16pt; }
+  .p-college, .p-year { font-size: 12pt; }
+  .p-examname { font-size: 13pt; font-weight: bold; }
+  .p-course { font-size: 13pt; text-decoration: underline; }
   .p-fixedrow, .p-instrow {
-    display: flex; justify-content: space-between; font-size: 10pt; margin: 6pt 0 3pt 0;
+    display: flex; justify-content: space-between; font-size: 11pt; margin: 6pt 0 3pt 0;
   }
-  .p-fixedrow { font-size: 11pt; margin-bottom: 8pt; }
-  .p-section { text-align: center; font-weight: bold; font-size: 13pt; margin: 0 0 3pt 0; }
-  .p-sub { font-size: 10pt; margin: 0 0 2pt 22pt; text-indent: -22pt; }
+  .p-fixedrow { font-size: 12pt; margin-bottom: 8pt; }
+  .p-section { text-align: center; font-weight: bold; font-size: 14pt; margin: 0 0 3pt 0; }
+  .p-sub { font-size: 11pt; margin: 0 0 2pt 24pt; text-indent: -24pt; }
   .p-sub:first-child { margin-left: 0; text-indent: 0; }
-  .p-q { font-size: 10pt; margin: 0 0 3pt 22pt; text-indent: -22pt; }
+  .p-q { font-size: 11pt; margin: 0 0 3pt 24pt; text-indent: -24pt; }
   .p-spacer { height: 8pt; }
 </style>
 </head>
 <body>
   <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
-  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 পাতায় দুটি অভিন্ন কপি পাশাপাশি বসবে।</div>
+  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 ল্যান্ডস্কেপ পাতায় একটি কপি বসবে।</div>
 
   <form id="examForm">
     <fieldset>
@@ -173,11 +181,12 @@
 
   <div id="status"></div>
 
-  <!-- Off-screen A4 landscape layout used only to render the PDF -->
+  <div id="genOverlay">তৈরি হচ্ছে... একটু অপেক্ষা করুন।</div>
+
+  <!-- Render target: single copy, single column, full A4 landscape page -->
   <div id="printHost">
     <div id="printPage">
-      <div class="copy" id="copyLeft"></div>
-      <div class="copy" id="copyRight"></div>
+      <div id="pageContent"></div>
     </div>
   </div>
 
@@ -190,7 +199,7 @@
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function buildCopyHtml(d) {
+  function buildPageHtml(d) {
     let h = '';
     h += `<p class="p-center p-dept">${esc(d.department)}</p>`;
     h += `<p class="p-center p-college">${esc(d.college)}</p>`;
@@ -223,6 +232,7 @@
     e.preventDefault();
     const statusEl = document.getElementById('status');
     const genBtn = document.getElementById('generateBtn');
+    const overlay = document.getElementById('genOverlay');
 
     const data = {
       department: val('department'), college: val('college'), year: val('year'),
@@ -232,21 +242,19 @@
     for (let i = 2; i <= 17; i++) data['q' + i] = val('q' + i);
 
     genBtn.disabled = true;
-    statusEl.textContent = 'তৈরি হচ্ছে... একটু অপেক্ষা করুন।';
+    statusEl.textContent = '';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
 
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      const html = buildCopyHtml(data);
-      document.getElementById('copyLeft').innerHTML = html;
-      document.getElementById('copyRight').innerHTML = html;
+      document.getElementById('pageContent').innerHTML = buildPageHtml(data);
 
       const fileName = 'Test_' + (data.courseCode || 'Question') + '_' + Date.now() + '.pdf';
       const element = document.getElementById('printPage');
-
-      // Reset scroll first so html2canvas can never inherit a stale scroll offset.
-      window.scrollTo(0, 0);
-      const scale = window.innerWidth < 768 ? 1.5 : 2; // lighter canvas on phones, avoids memory/size limits
+      const scale = window.innerWidth < 768 ? 1.5 : 2; // lighter canvas on phones
 
       const pdfBlob = await html2pdf().set({
         margin: 0,
@@ -264,8 +272,6 @@
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
       }).from(element).toPdf().output('blob');
 
-      // Manual blob download - more reliable than html2pdf's built-in save()
-      // across mobile in-app browsers (WhatsApp/Facebook webviews, etc.).
       const blobUrl = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -279,6 +285,8 @@
     } catch (err) {
       statusEl.textContent = 'ত্রুটি: ' + err.message;
     } finally {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
       genBtn.disabled = false;
     }
   });

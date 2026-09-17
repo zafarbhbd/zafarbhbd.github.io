@@ -44,8 +44,18 @@
     input[type=text], textarea, button.primary { font-size: 16px; }
   }
 
-  /* ---------- Off-screen print area used only for PDF capture ---------- */
-  #printHost { position: absolute; top: -10000px; left: -10000px; z-index: -1; pointer-events: none; }
+  /* ---------- Full-screen overlay shown only while the PDF is being captured ---------- */
+  #genOverlay {
+    display: none; position: fixed; inset: 0; background: #fdfdfd; z-index: 9999;
+    align-items: center; justify-content: center; font-size: 15px; color: #555;
+  }
+  #genOverlay.active { display: flex; }
+
+  /* ---------- Render target: sits at the real top-left of the viewport (fixed),
+     so html2canvas always captures it from a known, unambiguous origin instead of
+     a large negative offset (which was causing the left edge to be clipped).
+     It is only ever visible while #genOverlay (a higher z-index) is covering it. ---------- */
+  #printHost { position: fixed; top: 0; left: 0; z-index: 1; }
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
     padding: 8mm; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
@@ -149,6 +159,8 @@
 
   <div id="status"></div>
 
+  <div id="genOverlay">তৈরি হচ্ছে... একটু অপেক্ষা করুন।</div>
+
   <!-- Off-screen A4 landscape layout used only to render the PDF -->
   <div id="printHost">
     <div id="printPage">
@@ -196,6 +208,7 @@
     e.preventDefault();
     const statusEl = document.getElementById('status');
     const genBtn = document.getElementById('generateBtn');
+    const overlay = document.getElementById('genOverlay');
 
     const data = {
       department: val('department'), college: val('college'), year: val('year'),
@@ -208,7 +221,10 @@
     };
 
     genBtn.disabled = true;
-    statusEl.textContent = 'তৈরি হচ্ছে... একটু অপেক্ষা করুন।';
+    statusEl.textContent = '';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
 
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -219,9 +235,6 @@
 
       const fileName = 'Incourse_' + (data.courseCode || 'Question') + '_' + Date.now() + '.pdf';
       const element = document.getElementById('printPage');
-
-      // Reset scroll first so html2canvas can never inherit a stale scroll offset.
-      window.scrollTo(0, 0);
       const scale = window.innerWidth < 768 ? 1.5 : 2; // lighter canvas on phones, avoids memory/size limits
 
       const pdfBlob = await html2pdf().set({
@@ -255,6 +268,8 @@
     } catch (err) {
       statusEl.textContent = 'ত্রুটি: ' + err.message;
     } finally {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
       genBtn.disabled = false;
     }
   });
