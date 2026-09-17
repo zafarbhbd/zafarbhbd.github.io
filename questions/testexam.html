@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  body { font-family: 'Noto Sans Bengali', Arial, sans-serif; max-width: 780px; margin: 20px auto; padding: 0 16px; color: #333; background: #fbfbfd; }
+  h2 { text-align: center; margin-bottom: 4px; color: #2c3e50; }
+  .sub { text-align: center; color: #8a8f98; margin-bottom: 20px; font-size: 13px; }
+  fieldset { border: 1px solid #e8eaef; border-radius: 10px; margin-bottom: 16px; padding: 12px 16px; background: #ffffff; }
+  legend { font-weight: bold; padding: 0 6px; color: #4a5568; }
+  label { display: block; font-size: 13px; margin-top: 10px; margin-bottom: 4px; color: #6b7280; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  input[type=text], textarea {
+    width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dfe3ea;
+    border-radius: 6px; font-size: 14px; font-family: inherit; background: #fcfcfd; color: #333;
+  }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: #a9c4f0; background: #fff; }
+  textarea { resize: vertical; min-height: 40px; }
+  .fixed-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #f3f6fb; border: 1px solid #e3e9f3; border-radius: 6px;
+    padding: 8px 12px; margin-top: 10px; font-size: 14px; color: #5b6b85;
+  }
+  .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 10px; }
+  .sub-item label { margin-top: 0; font-weight: bold; color: #7a8091; }
+  button.primary {
+    display: block; width: 100%; padding: 12px; margin-top: 10px; background: #6c9bf0; color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; cursor: pointer;
+  }
+  button.primary:disabled { background: #cdd8ea; cursor: default; }
+  #status { text-align: center; margin-top: 10px; font-size: 13px; color: #8a8f98; min-height: 18px; }
+
+  @media (max-width: 600px) {
+    body { margin: 10px auto; padding: 0 10px; }
+    h2 { font-size: 19px; }
+    .row { flex-direction: column; gap: 0; }
+    .sub-grid { grid-template-columns: 1fr; }
+    fieldset { padding: 10px 12px; }
+    .fixed-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .fixed-row span:last-child { align-self: flex-end; }
+    input[type=text], textarea, button.primary { font-size: 16px; }
+  }
+
+  /* ---------- Off-screen print area used only for PDF capture ---------- */
+  #printHost { position: fixed; top: -10000px; left: 0; z-index: -1; }
+  #printPage {
+    width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
+    padding: 9mm; display: flex; gap: 10mm; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+  }
+  .copy { flex: 1; min-width: 0; }
+  .p-center { text-align: center; margin: 0 0 2pt 0; }
+  .p-dept { font-size: 15pt; }
+  .p-college, .p-year { font-size: 11pt; }
+  .p-examname { font-size: 12pt; font-weight: bold; }
+  .p-course { font-size: 12pt; text-decoration: underline; }
+  .p-fixedrow, .p-instrow {
+    display: flex; justify-content: space-between; font-size: 10pt; margin: 6pt 0 3pt 0;
+  }
+  .p-fixedrow { font-size: 11pt; margin-bottom: 8pt; }
+  .p-section { text-align: center; font-weight: bold; font-size: 13pt; margin: 0 0 3pt 0; }
+  .p-sub { font-size: 10pt; margin: 0 0 2pt 22pt; text-indent: -22pt; }
+  .p-sub:first-child { margin-left: 0; text-indent: 0; }
+  .p-q { font-size: 10pt; margin: 0 0 3pt 22pt; text-indent: -22pt; }
+  .p-spacer { height: 8pt; }
+</style>
+</head>
+<body>
+  <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
+  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 পাতায় দুটি অভিন্ন কপি পাশাপাশি বসবে।</div>
+
+  <form id="examForm">
+    <fieldset>
+      <legend>মূল তথ্য</legend>
+      <div class="row">
+        <div>
+          <label>বিভাগের নাম</label>
+          <input type="text" id="department" placeholder="যেমন: রাষ্ট্রবিজ্ঞান বিভাগ">
+        </div>
+        <div>
+          <label>কলেজের নাম</label>
+          <input type="text" id="college" placeholder="যেমন: বরিশাল সরকারি মহিলা কলেজ, বরিশাল">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>বর্ষ</label>
+          <input type="text" id="year" value="সম্মান চতুর্থ বর্ষ">
+        </div>
+        <div>
+          <label>পরীক্ষার নাম</label>
+          <input type="text" id="examName" placeholder="যেমন: নির্বাচনী পরীক্ষা ২০২৫">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>কোর্সের শিরোনাম</label>
+          <input type="text" id="courseTitle" placeholder="কোর্সের নাম">
+        </div>
+        <div>
+          <label>কোর্স কোড</label>
+          <input type="text" id="courseCode" placeholder="যেমন: ১৩১৯০১">
+        </div>
+      </div>
+      <div class="fixed-row">
+        <span>সময়: ৩ ঘণ্টা</span>
+        <span>পূর্ণমান: ৮০</span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>ক বিভাগ — প্রশ্ন ১ (১২টি উপ-প্রশ্ন, যেকোনো ১০টির উত্তর)</legend>
+      <div class="fixed-row">
+        <span>যে কোনো ১০টি প্রশ্নের উত্তর দিতে হবে</span>
+        <span>১০*১=১০</span>
+      </div>
+      <div class="sub-grid">
+        <div class="sub-item"><label>ক)</label><input type="text" id="sub1"></div>
+        <div class="sub-item"><label>খ)</label><input type="text" id="sub2"></div>
+        <div class="sub-item"><label>গ)</label><input type="text" id="sub3"></div>
+        <div class="sub-item"><label>ঘ)</label><input type="text" id="sub4"></div>
+        <div class="sub-item"><label>ঙ)</label><input type="text" id="sub5"></div>
+        <div class="sub-item"><label>চ)</label><input type="text" id="sub6"></div>
+        <div class="sub-item"><label>ছ)</label><input type="text" id="sub7"></div>
+        <div class="sub-item"><label>জ)</label><input type="text" id="sub8"></div>
+        <div class="sub-item"><label>ঝ)</label><input type="text" id="sub9"></div>
+        <div class="sub-item"><label>ঞ)</label><input type="text" id="sub10"></div>
+        <div class="sub-item"><label>ট)</label><input type="text" id="sub11"></div>
+        <div class="sub-item"><label>ঠ)</label><input type="text" id="sub12"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>খ বিভাগ — প্রশ্ন ২–৯ (যেকোনো ৫টির উত্তর)</legend>
+      <div class="fixed-row">
+        <span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span>
+        <span>৫*৪=২০</span>
+      </div>
+      <label>প্রশ্ন ২</label><textarea id="q2"></textarea>
+      <label>প্রশ্ন ৩</label><textarea id="q3"></textarea>
+      <label>প্রশ্ন ৪</label><textarea id="q4"></textarea>
+      <label>প্রশ্ন ৫</label><textarea id="q5"></textarea>
+      <label>প্রশ্ন ৬</label><textarea id="q6"></textarea>
+      <label>প্রশ্ন ৭</label><textarea id="q7"></textarea>
+      <label>প্রশ্ন ৮</label><textarea id="q8"></textarea>
+      <label>প্রশ্ন ৯</label><textarea id="q9"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>গ বিভাগ — প্রশ্ন ১০–১৭ (যেকোনো ৫টির উত্তর)</legend>
+      <div class="fixed-row">
+        <span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span>
+        <span>৫*১০=৫০</span>
+      </div>
+      <label>প্রশ্ন ১০</label><textarea id="q10"></textarea>
+      <label>প্রশ্ন ১১</label><textarea id="q11"></textarea>
+      <label>প্রশ্ন ১২</label><textarea id="q12"></textarea>
+      <label>প্রশ্ন ১৩</label><textarea id="q13"></textarea>
+      <label>প্রশ্ন ১৪</label><textarea id="q14"></textarea>
+      <label>প্রশ্ন ১৫</label><textarea id="q15"></textarea>
+      <label>প্রশ্ন ১৬</label><textarea id="q16"></textarea>
+      <label>প্রশ্ন ১৭</label><textarea id="q17"></textarea>
+    </fieldset>
+
+    <button type="submit" class="primary" id="generateBtn">PDF তৈরি করুন / Generate PDF</button>
+  </form>
+
+  <div id="status"></div>
+
+  <!-- Off-screen A4 landscape layout used only to render the PDF -->
+  <div id="printHost">
+    <div id="printPage">
+      <div class="copy" id="copyLeft"></div>
+      <div class="copy" id="copyRight"></div>
+    </div>
+  </div>
+
+<script>
+  const SUB_LABELS = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ', 'ঝ', 'ঞ', 'ট', 'ঠ'];
+  const Q_NUM = { 2:'২',3:'৩',4:'৪',5:'৫',6:'৬',7:'৭',8:'৮',9:'৯',10:'১০',11:'১১',12:'১২',13:'১৩',14:'১৪',15:'১৫',16:'১৬',17:'১৭' };
+
+  function val(id) { return document.getElementById(id).value; }
+  function esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function buildCopyHtml(d) {
+    let h = '';
+    h += `<p class="p-center p-dept">${esc(d.department)}</p>`;
+    h += `<p class="p-center p-college">${esc(d.college)}</p>`;
+    h += `<p class="p-center p-year">${esc(d.year)}</p>`;
+    h += `<p class="p-center p-examname">${esc(d.examName)}</p>`;
+    h += `<p class="p-center p-course">${esc(d.courseTitle)}${d.courseCode ? ' (' + esc(d.courseCode) + ')' : ''}</p>`;
+    h += `<div class="p-fixedrow"><span>সময়: ৩ ঘণ্টা</span><span>পূর্ণমান: ৮০</span></div>`;
+
+    h += `<p class="p-section">ক বিভাগ</p>`;
+    h += `<div class="p-instrow"><span>যে কোনো ১০টি প্রশ্নের উত্তর দিতে হবে</span><span>১০×১=১০</span></div>`;
+    SUB_LABELS.forEach((label, i) => {
+      const prefix = i === 0 ? '১. ' : '';
+      h += `<p class="p-sub">${prefix}${label}) ${esc(d['sub' + (i + 1)])}</p>`;
+    });
+    h += `<div class="p-spacer"></div>`;
+
+    h += `<p class="p-section">খ বিভাগ</p>`;
+    h += `<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×৪=২০</span></div>`;
+    for (let i = 2; i <= 9; i++) h += `<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`;
+    h += `<div class="p-spacer"></div>`;
+
+    h += `<p class="p-section">গ বিভাগ</p>`;
+    h += `<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×১০=৫০</span></div>`;
+    for (let i = 10; i <= 17; i++) h += `<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`;
+
+    return h;
+  }
+
+  document.getElementById('examForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('status');
+    const genBtn = document.getElementById('generateBtn');
+
+    const data = {
+      department: val('department'), college: val('college'), year: val('year'),
+      examName: val('examName'), courseTitle: val('courseTitle'), courseCode: val('courseCode')
+    };
+    for (let i = 1; i <= 12; i++) data['sub' + i] = val('sub' + i);
+    for (let i = 2; i <= 17; i++) data['q' + i] = val('q' + i);
+
+    genBtn.disabled = true;
+    statusEl.textContent = 'তৈরি হচ্ছে... একটু অপেক্ষা করুন।';
+
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+      const html = buildCopyHtml(data);
+      document.getElementById('copyLeft').innerHTML = html;
+      document.getElementById('copyRight').innerHTML = html;
+
+      const fileName = 'Test_' + (data.courseCode || 'Question') + '_' + Date.now() + '.pdf';
+      const element = document.getElementById('printPage');
+
+      await html2pdf().set({
+        margin: 0,
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      }).from(element).save();
+
+      statusEl.textContent = 'সম্পন্ন হয়েছে — ডাউনলোড শুরু হয়েছে।';
+    } catch (err) {
+      statusEl.textContent = 'ত্রুটি: ' + err.message;
+    } finally {
+      genBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
