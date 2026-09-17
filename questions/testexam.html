@@ -58,7 +58,8 @@
   /* ---------- Render target: sits at the real top-left of the viewport (fixed),
      so html2canvas always captures it from a known, unambiguous origin.
      It is only ever visible while #genOverlay (a higher z-index) is covering it. ---------- */
-  #printHost { position: fixed; top: 0; left: 0; z-index: 1; }
+  #printHost { position: fixed; top: 0; left: 0; z-index: 1; visibility: hidden; }
+  #printHost.active { visibility: visible; }
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
     padding: 12mm 16mm; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
@@ -244,6 +245,7 @@
     genBtn.disabled = true;
     statusEl.textContent = '';
     overlay.classList.add('active');
+    document.getElementById('printHost').classList.add('active');
     document.body.style.overflow = 'hidden';
     window.scrollTo(0, 0);
 
@@ -286,6 +288,7 @@
       statusEl.textContent = 'ত্রুটি: ' + err.message;
     } finally {
       overlay.classList.remove('active');
+      document.getElementById('printHost').classList.remove('active');
       document.body.style.overflow = '';
       genBtn.disabled = false;
     }
