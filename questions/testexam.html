@@ -58,7 +58,7 @@
   /* ---------- Render target: sits at the real top-left of the viewport (fixed),
      so html2canvas always captures it from a known, unambiguous origin.
      It is only ever visible while #genOverlay (a higher z-index) is covering it. ---------- */
-  #printHost { position: fixed; top: 0; left: 0; z-index: 1; visibility: hidden; }
+  #printHost { position: absolute; top: 0; left: 0; z-index: 1; visibility: hidden; }
   #printHost.active { visibility: visible; }
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
