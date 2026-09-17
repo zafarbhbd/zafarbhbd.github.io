@@ -55,34 +55,39 @@
   }
   #genOverlay.active { display: flex; }
 
-  /* ---------- Render target: sits at the real top-left of the viewport (fixed),
-     so html2canvas always captures it from a known, unambiguous origin.
-     It is only ever visible while #genOverlay (a higher z-index) is covering it. ---------- */
+  /* ---------- Render target: document-relative (not viewport-relative), hidden by
+     default and only made visible - behind the opaque overlay above - for the brief
+     moment html2canvas captures it. ---------- */
   #printHost { position: absolute; top: 0; left: 0; z-index: 1; visibility: hidden; }
   #printHost.active { visibility: visible; }
+
+  /* ---------- A4 landscape page: two identical columns, matching the original
+     Apps Script measurements (margin 28pt, gutter 36pt between columns). ---------- */
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
-    padding: 12mm 16mm; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+    padding: 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
   }
+  .copy { flex: 1; min-width: 0; }
+  .copy.left { padding-right: 36pt; }
   .p-center { text-align: center; margin: 0 0 2pt 0; }
-  .p-dept { font-size: 16pt; }
-  .p-college, .p-year { font-size: 12pt; }
-  .p-examname { font-size: 13pt; font-weight: bold; }
-  .p-course { font-size: 13pt; text-decoration: underline; }
+  .p-dept { font-size: 15pt; }
+  .p-college, .p-year { font-size: 11pt; }
+  .p-examname { font-size: 12pt; font-weight: bold; }
+  .p-course { font-size: 12pt; text-decoration: underline; }
   .p-fixedrow, .p-instrow {
-    display: flex; justify-content: space-between; font-size: 11pt; margin: 6pt 0 3pt 0;
+    display: flex; justify-content: space-between; font-size: 10pt; margin: 6pt 0 3pt 0;
   }
-  .p-fixedrow { font-size: 12pt; margin-bottom: 8pt; }
-  .p-section { text-align: center; font-weight: bold; font-size: 14pt; margin: 0 0 3pt 0; }
-  .p-sub { font-size: 11pt; margin: 0 0 2pt 24pt; text-indent: -24pt; }
+  .p-fixedrow { font-size: 11pt; margin-bottom: 8pt; }
+  .p-section { text-align: center; font-weight: bold; font-size: 13pt; margin: 0 0 3pt 0; }
+  .p-sub { font-size: 10pt; margin: 0 0 2pt 22pt; text-indent: -22pt; }
   .p-sub:first-child { margin-left: 0; text-indent: 0; }
-  .p-q { font-size: 11pt; margin: 0 0 3pt 24pt; text-indent: -24pt; }
+  .p-q { font-size: 10pt; margin: 0 0 3pt 22pt; text-indent: -22pt; }
   .p-spacer { height: 8pt; }
 </style>
 </head>
 <body>
   <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
-  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 ল্যান্ডস্কেপ পাতায় একটি কপি বসবে।</div>
+  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 পাতায় দুটি অভিন্ন কপি পাশাপাশি বসবে।</div>
 
   <form id="examForm">
     <fieldset>
@@ -184,10 +189,11 @@
 
   <div id="genOverlay">তৈরি হচ্ছে... একটু অপেক্ষা করুন।</div>
 
-  <!-- Render target: single copy, single column, full A4 landscape page -->
+  <!-- Render target: two identical columns, full A4 landscape page -->
   <div id="printHost">
     <div id="printPage">
-      <div id="pageContent"></div>
+      <div class="copy left" id="copyLeft"></div>
+      <div class="copy right" id="copyRight"></div>
     </div>
   </div>
 
@@ -200,7 +206,7 @@
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function buildPageHtml(d) {
+  function buildCopyHtml(d) {
     let h = '';
     h += `<p class="p-center p-dept">${esc(d.department)}</p>`;
     h += `<p class="p-center p-college">${esc(d.college)}</p>`;
@@ -252,7 +258,9 @@
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      document.getElementById('pageContent').innerHTML = buildPageHtml(data);
+      const html = buildCopyHtml(data);
+      document.getElementById('copyLeft').innerHTML = html;
+      document.getElementById('copyRight').innerHTML = html;
 
       const fileName = 'Test_' + (data.courseCode || 'Question') + '_' + Date.now() + '.pdf';
       const element = document.getElementById('printPage');
