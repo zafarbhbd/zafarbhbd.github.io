@@ -9,11 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-  body { font-family: 'Noto Sans Bengali', Arial, sans-serif; max-width: 780px; margin: 20px auto; padding: 0 16px; color: #333; background: #fbfbfd; }
-  h2 { text-align: center; margin-bottom: 4px; color: #2c3e50; }
-  .sub { text-align: center; color: #8a8f98; margin-bottom: 20px; font-size: 13px; }
-  fieldset { border: 1px solid #e8eaef; border-radius: 10px; margin-bottom: 16px; padding: 12px 16px; background: #ffffff; }
-  legend { font-weight: bold; padding: 0 6px; color: #4a5568; }
+  :root {
+    --paper: #faf8f4; --ink: #23283b; --muted: #6b7280; --border: #e6e2d8;
+    --gold: #b1852f; --navy: #2b3e70; --navy-tint: #ecf0fa; --navy-dark: #202f57;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Noto Sans Bengali', Arial, sans-serif; max-width: 780px; margin: 20px auto; padding: 0 16px 40px; color: var(--ink); background: var(--paper); }
+  .hero {
+    text-align: center; background: #fff; border: 1px solid var(--border); border-bottom: 3px solid var(--gold);
+    border-radius: 10px 10px 0 0; padding: 20px 16px 16px; margin-bottom: 18px;
+  }
+  .hero .icon { font-size: 24px; display: block; margin-bottom: 6px; }
+  .hero h2 { margin: 0 0 6px; color: var(--navy); font-size: 20px; }
+  .sub { text-align: center; color: var(--muted); font-size: 13px; }
+  .hero .sub { margin: 0; }
+  fieldset { border: 1px solid var(--border); border-left: 3px solid var(--navy); border-radius: 8px; margin-bottom: 16px; padding: 12px 16px; background: #ffffff; }
+  legend { font-weight: bold; padding: 0 6px; color: var(--navy); }
   label { display: block; font-size: 13px; margin-top: 10px; margin-bottom: 4px; color: #6b7280; }
   .row { display: flex; gap: 12px; }
   .row > div { flex: 1; }
@@ -21,25 +32,26 @@
     width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dfe3ea;
     border-radius: 6px; font-size: 14px; font-family: inherit; background: #fcfcfd; color: #333;
   }
-  input[type=text]:focus, textarea:focus { outline: none; border-color: #a9c4f0; background: #fff; }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: var(--navy); background: #fff; }
   textarea { resize: vertical; min-height: 40px; }
   .fixed-row {
     display: flex; justify-content: space-between; align-items: center;
-    background: #f3f6fb; border: 1px solid #e3e9f3; border-radius: 6px;
-    padding: 8px 12px; margin-top: 10px; font-size: 14px; color: #5b6b85;
+    background: var(--navy-tint); border: 1px solid #dde3f2; border-radius: 6px;
+    padding: 8px 12px; margin-top: 10px; font-size: 14px; color: var(--navy);
   }
   .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 10px; }
   .sub-item label { margin-top: 0; font-weight: bold; color: #7a8091; }
   button.primary {
-    display: block; width: 100%; padding: 12px; margin-top: 10px; background: #6c9bf0; color: #fff;
-    border: none; border-radius: 8px; font-size: 15px; cursor: pointer;
+    display: block; width: 100%; padding: 12px; margin-top: 10px; background: var(--navy); color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: background-color 0.15s;
   }
-  button.primary:disabled { background: #cdd8ea; cursor: default; }
+  button.primary:hover:not(:disabled) { background: var(--navy-dark); }
+  button.primary:disabled { background: #b7c0d6; cursor: default; }
   #status { text-align: center; margin-top: 10px; font-size: 13px; color: #8a8f98; min-height: 18px; }
 
   @media (max-width: 600px) {
-    body { margin: 10px auto; padding: 0 10px; }
-    h2 { font-size: 19px; }
+    body { margin: 10px auto; padding: 0 10px 30px; }
+    .hero h2 { font-size: 18px; }
     .row { flex-direction: column; gap: 0; }
     .sub-grid { grid-template-columns: 1fr; }
     fieldset { padding: 10px 12px; }
@@ -65,7 +77,7 @@
      layout - not two duplicated copies. ---------- */
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
-    padding: 38pt 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+    padding: 76pt 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
   }
   .col { flex: 1; min-width: 0; }
   .col.left { padding-right: 18pt; }
@@ -82,16 +94,12 @@
   .p-section { text-align: center; font-weight: bold; font-size: 13pt; margin: 0 0 3pt 0; }
   /* "১. ক)" - the very first sub-item - stays flush left, no indentation at all */
   .p-subfirst { font-size: 10pt; margin: 0 0 2pt 0; }
-  /* Every other sub-item (খ–ঠ) and every numbered question (২–১৭): the label sits
-     in its own flex box and the text sits right beside it, so a wrapped second
-     line automatically continues at exactly the text's own left edge - i.e.
-     precisely under the first word - regardless of how wide that item's own
-     label happens to be. No fixed pt guess needed. */
-  .p-sub-line, .p-q-line { display: flex; gap: 4pt; font-size: 10pt; }
-  .p-sub-line { margin: 0 0 2pt 0; }
-  .p-q-line { margin: 0 0 3pt 0; }
-  .p-sub-line .lbl, .p-q-line .lbl { white-space: nowrap; }
-  .p-sub-line .txt, .p-q-line .txt { min-width: 0; }
+  /* Every other sub-item (খ–ঠ) and every numbered question (২–১৭): a classic
+     hanging indent (margin-left + negative text-indent), with the exact pixel
+     amount measured per item from its own label's real rendered width - not
+     flexbox, since html2canvas does not reliably wrap text inside flex items. */
+  .p-sub { font-size: 10pt; margin: 0 0 2pt 0; }
+  .p-q { font-size: 10pt; margin: 0 0 3pt 0; }
   .p-spacer { height: 8pt; }
 
   /* ---------- Hidden measuring container (used only to decide the column split,
@@ -100,8 +108,11 @@
 </style>
 </head>
 <body>
-  <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
-  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 ল্যান্ডস্কেপ পাতায় দুই কলামে বসবে।</div>
+  <div class="hero">
+    <span class="icon">📝</span>
+    <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
+    <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 ল্যান্ডস্কেপ পাতায় দুই কলামে বসবে।</div>
+  </div>
 
   <form id="examForm">
     <fieldset>
@@ -224,7 +235,7 @@
   const PT_TO_MM = 25.4 / 72;
   const MM_TO_PX = 96 / 25.4;
   const PAGE_W_MM = 297, PAGE_H_MM = 210;
-  const MARGIN_TB_MM = 38 * PT_TO_MM; // top/bottom page padding
+  const MARGIN_TB_MM = 76 * PT_TO_MM; // top/bottom page padding (doubled)
   const MARGIN_LR_MM = 28 * PT_TO_MM; // left/right page padding
   const GUTTER_MM = 36 * PT_TO_MM;
   const usableWmm = PAGE_W_MM - 2 * MARGIN_LR_MM;
@@ -236,6 +247,23 @@
   function val(id) { return document.getElementById(id).value; }
   function esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Measures a label's real rendered pixel width (e.g. "৪. ", "১০. ", "খ) ")
+  // so each item's hanging indent can match its own label exactly, instead of
+  // one fixed guess that's only ever correct for one label width.
+  function measureTextWidth(text, fontSizePt) {
+    const span = document.createElement('span');
+    span.style.position = 'absolute';
+    span.style.visibility = 'hidden';
+    span.style.whiteSpace = 'pre';
+    span.style.fontFamily = "'Noto Sans Bengali', Arial, sans-serif";
+    span.style.fontSize = fontSizePt + 'pt';
+    span.textContent = text;
+    document.body.appendChild(span);
+    const w = span.offsetWidth;
+    document.body.removeChild(span);
+    return w;
   }
 
   function buildHeaderHtml(d) {
@@ -257,25 +285,30 @@
 
     // "১. ক)" - no indentation at all, even if it wraps.
     items.push(`<p class="p-subfirst">১. ক) ${esc(d.sub1)}</p>`);
-    // "খ)" through "ঠ)" - label + text side by side, so a wrapped line lands
-    // exactly under the first word, matched to each label's own real width.
+    // "খ)" through "ঠ)" - hanging indent measured to match each label's own
+    // real rendered width, so a wrapped line lands exactly under the first word.
     for (let i = 1; i < SUB_LABELS.length; i++) {
-      const label = SUB_LABELS[i];
-      items.push(`<div class="p-sub-line"><span class="lbl">${label})</span><span class="txt">${esc(d['sub' + (i + 1)])}</span></div>`);
+      const labelText = SUB_LABELS[i] + ') ';
+      const w = measureTextWidth(labelText, 10);
+      items.push(`<p class="p-sub" style="margin-left:${w}px;text-indent:-${w}px;">${labelText}${esc(d['sub' + (i + 1)])}</p>`);
     }
     items.push(`<div class="p-spacer"></div>`);
 
     items.push(`<p class="p-section">খ বিভাগ</p>`);
     items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×৪=২০</span></div>`);
     for (let i = 2; i <= 9; i++) {
-      items.push(`<div class="p-q-line"><span class="lbl">${Q_NUM[i]}.</span><span class="txt">${esc(d['q' + i])}</span></div>`);
+      const labelText = Q_NUM[i] + '. ';
+      const w = measureTextWidth(labelText, 10);
+      items.push(`<p class="p-q" style="margin-left:${w}px;text-indent:-${w}px;">${labelText}${esc(d['q' + i])}</p>`);
     }
     items.push(`<div class="p-spacer"></div>`);
 
     items.push(`<p class="p-section">গ বিভাগ</p>`);
     items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×১০=৫০</span></div>`);
     for (let i = 10; i <= 17; i++) {
-      items.push(`<div class="p-q-line"><span class="lbl">${Q_NUM[i]}.</span><span class="txt">${esc(d['q' + i])}</span></div>`);
+      const labelText = Q_NUM[i] + '. ';
+      const w = measureTextWidth(labelText, 10);
+      items.push(`<p class="p-q" style="margin-left:${w}px;text-indent:-${w}px;">${labelText}${esc(d['q' + i])}</p>`);
     }
 
     return items;

@@ -8,42 +8,98 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #23283b;
+    --muted: #6b7280;
+    --border: #e6e2d8;
+    --gold: #b1852f;
+    --navy: #2b3e70;
+    --navy-tint: #ecf0fa;
+    --teal: #1e6e62;
+    --teal-tint: #e7f4f1;
+  }
+  * { box-sizing: border-box; }
   body {
     font-family: 'Noto Sans Bengali', Arial, sans-serif;
-    max-width: 640px; margin: 60px auto; padding: 0 20px; color: #2c3e50; background: #fbfbfd;
+    margin: 0; padding: 48px 20px 64px; color: var(--ink); background: var(--paper);
   }
-  h1 { text-align: center; font-size: 22px; margin-bottom: 6px; }
-  .sub { text-align: center; color: #8a8f98; font-size: 13px; margin-bottom: 36px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  .cover {
+    text-align: center; padding: 30px 20px 26px; background: #fff;
+    border: 1px solid var(--border); border-radius: 4px 4px 0 0;
+    border-bottom: 3px solid var(--gold);
+  }
+  .cover .eyebrow-icon { font-size: 26px; margin-bottom: 10px; display: block; }
+  .cover h1 { margin: 0 0 8px; font-size: 23px; font-weight: 700; letter-spacing: 0.2px; }
+  .cover .sub { color: var(--muted); font-size: 13.5px; margin: 0; }
+
+  .cards { border: 1px solid var(--border); border-top: none; border-radius: 0 0 4px 4px; overflow: hidden; background: #fff; }
+
   .card {
-    display: block; background: #fff; border: 1px solid #e8eaef; border-radius: 12px;
-    padding: 20px 22px; margin-bottom: 16px; text-decoration: none; color: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; gap: 16px; padding: 22px 24px;
+    text-decoration: none; color: inherit; border-left: 5px solid transparent;
+    border-bottom: 1px solid var(--border); transition: background-color 0.15s, border-left-color 0.15s;
   }
-  .card:hover { border-color: #a9c4f0; box-shadow: 0 2px 10px rgba(108,155,240,0.15); }
-  .card h2 { margin: 0 0 6px 0; font-size: 17px; color: #2c3e50; }
-  .card p { margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5; }
-  .arrow { float: right; color: #6c9bf0; font-size: 18px; }
+  .cards .card:last-child { border-bottom: none; }
+  .card.navy { border-left-color: var(--navy); }
+  .card.navy:hover { background: var(--navy-tint); }
+  .card.teal { border-left-color: var(--teal); }
+  .card.teal:hover { background: var(--teal-tint); }
+
+  .card .icon {
+    flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
+  }
+  .card.navy .icon { background: var(--navy-tint); color: var(--navy); }
+  .card.teal .icon { background: var(--teal-tint); color: var(--teal); }
+
+  .card .text { flex: 1; min-width: 0; }
+  .card h2 { margin: 0 0 4px; font-size: 16.5px; }
+  .card.navy h2 { color: var(--navy); }
+  .card.teal h2 { color: var(--teal); }
+  .card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .card .chev { flex: 0 0 auto; font-size: 18px; color: var(--border); }
+  .card.navy:hover .chev { color: var(--navy); }
+  .card.teal:hover .chev { color: var(--teal); }
 
   @media (max-width: 480px) {
-    body { margin: 30px auto; }
-    h1 { font-size: 19px; }
+    body { padding: 28px 14px 48px; }
+    .cover { padding: 24px 16px 20px; }
+    .cover h1 { font-size: 20px; }
+    .card { padding: 18px; gap: 12px; }
   }
 </style>
 </head>
 <body>
-  <h1>প্রশ্নপত্র জেনারেটর</h1>
-  <div class="sub">নিচের যেকোনো একটি বেছে নিন</div>
+  <div class="wrap">
+    <div class="cover">
+      <span class="eyebrow-icon">🎓</span>
+      <h1>প্রশ্নপত্র জেনারেটর</h1>
+      <p class="sub">নিচের যেকোনো একটি বেছে নিন</p>
+    </div>
 
-  <a class="card" href="testexam.html">
-    <span class="arrow">→</span>
-    <h2>নির্বাচনী পরীক্ষা</h2>
-    <p>ক, খ, গ বিভাগসহ পূর্ণাঙ্গ প্রশ্নপত্র (১৭টি প্রশ্ন, পূর্ণমান ৮০)।</p>
-  </a>
+    <div class="cards">
+      <a class="card navy" href="testexam.html">
+        <span class="icon">📝</span>
+        <span class="text">
+          <h2>নির্বাচনী পরীক্ষা</h2>
+          <p>ক, খ, গ বিভাগসহ পূর্ণাঙ্গ প্রশ্নপত্র (১৭টি প্রশ্ন, পূর্ণমান ৮০)।</p>
+        </span>
+        <span class="chev">›</span>
+      </a>
 
-  <a class="card" href="incourseexam.html">
-    <span class="arrow">→</span>
-    <h2>ইনকোর্স পরীক্ষা</h2>
-    <p>সংক্ষিপ্ত প্রশ্নপত্র (৫টি প্রশ্ন, পূর্ণমান ১৫)।</p>
-  </a>
+      <a class="card teal" href="incourseexam.html">
+        <span class="icon">📋</span>
+        <span class="text">
+          <h2>ইনকোর্স পরীক্ষা</h2>
+          <p>সংক্ষিপ্ত প্রশ্নপত্র (৫টি প্রশ্ন, পূর্ণমান ১৫)।</p>
+        </span>
+        <span class="chev">›</span>
+      </a>
+    </div>
+  </div>
 </body>
 </html>
