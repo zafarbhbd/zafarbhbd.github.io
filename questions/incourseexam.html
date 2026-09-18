@@ -75,6 +75,12 @@
   .p-timerow { margin-top: 4pt; }
   .p-section { text-align: center; font-weight: bold; font-size: 11pt; margin: 2pt 0; }
   .p-q { font-size: 10pt; margin: 0 0 3pt 0; }
+  /* Label + text side by side, so a wrapped second line lands exactly under
+     the first word of the first line - matched to each question's own
+     number width (১. vs ৪. etc.), same approach as the Test exam generator. */
+  .p-q-line { display: flex; gap: 4pt; font-size: 10pt; margin: 0 0 3pt 0; }
+  .p-q-line .lbl { white-space: nowrap; }
+  .p-q-line .txt { min-width: 0; }
   .p-spacer { height: 10pt; }
 </style>
 </head>
@@ -188,19 +194,19 @@
 
     h += `<p class="p-section">ক বিভাগ</p>`;
     h += `<div class="p-instrow"><span>${esc(d.instructionA)}</span><span>${esc(d.marksA)}</span></div>`;
-    h += `<p class="p-q">১. ${esc(d.q1)}</p>`;
+    h += `<div class="p-q-line"><span class="lbl">১.</span><span class="txt">${esc(d.q1)}</span></div>`;
     h += `<div class="p-spacer"></div>`;
 
     h += `<p class="p-section">খ বিভাগ</p>`;
     h += `<div class="p-instrow"><span>${esc(d.instructionB)}</span><span>${esc(d.marksB)}</span></div>`;
-    h += `<p class="p-q">২. ${esc(d.q2)}</p>`;
-    h += `<p class="p-q">৩. ${esc(d.q3)}</p>`;
+    h += `<div class="p-q-line"><span class="lbl">২.</span><span class="txt">${esc(d.q2)}</span></div>`;
+    h += `<div class="p-q-line"><span class="lbl">৩.</span><span class="txt">${esc(d.q3)}</span></div>`;
     h += `<div class="p-spacer"></div>`;
 
     h += `<p class="p-section">গ বিভাগ</p>`;
     h += `<div class="p-instrow"><span>${esc(d.instructionC)}</span><span>${esc(d.marksC)}</span></div>`;
-    h += `<p class="p-q">৪. ${esc(d.q4)}</p>`;
-    h += `<p class="p-q">৫. ${esc(d.q5)}</p>`;
+    h += `<div class="p-q-line"><span class="lbl">৪.</span><span class="txt">${esc(d.q4)}</span></div>`;
+    h += `<div class="p-q-line"><span class="lbl">৫.</span><span class="txt">${esc(d.q5)}</span></div>`;
 
     return h;
   }
