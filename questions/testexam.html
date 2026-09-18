@@ -55,20 +55,21 @@
   }
   #genOverlay.active { display: flex; }
 
-  /* ---------- Render target: document-relative (not viewport-relative), hidden by
-     default and only made visible - behind the opaque overlay above - for the brief
-     moment html2canvas captures it. ---------- */
+  /* ---------- Render target: document-relative, hidden by default, only made
+     visible - behind the opaque overlay - for the moment html2canvas captures it. ---------- */
   #printHost { position: absolute; top: 0; left: 0; z-index: 1; visibility: hidden; }
   #printHost.active { visibility: visible; }
 
-  /* ---------- A4 landscape page: two identical columns, matching the original
-     Apps Script measurements (margin 28pt, gutter 36pt between columns). ---------- */
+  /* ---------- A4 landscape page: ONE content stream, split across two columns
+     (newspaper-style flow), matching the original Apps Script's real two-column
+     layout - not two duplicated copies. ---------- */
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
     padding: 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
   }
-  .copy { flex: 1; min-width: 0; }
-  .copy.left { padding-right: 36pt; }
+  .col { flex: 1; min-width: 0; }
+  .col.left { padding-right: 18pt; }
+  .col.right { padding-left: 18pt; }
   .p-center { text-align: center; margin: 0 0 2pt 0; }
   .p-dept { font-size: 15pt; }
   .p-college, .p-year { font-size: 11pt; }
@@ -83,11 +84,15 @@
   .p-sub:first-child { margin-left: 0; text-indent: 0; }
   .p-q { font-size: 10pt; margin: 0 0 3pt 22pt; text-indent: -22pt; }
   .p-spacer { height: 8pt; }
+
+  /* ---------- Hidden measuring container (used only to decide the column split,
+     never captured or shown) - must be the same text width as a real column. ---------- */
+  #measureBox { position: absolute; top: 0; left: 0; visibility: hidden; z-index: -1; }
 </style>
 </head>
 <body>
   <h2>নির্বাচনী পরীক্ষা প্রশ্নপত্র জেনারেটর</h2>
-  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 পাতায় দুটি অভিন্ন কপি পাশাপাশি বসবে।</div>
+  <div class="sub">একটি প্রশ্নসেট পূরণ করুন — A4 ল্যান্ডস্কেপ পাতায় দুই কলামে বসবে।</div>
 
   <form id="examForm">
     <fieldset>
@@ -189,24 +194,41 @@
 
   <div id="genOverlay">তৈরি হচ্ছে... একটু অপেক্ষা করুন।</div>
 
-  <!-- Render target: two identical columns, full A4 landscape page -->
+  <!-- Render target: one content stream flowing across two columns -->
   <div id="printHost">
     <div id="printPage">
-      <div class="copy left" id="copyLeft"></div>
-      <div class="copy right" id="copyRight"></div>
+      <div class="col left" id="colLeft"></div>
+      <div class="col right" id="colRight"></div>
     </div>
   </div>
+
+  <!-- Hidden helper used only to measure where content should break into column 2 -->
+  <div id="measureBox"></div>
 
 <script>
   const SUB_LABELS = ['ক', 'খ', 'গ', 'ঘ', 'ঙ', 'চ', 'ছ', 'জ', 'ঝ', 'ঞ', 'ট', 'ঠ'];
   const Q_NUM = { 2:'২',3:'৩',4:'৪',5:'৫',6:'৬',7:'৭',8:'৮',9:'৯',10:'১০',11:'১১',12:'১২',13:'১৩',14:'১৪',15:'১৫',16:'১৬',17:'১৭' };
+
+  // Page geometry, matching the original Apps Script measurements exactly
+  // (28pt margin, 36pt gutter between columns), converted to CSS px so we can
+  // measure real rendered heights against them before deciding the column split.
+  const PT_TO_MM = 25.4 / 72;
+  const MM_TO_PX = 96 / 25.4;
+  const PAGE_W_MM = 297, PAGE_H_MM = 210;
+  const MARGIN_MM = 28 * PT_TO_MM;
+  const GUTTER_MM = 36 * PT_TO_MM;
+  const usableWmm = PAGE_W_MM - 2 * MARGIN_MM;
+  const usableHmm = PAGE_H_MM - 2 * MARGIN_MM;
+  const colTextMm = usableWmm / 2 - GUTTER_MM / 2;
+  const colTextPx = colTextMm * MM_TO_PX;
+  const maxHeightPx = usableHmm * MM_TO_PX;
 
   function val(id) { return document.getElementById(id).value; }
   function esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function buildCopyHtml(d) {
+  function buildHeaderHtml(d) {
     let h = '';
     h += `<p class="p-center p-dept">${esc(d.department)}</p>`;
     h += `<p class="p-center p-college">${esc(d.college)}</p>`;
@@ -214,25 +236,52 @@
     h += `<p class="p-center p-examname">${esc(d.examName)}</p>`;
     h += `<p class="p-center p-course">${esc(d.courseTitle)}${d.courseCode ? ' (' + esc(d.courseCode) + ')' : ''}</p>`;
     h += `<div class="p-fixedrow"><span>সময়: ৪ ঘণ্টা</span><span>পূর্ণমান: ৮০</span></div>`;
+    return h;
+  }
 
-    h += `<p class="p-section">ক বিভাগ</p>`;
-    h += `<div class="p-instrow"><span>যে কোনো ১০টি প্রশ্নের উত্তর দিতে হবে</span><span>১০×১=১০</span></div>`;
+  // Each entry is one atomic block that must never be split mid-way.
+  function buildItems(d) {
+    const items = [];
+    items.push(`<p class="p-section">ক বিভাগ</p>`);
+    items.push(`<div class="p-instrow"><span>যে কোনো ১০টি প্রশ্নের উত্তর দিতে হবে</span><span>১০×১=১০</span></div>`);
     SUB_LABELS.forEach((label, i) => {
       const prefix = i === 0 ? '১. ' : '';
-      h += `<p class="p-sub">${prefix}${label}) ${esc(d['sub' + (i + 1)])}</p>`;
+      items.push(`<p class="p-sub">${prefix}${label}) ${esc(d['sub' + (i + 1)])}</p>`);
     });
-    h += `<div class="p-spacer"></div>`;
+    items.push(`<div class="p-spacer"></div>`);
 
-    h += `<p class="p-section">খ বিভাগ</p>`;
-    h += `<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×৪=২০</span></div>`;
-    for (let i = 2; i <= 9; i++) h += `<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`;
-    h += `<div class="p-spacer"></div>`;
+    items.push(`<p class="p-section">খ বিভাগ</p>`);
+    items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×৪=২০</span></div>`);
+    for (let i = 2; i <= 9; i++) items.push(`<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`);
+    items.push(`<div class="p-spacer"></div>`);
 
-    h += `<p class="p-section">গ বিভাগ</p>`;
-    h += `<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×১০=৫০</span></div>`;
-    for (let i = 10; i <= 17; i++) h += `<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`;
+    items.push(`<p class="p-section">গ বিভাগ</p>`);
+    items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×১০=৫০</span></div>`);
+    for (let i = 10; i <= 17; i++) items.push(`<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`);
 
-    return h;
+    return items;
+  }
+
+  // Renders header + items one at a time into a hidden, real-width probe element
+  // to find exactly how many items fit in column 1 before overflowing the page
+  // height - the rest continues into column 2, like a newspaper.
+  function computeSplit(headerHtml, items) {
+    const box = document.getElementById('measureBox');
+    box.style.width = colTextPx + 'px';
+    box.innerHTML = headerHtml;
+    const headerHeight = box.offsetHeight;
+
+    box.innerHTML = '';
+    let splitIndex = items.length; // default: everything fits in column 1
+    for (let i = 0; i < items.length; i++) {
+      box.innerHTML += items[i];
+      if (headerHeight + box.offsetHeight > maxHeightPx) {
+        splitIndex = i;
+        break;
+      }
+    }
+    box.innerHTML = '';
+    return splitIndex;
   }
 
   document.getElementById('examForm').addEventListener('submit', async function (e) {
@@ -258,9 +307,12 @@
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      const html = buildCopyHtml(data);
-      document.getElementById('copyLeft').innerHTML = html;
-      document.getElementById('copyRight').innerHTML = html;
+      const headerHtml = buildHeaderHtml(data);
+      const items = buildItems(data);
+      const splitIndex = computeSplit(headerHtml, items);
+
+      document.getElementById('colLeft').innerHTML = headerHtml + items.slice(0, splitIndex).join('');
+      document.getElementById('colRight').innerHTML = items.slice(splitIndex).join('');
 
       const fileName = 'Test_' + (data.courseCode || 'Question') + '_' + Date.now() + '.pdf';
       const element = document.getElementById('printPage');
