@@ -65,7 +65,7 @@
      layout - not two duplicated copies. ---------- */
   #printPage {
     width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
-    padding: 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+    padding: 38pt 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
   }
   .col { flex: 1; min-width: 0; }
   .col.left { padding-right: 18pt; }
@@ -80,9 +80,18 @@
   }
   .p-fixedrow { font-size: 11pt; margin-bottom: 8pt; }
   .p-section { text-align: center; font-weight: bold; font-size: 13pt; margin: 0 0 3pt 0; }
-  .p-sub { font-size: 10pt; margin: 0 0 2pt 22pt; text-indent: -22pt; }
-  .p-sub:first-child { margin-left: 0; text-indent: 0; }
-  .p-q { font-size: 10pt; margin: 0 0 3pt 22pt; text-indent: -22pt; }
+  /* "১. ক)" - the very first sub-item - stays flush left, no indentation at all */
+  .p-subfirst { font-size: 10pt; margin: 0 0 2pt 0; }
+  /* Every other sub-item (খ–ঠ) and every numbered question (২–১৭): the label sits
+     in its own flex box and the text sits right beside it, so a wrapped second
+     line automatically continues at exactly the text's own left edge - i.e.
+     precisely under the first word - regardless of how wide that item's own
+     label happens to be. No fixed pt guess needed. */
+  .p-sub-line, .p-q-line { display: flex; gap: 4pt; font-size: 10pt; }
+  .p-sub-line { margin: 0 0 2pt 0; }
+  .p-q-line { margin: 0 0 3pt 0; }
+  .p-sub-line .lbl, .p-q-line .lbl { white-space: nowrap; }
+  .p-sub-line .txt, .p-q-line .txt { min-width: 0; }
   .p-spacer { height: 8pt; }
 
   /* ---------- Hidden measuring container (used only to decide the column split,
@@ -215,10 +224,11 @@
   const PT_TO_MM = 25.4 / 72;
   const MM_TO_PX = 96 / 25.4;
   const PAGE_W_MM = 297, PAGE_H_MM = 210;
-  const MARGIN_MM = 28 * PT_TO_MM;
+  const MARGIN_TB_MM = 38 * PT_TO_MM; // top/bottom page padding
+  const MARGIN_LR_MM = 28 * PT_TO_MM; // left/right page padding
   const GUTTER_MM = 36 * PT_TO_MM;
-  const usableWmm = PAGE_W_MM - 2 * MARGIN_MM;
-  const usableHmm = PAGE_H_MM - 2 * MARGIN_MM;
+  const usableWmm = PAGE_W_MM - 2 * MARGIN_LR_MM;
+  const usableHmm = PAGE_H_MM - 2 * MARGIN_TB_MM;
   const colTextMm = usableWmm / 2 - GUTTER_MM / 2;
   const colTextPx = colTextMm * MM_TO_PX;
   const maxHeightPx = usableHmm * MM_TO_PX;
@@ -244,20 +254,29 @@
     const items = [];
     items.push(`<p class="p-section">ক বিভাগ</p>`);
     items.push(`<div class="p-instrow"><span>যে কোনো ১০টি প্রশ্নের উত্তর দিতে হবে</span><span>১০×১=১০</span></div>`);
-    SUB_LABELS.forEach((label, i) => {
-      const prefix = i === 0 ? '১. ' : '';
-      items.push(`<p class="p-sub">${prefix}${label}) ${esc(d['sub' + (i + 1)])}</p>`);
-    });
+
+    // "১. ক)" - no indentation at all, even if it wraps.
+    items.push(`<p class="p-subfirst">১. ক) ${esc(d.sub1)}</p>`);
+    // "খ)" through "ঠ)" - label + text side by side, so a wrapped line lands
+    // exactly under the first word, matched to each label's own real width.
+    for (let i = 1; i < SUB_LABELS.length; i++) {
+      const label = SUB_LABELS[i];
+      items.push(`<div class="p-sub-line"><span class="lbl">${label})</span><span class="txt">${esc(d['sub' + (i + 1)])}</span></div>`);
+    }
     items.push(`<div class="p-spacer"></div>`);
 
     items.push(`<p class="p-section">খ বিভাগ</p>`);
     items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×৪=২০</span></div>`);
-    for (let i = 2; i <= 9; i++) items.push(`<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`);
+    for (let i = 2; i <= 9; i++) {
+      items.push(`<div class="p-q-line"><span class="lbl">${Q_NUM[i]}.</span><span class="txt">${esc(d['q' + i])}</span></div>`);
+    }
     items.push(`<div class="p-spacer"></div>`);
 
     items.push(`<p class="p-section">গ বিভাগ</p>`);
     items.push(`<div class="p-instrow"><span>যে কোনো ৫টি প্রশ্নের উত্তর দিতে হবে</span><span>৫×১০=৫০</span></div>`);
-    for (let i = 10; i <= 17; i++) items.push(`<p class="p-q">${Q_NUM[i]}. ${esc(d['q' + i])}</p>`);
+    for (let i = 10; i <= 17; i++) {
+      items.push(`<div class="p-q-line"><span class="lbl">${Q_NUM[i]}.</span><span class="txt">${esc(d['q' + i])}</span></div>`);
+    }
 
     return items;
   }
