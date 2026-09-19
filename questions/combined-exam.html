@@ -203,15 +203,27 @@
         <div>
           <label>পূর্ণমান (স্বয়ংক্রিয়)</label>
           <div class="fixed-row" style="margin-top:0;">
-            <span>মোট প্রশ্ন × ১০</span>
+            <span>নির্বাচিত সংখ্যা × ১০</span>
             <span id="totalMarksDisplay">০</span>
           </div>
         </div>
       </div>
       <div class="row">
         <div>
-          <label>নির্দেশনা — যে কোনো কতটি প্রশ্নের উত্তর দিতে হবে (যেমন: একটি, দুইটি, তিনটি)</label>
-          <input type="text" id="anyCountText" placeholder="যেমন: দুইটি">
+          <label>নির্দেশনা — যে কোনো কতটি প্রশ্নের উত্তর দিতে হবে</label>
+          <select id="anyCountSelect">
+            <option value="">সংখ্যা নির্বাচন করুন</option>
+            <option value="1">১টি</option>
+            <option value="2">২টি</option>
+            <option value="3">৩টি</option>
+            <option value="4">৪টি</option>
+            <option value="5">৫টি</option>
+            <option value="6">৬টি</option>
+            <option value="7">৭টি</option>
+            <option value="8">৮টি</option>
+            <option value="9">৯টি</option>
+            <option value="10">১০টি</option>
+          </select>
         </div>
       </div>
     </fieldset>
@@ -447,10 +459,17 @@
     validateAllMarks();
   }
 
+  function updateTotalMarksDisplay() {
+    const selected = document.getElementById('anyCountSelect').value;
+    const cards = document.querySelectorAll('#questionsList .qcard');
+    const n = selected ? parseInt(selected, 10) : cards.length;
+    document.getElementById('totalMarksDisplay').textContent = toBn(n * 10);
+  }
+
   function renumberQuestions() {
     const cards = document.querySelectorAll('#questionsList .qcard');
     cards.forEach((c, i) => { c.querySelector('.qnum').textContent = toBn(i + 1) + '।'; });
-    document.getElementById('totalMarksDisplay').textContent = toBn(cards.length * 10);
+    updateTotalMarksDisplay();
   }
 
   function validateAllMarks() {
@@ -481,6 +500,7 @@
   window.__validateAllMarks = validateAllMarks;
 
   document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+  document.getElementById('anyCountSelect').addEventListener('change', updateTotalMarksDisplay);
   addQuestion(); // start with one question
 
   // ---------- Building one question's PDF markup ----------
@@ -518,7 +538,7 @@
     const lines = wrapTextVariable(text, safeLine1, safeRest, 10);
     let html = `<p class="p-q-line" style="margin:0;">${visiblePrefix}${esc(lines[0])}</p>`;
     for (let i = 1; i < lines.length; i++) {
-      html += `<p class="p-q-line" style="margin:2pt 0 0 ${indentPx}px;">${esc(lines[i])}</p>`;
+      html += `<p class="p-q-line" style="margin:2pt 0 0 0;"><span style="display:inline-block;width:${indentPx}px;"></span>${esc(lines[i])}</p>`;
     }
     return html;
   }
@@ -566,8 +586,8 @@
     h += `<p class="p-center p-examname">${esc(d.examTitle)}</p>`;
     h += `<p class="p-center p-course">${esc(d.courseTitle)}${d.courseCode ? ' (' + esc(d.courseCode) + ')' : ''}</p>`;
     h += `<div class="p-fixedrow"><span>সময়: ${esc(d.timeText)}</span><span>পূর্ণমান: ${esc(d.totalMarksBn)}</span></div>`;
-    if (d.anyCountText) {
-      h += `<p style="font-size:10pt; margin:0 0 8pt 0;">যে কোনো ${esc(d.anyCountText)} প্রশ্নের উত্তর দিতে হবে।</p>`;
+    if (d.anyCountBn) {
+      h += `<p style="font-size:10pt; margin:0 0 8pt 0;">যে কোনো ${d.anyCountBn}টি প্রশ্নের উত্তর দিতে হবে।</p>`;
     }
     return h;
   }
@@ -609,6 +629,8 @@
     const examYearVal = document.getElementById('examYear').value;
     const timeVal = document.getElementById('timeValue').value;
     const timeUnit = document.getElementById('timeUnit').value;
+    const anyCountVal = document.getElementById('anyCountSelect').value;
+    const answerCount = anyCountVal ? parseInt(anyCountVal, 10) : cards.length;
 
     const d = {
       department: document.getElementById('department').value,
@@ -618,8 +640,8 @@
       courseCode: document.getElementById('courseCode').value,
       examTitle: examTypeVal + (examYearVal ? '-' + examYearVal : ''),
       timeText: (timeVal ? toBn(timeVal) : '') + ' ' + timeUnit,
-      anyCountText: document.getElementById('anyCountText').value,
-      totalMarksBn: toBn(cards.length * 10)
+      anyCountBn: anyCountVal ? toBn(anyCountVal) : '',
+      totalMarksBn: toBn(answerCount * 10)
     };
 
     const isTest = examTypeVal === 'নির্বাচনী পরীক্ষা';
