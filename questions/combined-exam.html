@@ -164,7 +164,7 @@
       <div class="row">
         <div>
           <label>বর্ষ</label>
-          <input type="text" id="academicYear" value="সম্মান চতুর্থ বর্ষ">
+          <input type="text" id="academicYear" placeholder="যেমন: সম্মান প্রথম বর্ষ">
         </div>
         <div>
           <label>কোর্সের শিরোনাম</label>
@@ -192,13 +192,17 @@
       <div class="row">
         <div>
           <label>সময়</label>
-          <div style="display:flex; gap:8px;">
-            <input type="number" id="timeValue" min="1" placeholder="৪৫" style="flex:1;">
-            <select id="timeUnit" style="flex:1;">
-              <option value="মিনিট">মিনিট</option>
-              <option value="ঘণ্টা">ঘণ্টা</option>
-            </select>
-          </div>
+          <select id="timeSelect">
+            <option value="৩০ মিনিট">৩০ মিনিট</option>
+            <option value="৪৫ মিনিট">৪৫ মিনিট</option>
+            <option value="১ ঘণ্টা">১ ঘণ্টা</option>
+            <option value="১ ঘণ্টা ৩০ মিনিট">১ ঘণ্টা ৩০ মিনিট</option>
+            <option value="২ ঘণ্টা">২ ঘণ্টা</option>
+            <option value="২ ঘণ্টা ৩০ মিনিট">২ ঘণ্টা ৩০ মিনিট</option>
+            <option value="৩ ঘণ্টা">৩ ঘণ্টা</option>
+            <option value="৩ ঘণ্টা ৩০ মিনিট">৩ ঘণ্টা ৩০ মিনিট</option>
+            <option value="৪ ঘণ্টা">৪ ঘণ্টা</option>
+          </select>
         </div>
         <div>
           <label>পূর্ণমান (স্বয়ংক্রিয়)</label>
@@ -548,7 +552,7 @@
   // No-sub questions still indent wrapped lines to where "(ক)" would sit, even
   // though "(ক)" itself is never shown - keeps every question's wrap point
   // visually consistent down the page.
-  function buildQuestionHtml(qNumBn, data) {
+  function buildQuestionHtml(qNumBn, data, globalRestAvail) {
     if (!data.hasSub) {
       const marksDisplay = data.marksEditor.getDisplay();
       const visiblePrefix = qNumBn + '. ';
@@ -556,8 +560,7 @@
       const contIndentPx = measureTextWidth(indentRefText, 10);
       const marksW = measureTextWidth(marksDisplay, 10) + 10;
       const line1Avail = colTextPx - measureTextWidth(visiblePrefix, 10) - marksW;
-      const restAvail = colTextPx - contIndentPx;
-      const linesHtml = renderLinesHtml(visiblePrefix, data.text, 0, contIndentPx, line1Avail, restAvail);
+      const linesHtml = renderLinesHtml(visiblePrefix, data.text, 0, contIndentPx, line1Avail, globalRestAvail);
       return `<div class="q-wrap">
         <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
         ${linesHtml}
@@ -581,8 +584,7 @@
       }
       const marksW = measureTextWidth(marksDisplay, 10) + 10;
       const line1Avail = colTextPx - contIndentPx - marksW;
-      const restAvail = colTextPx - contIndentPx;
-      const linesHtml = renderLinesHtml(prefix, s.text, line1IndentPx, contIndentPx, line1Avail, restAvail);
+      const linesHtml = renderLinesHtml(prefix, s.text, line1IndentPx, contIndentPx, line1Avail, globalRestAvail);
       html += `<div class="q-wrap">
         <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
         ${linesHtml}
@@ -600,7 +602,7 @@
     h += `<p class="p-center p-course">${esc(d.courseTitle)}${d.courseCode ? ' (' + esc(d.courseCode) + ')' : ''}</p>`;
     h += `<div class="p-fixedrow"><span>সময়: ${esc(d.timeText)}</span><span>পূর্ণমান: ${esc(d.totalMarksBn)}</span></div>`;
     if (d.anyCountBn) {
-      h += `<p style="font-size:10pt; margin:0 0 8pt 0;">যে কোনো ${d.anyCountBn}টি প্রশ্নের উত্তর দিতে হবে।</p>`;
+      h += `<p style="font-size:10pt; font-weight:bold; margin:0 0 8pt 0;">যে কোনো ${d.anyCountBn}টি প্রশ্নের উত্তর দিতে হবে।</p>`;
     }
     return h;
   }
@@ -647,8 +649,7 @@
 
     const examTypeVal = document.getElementById('examType').value;
     const examYearVal = document.getElementById('examYear').value;
-    const timeVal = document.getElementById('timeValue').value;
-    const timeUnit = document.getElementById('timeUnit').value;
+    const timeText = document.getElementById('timeSelect').value;
     const anyCountVal = document.getElementById('anyCountSelect').value;
     const answerCount = anyCountVal ? parseInt(anyCountVal, 10) : cards.length;
 
@@ -659,7 +660,7 @@
       courseTitle: document.getElementById('courseTitle').value,
       courseCode: document.getElementById('courseCode').value,
       examTitle: examTypeVal + (examYearVal ? '-' + examYearVal : ''),
-      timeText: (timeVal ? toBn(timeVal) : '') + ' ' + timeUnit,
+      timeText: timeText,
       anyCountBn: anyCountVal ? toBn(anyCountVal) : '',
       totalMarksBn: toBn(answerCount * 10)
     };
@@ -677,7 +678,13 @@
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
       const headerHtml = buildHeaderHtml(d);
-      const items = Array.from(cards).map((c, i) => buildQuestionHtml(toBn(i + 1), c._getData()));
+      // One uniform width for every wrapped (continuation) line on the page,
+      // based on the deepest indent scenario in this exam - so all wrapped
+      // lines end consistently, instead of each item's own indent depth
+      // producing a slightly different wrap width.
+      const globalContIndentPx = measureTextWidth(toBn(cards.length) + '. (ক) ', 10);
+      const globalRestAvail = colTextPx - globalContIndentPx;
+      const items = Array.from(cards).map((c, i) => buildQuestionHtml(toBn(i + 1), c._getData(), globalRestAvail));
 
       if (isTest) {
         // Single content stream flowing across two columns, like the Test tool.
@@ -693,6 +700,10 @@
 
       const fileName = (isTest ? 'Test_' : 'Incourse_') + (d.courseCode || 'Question') + '_' + Date.now() + '.pdf';
       const element = document.getElementById('printPage');
+      // ইনকোর্স layout: double the top margin only, bottom/left/right unchanged.
+      // নির্বাচনী keeps the standard 28pt margin on every side (unaffected -
+      // its column-fill calculation is based on this fixed value).
+      element.style.padding = isTest ? '28pt' : '56pt 28pt 28pt 28pt';
       const scale = window.innerWidth < 768 ? 1.5 : 2;
 
       const pdfBlob = await html2pdf().set({
