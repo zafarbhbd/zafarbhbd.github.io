@@ -138,7 +138,7 @@
   .p-q { font-size: 10pt; margin: 0; }
   .p-q-line { font-size: 10pt; }
 
-  #measureBox { position: absolute; top: 0; left: 0; visibility: hidden; z-index: -1; white-space: pre; }
+  #measureBox { position: absolute; top: 0; left: 0; visibility: hidden; z-index: -1; }
 </style>
 </head>
 <body>
@@ -532,13 +532,15 @@
     return lines;
   }
 
-  function renderLinesHtml(visiblePrefix, text, indentPx, line1AvailWidth, restAvailWidth) {
+  function renderLinesHtml(visiblePrefix, text, line1IndentPx, contIndentPx, line1AvailWidth, restAvailWidth) {
     const safeLine1 = Math.max(line1AvailWidth, 30);
     const safeRest = Math.max(restAvailWidth, 30);
     const lines = wrapTextVariable(text, safeLine1, safeRest, 10);
-    let html = `<p class="p-q-line" style="margin:0;">${visiblePrefix}${esc(lines[0])}</p>`;
+    const line1Spacer = line1IndentPx > 0
+      ? `<span style="display:inline-block;width:${line1IndentPx}px;"></span>` : '';
+    let html = `<p class="p-q-line" style="margin:0;">${line1Spacer}${visiblePrefix}${esc(lines[0])}</p>`;
     for (let i = 1; i < lines.length; i++) {
-      html += `<p class="p-q-line" style="margin:2pt 0 0 0;"><span style="display:inline-block;width:${indentPx}px;"></span>${esc(lines[i])}</p>`;
+      html += `<p class="p-q-line" style="margin:2pt 0 0 0;"><span style="display:inline-block;width:${contIndentPx}px;"></span>${esc(lines[i])}</p>`;
     }
     return html;
   }
@@ -551,25 +553,36 @@
       const marksDisplay = data.marksEditor.getDisplay();
       const visiblePrefix = qNumBn + '. ';
       const indentRefText = qNumBn + '. (ক) ';
-      const indentPx = measureTextWidth(indentRefText, 10);
+      const contIndentPx = measureTextWidth(indentRefText, 10);
       const marksW = measureTextWidth(marksDisplay, 10) + 10;
       const line1Avail = colTextPx - measureTextWidth(visiblePrefix, 10) - marksW;
-      const restAvail = colTextPx - indentPx;
-      const linesHtml = renderLinesHtml(visiblePrefix, data.text, indentPx, line1Avail, restAvail);
+      const restAvail = colTextPx - contIndentPx;
+      const linesHtml = renderLinesHtml(visiblePrefix, data.text, 0, contIndentPx, line1Avail, restAvail);
       return `<div class="q-wrap">
         <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
         ${linesHtml}
       </div>`;
     }
     let html = '';
+    const numPrefixWidth = measureTextWidth(qNumBn + '. ', 10);
     data.subs.forEach((s, idx) => {
       const marksDisplay = s.marksEditor.getDisplay();
-      const prefix = idx === 0 ? (qNumBn + '. (' + s.label + ') ') : ('(' + s.label + ') ');
-      const indentPx = measureTextWidth(prefix, 10);
+      let prefix, line1IndentPx, contIndentPx;
+      if (idx === 0) {
+        prefix = qNumBn + '. (' + s.label + ') ';
+        line1IndentPx = 0;
+        contIndentPx = measureTextWidth(prefix, 10);
+      } else {
+        // খ)/গ) start exactly where (ক) sits - right after the question number -
+        // not flush at the column margin.
+        prefix = '(' + s.label + ') ';
+        line1IndentPx = numPrefixWidth;
+        contIndentPx = numPrefixWidth + measureTextWidth(prefix, 10);
+      }
       const marksW = measureTextWidth(marksDisplay, 10) + 10;
-      const line1Avail = colTextPx - indentPx - marksW;
-      const restAvail = colTextPx - indentPx;
-      const linesHtml = renderLinesHtml(prefix, s.text, indentPx, line1Avail, restAvail);
+      const line1Avail = colTextPx - contIndentPx - marksW;
+      const restAvail = colTextPx - contIndentPx;
+      const linesHtml = renderLinesHtml(prefix, s.text, line1IndentPx, contIndentPx, line1Avail, restAvail);
       html += `<div class="q-wrap">
         <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
         ${linesHtml}
@@ -595,15 +608,22 @@
   function computeSplit(headerHtml, items) {
     const box = document.getElementById('measureBox');
     box.style.width = colTextPx + 'px';
-    box.innerHTML = headerHtml;
-    const headerHeight = box.offsetHeight;
 
-    box.innerHTML = '';
+    // Render the header and every item as real, individually addressable DOM
+    // nodes in one shot, then read each one's actual bottom position - far more
+    // reliable than rebuilding/reparsing the box's HTML on every iteration.
+    box.innerHTML = '<div id="mHeader">' + headerHtml + '</div>' +
+      items.map((h, i) => '<div class="mItem" data-i="' + i + '">' + h + '</div>').join('');
+
+    const boxTop = box.getBoundingClientRect().top;
+    const itemEls = box.querySelectorAll('.mItem');
+
     let splitIndex = items.length;
-    for (let i = 0; i < items.length; i++) {
-      box.innerHTML += items[i];
-      if (headerHeight + box.offsetHeight > maxHeightPx) { splitIndex = i; break; }
+    for (let i = 0; i < itemEls.length; i++) {
+      const bottom = itemEls[i].getBoundingClientRect().bottom;
+      if (bottom - boxTop > maxHeightPx) { splitIndex = i; break; }
     }
+
     box.innerHTML = '';
     return splitIndex;
   }
