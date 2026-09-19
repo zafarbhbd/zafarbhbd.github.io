@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ইনকোর্স-নির্বাচনী প্রশ্নপত্র জেনারেটর</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --paper: #faf8f4; --ink: #23283b; --muted: #6b7280; --border: #e6e2d8;
+    --gold: #b1852f; --accent: #7a2c3f; --accent-tint: #f7e8ec; --accent-dark: #5c2130;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Noto Sans Bengali', Arial, sans-serif; max-width: 820px; margin: 20px auto; padding: 0 16px 40px; color: var(--ink); background: var(--paper); }
+  .hero {
+    text-align: center; background: #fff; border: 1px solid var(--border); border-bottom: 3px solid var(--gold);
+    border-radius: 10px 10px 0 0; padding: 20px 16px 16px; margin-bottom: 18px;
+  }
+  .hero .icon { font-size: 24px; display: block; margin-bottom: 6px; }
+  .hero h2 { margin: 0 0 6px; color: var(--accent); font-size: 20px; }
+  .hero .sub { margin: 0; text-align: center; color: var(--muted); font-size: 13px; }
+
+  fieldset { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; margin-bottom: 16px; padding: 12px 16px; background: #fff; }
+  legend { font-weight: bold; padding: 0 6px; color: var(--accent); }
+  label { display: block; font-size: 13px; margin-top: 10px; margin-bottom: 4px; color: #6b7280; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dfe3ea;
+    border-radius: 6px; font-size: 14px; font-family: inherit; background: #fcfcfd; color: #333;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; }
+  textarea { resize: vertical; min-height: 44px; }
+
+  .fixed-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--accent-tint); border: 1px solid #efd9dd; border-radius: 6px;
+    padding: 8px 12px; margin-top: 10px; font-size: 14px; color: var(--accent);
+  }
+
+  #questionsList { margin-top: 10px; }
+  .qcard { border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: #fff; }
+  .qcard.invalid { border-left-color: #c0392b; }
+  .qhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .qnum { font-weight: bold; color: var(--accent); font-size: 15px; }
+  .subtoggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; }
+  .subtoggle select { width: auto; padding: 4px 8px; }
+  .qdel { background: none; border: 1px solid var(--border); border-radius: 6px; color: #999; font-size: 12px; padding: 4px 10px; cursor: pointer; }
+  .qdel:hover { color: #c0392b; border-color: #c0392b; }
+
+  .qrow { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .qtext-input { flex: 1; min-width: 200px; min-height: 50px; }
+
+  .marks-editor { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 13px; flex: 0 0 auto; }
+  .marks-term { display: flex; align-items: center; gap: 2px; }
+  .marks-term input { width: 52px; padding: 4px 6px; font-size: 13px; }
+  .marks-rm { background: none; border: none; color: #aaa; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+  .marks-rm:hover { color: #c0392b; }
+  .marks-add { background: none; border: 1px dashed #c9c2b8; border-radius: 4px; padding: 3px 8px; font-size: 12px; cursor: pointer; color: #6b7280; white-space: nowrap; }
+  .marks-add:hover { border-color: var(--accent); color: var(--accent); }
+  .marks-total { font-weight: bold; color: var(--accent); margin-left: 4px; white-space: nowrap; }
+
+  .subs-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .sub-row { border-top: 1px dashed var(--border); padding-top: 10px; }
+  .sub-head { font-weight: bold; color: var(--accent); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; }
+  .sub-rm { background: none; border: none; color: #aaa; font-size: 12px; cursor: pointer; }
+  .sub-rm:hover { color: #c0392b; }
+  .add-sub-btn {
+    margin-top: 8px; background: none; border: 1px dashed var(--accent); color: var(--accent);
+    border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+  }
+  .add-sub-btn:hover { background: var(--accent-tint); }
+
+  #marksWarnBanner {
+    display: none; background: #fdecea; border: 1px solid #f3b9b3; color: #a02;
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+
+  .add-q-btn {
+    display: block; width: 100%; padding: 12px; margin: 6px 0 18px; background: #fff; color: var(--accent);
+    border: 2px dashed var(--accent); border-radius: 8px; font-size: 15px; cursor: pointer;
+  }
+  .add-q-btn:hover { background: var(--accent-tint); }
+
+  button.primary {
+    display: block; width: 100%; padding: 12px; margin-top: 10px; background: var(--accent); color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: background-color 0.15s;
+  }
+  button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+  button.primary:disabled { background: #d8b9c1; cursor: default; }
+  #status { text-align: center; margin-top: 10px; font-size: 13px; color: #8a8f98; min-height: 18px; }
+
+  @media (max-width: 600px) {
+    body { margin: 10px auto; padding: 0 10px 30px; }
+    .hero h2 { font-size: 18px; }
+    fieldset { padding: 10px 12px; }
+    .row { flex-direction: column; gap: 0; }
+    .qrow { flex-direction: column; }
+    input[type=text], input[type=number], textarea, select, button.primary { font-size: 16px; }
+  }
+
+  /* ---------- Full-screen overlay shown only while the PDF is being captured ---------- */
+  #genOverlay {
+    display: none; position: fixed; inset: 0; background: var(--paper); z-index: 9999;
+    align-items: center; justify-content: center; font-size: 15px; color: var(--accent);
+  }
+  #genOverlay.active { display: flex; }
+
+  /* ---------- Render target: document-relative, hidden by default, only made
+     visible - behind the opaque overlay - for the moment html2canvas captures it. ---------- */
+  #printHost { position: absolute; top: 0; left: 0; z-index: 1; visibility: hidden; }
+  #printHost.active { visibility: visible; }
+
+  /* ---------- A4 landscape page ---------- */
+  #printPage {
+    width: 297mm; height: 210mm; background: #fff; box-sizing: border-box;
+    padding: 28pt; display: flex; font-family: 'Noto Sans Bengali', Arial, sans-serif; color: #000;
+  }
+  .col { flex: 1; min-width: 0; }
+  .col.left { padding-right: 18pt; }
+  .col.right { padding-left: 18pt; }
+  .p-center { text-align: center; margin: 0 0 2pt 0; }
+  .p-dept { font-size: 15pt; }
+  .p-college, .p-year { font-size: 11pt; }
+  .p-examname { font-size: 12pt; font-weight: bold; }
+  .p-course { font-size: 12pt; text-decoration: underline; }
+  .p-fixedrow { display: flex; justify-content: space-between; font-size: 11pt; margin: 6pt 0 10pt 0; }
+  .p-spacer { height: 8pt; }
+
+  /* Each question/sub-part: plain hanging-indent paragraph (no flex - html2canvas
+     does not reliably wrap text inside flex items), with marks positioned at the
+     top-right of its own wrapper via absolute positioning (also flex-free). */
+  .q-wrap { position: relative; margin: 0 0 7pt 0; }
+  .q-marks { position: absolute; top: 0; right: 0; text-align: right; font-size: 10pt; font-weight: bold; }
+  .p-q { font-size: 10pt; margin: 0; }
+
+  #measureBox { position: absolute; top: 0; left: 0; visibility: hidden; z-index: -1; white-space: pre; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <span class="icon">📚</span>
+    <h2>ইনকোর্স-নির্বাচনী প্রশ্নপত্র জেনারেটর</h2>
+    <div class="sub">প্রতিটি প্রশ্ন ১০ নম্বরের — নিজের মতো করে যত খুশি প্রশ্ন যোগ করুন।</div>
+  </div>
+
+  <form id="examForm">
+    <fieldset>
+      <legend>মূল তথ্য</legend>
+      <div class="row">
+        <div>
+          <label>বিভাগের নাম</label>
+          <input type="text" id="department" placeholder="যেমন: রাষ্ট্রবিজ্ঞান বিভাগ">
+        </div>
+        <div>
+          <label>কলেজের নাম</label>
+          <input type="text" id="college" placeholder="যেমন: বরিশাল সরকারি মহিলা কলেজ, বরিশাল">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>বর্ষ</label>
+          <input type="text" id="academicYear" value="সম্মান চতুর্থ বর্ষ">
+        </div>
+        <div>
+          <label>কোর্সের শিরোনাম</label>
+          <input type="text" id="courseTitle" placeholder="কোর্সের নাম">
+        </div>
+        <div>
+          <label>কোর্স কোড</label>
+          <input type="text" id="courseCode" placeholder="যেমন: ১৩১৯০১">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>পরীক্ষার ধরন</label>
+          <select id="examType">
+            <option value="প্রথম ইনকোর্স পরীক্ষা">প্রথম ইনকোর্স পরীক্ষা</option>
+            <option value="দ্বিতীয় ইনকোর্স পরীক্ষা">দ্বিতীয় ইনকোর্স পরীক্ষা</option>
+            <option value="নির্বাচনী পরীক্ষা">নির্বাচনী পরীক্ষা</option>
+          </select>
+        </div>
+        <div>
+          <label>সাল</label>
+          <input type="text" id="examYear" placeholder="যেমন: ২০২৬">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>সময়</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="timeValue" min="1" placeholder="৪৫" style="flex:1;">
+            <select id="timeUnit" style="flex:1;">
+              <option value="মিনিট">মিনিট</option>
+              <option value="ঘণ্টা">ঘণ্টা</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>পূর্ণমান (স্বয়ংক্রিয়)</label>
+          <div class="fixed-row" style="margin-top:0;">
+            <span>মোট প্রশ্ন × ১০</span>
+            <span id="totalMarksDisplay">০</span>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <div id="marksWarnBanner"></div>
+
+    <div id="questionsList"></div>
+
+    <button type="button" class="add-q-btn" id="addQuestionBtn">+ প্রশ্ন যোগ করুন</button>
+
+    <button type="submit" class="primary" id="generateBtn">PDF তৈরি করুন / Generate PDF</button>
+  </form>
+
+  <div id="status"></div>
+
+  <div id="genOverlay">তৈরি হচ্ছে... একটু অপেক্ষা করুন।</div>
+
+  <div id="printHost">
+    <div id="printPage">
+      <div class="col left" id="colLeft"></div>
+      <div class="col right" id="colRight"></div>
+    </div>
+  </div>
+
+  <div id="measureBox"></div>
+
+<script>
+  const BN_DIGITS = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  function toBn(n) {
+    return String(n).split('').map(ch => /[0-9]/.test(ch) ? BN_DIGITS[+ch] : ch).join('');
+  }
+  function esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Page geometry (28pt margin, 36pt gutter between columns - same base
+  // measurements as the original Apps Script files).
+  const PT_TO_MM = 25.4 / 72;
+  const MM_TO_PX = 96 / 25.4;
+  const PAGE_W_MM = 297, PAGE_H_MM = 210;
+  const MARGIN_MM = 28 * PT_TO_MM;
+  const GUTTER_MM = 36 * PT_TO_MM;
+  const usableWmm = PAGE_W_MM - 2 * MARGIN_MM;
+  const usableHmm = PAGE_H_MM - 2 * MARGIN_MM;
+  const colTextMm = usableWmm / 2 - GUTTER_MM / 2;
+  const colTextPx = colTextMm * MM_TO_PX;
+  const maxHeightPx = usableHmm * MM_TO_PX;
+
+  function measureTextWidth(text, fontSizePt) {
+    const span = document.createElement('span');
+    span.style.position = 'absolute';
+    span.style.visibility = 'hidden';
+    span.style.whiteSpace = 'pre';
+    span.style.fontFamily = "'Noto Sans Bengali', Arial, sans-serif";
+    span.style.fontSize = fontSizePt + 'pt';
+    span.textContent = text;
+    document.body.appendChild(span);
+    const w = span.offsetWidth;
+    document.body.removeChild(span);
+    return w;
+  }
+
+  // ---------- Marks editor: a row of number terms ("৪" "+" "৬") with a live
+  // auto-totaled display ("৪+৬=১০"), and a button to add another term. ----------
+  function createMarksEditor(initialValues) {
+    const wrap = document.createElement('div');
+    wrap.className = 'marks-editor';
+    const termsRow = document.createElement('span');
+    termsRow.className = 'marks-terms';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button'; addBtn.className = 'marks-add'; addBtn.textContent = '+ নম্বর';
+    const totalSpan = document.createElement('span');
+    totalSpan.className = 'marks-total';
+
+    function updateTotal() {
+      const inputs = Array.from(termsRow.querySelectorAll('input'));
+      const vals = inputs.map(i => parseFloat(i.value) || 0);
+      const sum = vals.reduce((a, b) => a + b, 0);
+      totalSpan.textContent = inputs.length > 1
+        ? inputs.map(i => toBn(i.value || '0')).join('+') + '=' + toBn(sum)
+        : toBn(sum);
+      wrap.dataset.total = sum;
+      if (window.__validateAllMarks) window.__validateAllMarks();
+    }
+
+    function addTerm(val) {
+      const termWrap = document.createElement('span');
+      termWrap.className = 'marks-term';
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.min = '0';
+      if (val !== '' && val != null) inp.value = val;
+      inp.addEventListener('input', updateTotal);
+      const rm = document.createElement('button');
+      rm.type = 'button'; rm.className = 'marks-rm'; rm.textContent = '×';
+      rm.addEventListener('click', () => {
+        if (termsRow.children.length > 1) { termWrap.remove(); updateTotal(); }
+      });
+      termWrap.appendChild(inp);
+      termWrap.appendChild(rm);
+      termsRow.appendChild(termWrap);
+    }
+
+    addBtn.addEventListener('click', () => { addTerm(''); updateTotal(); });
+
+    (initialValues && initialValues.length ? initialValues : ['']).forEach(v => addTerm(v));
+
+    wrap.appendChild(termsRow);
+    wrap.appendChild(addBtn);
+    wrap.appendChild(totalSpan);
+    updateTotal();
+
+    wrap.getSum = () => parseFloat(wrap.dataset.total) || 0;
+    wrap.getDisplay = () => totalSpan.textContent;
+    return wrap;
+  }
+
+  // ---------- Question card builder ----------
+  const SUB_SEQ = ['ক', 'খ', 'গ'];
+
+  function addQuestion() {
+    const card = document.createElement('div');
+    card.className = 'qcard';
+
+    const head = document.createElement('div');
+    head.className = 'qhead';
+    const numLabel = document.createElement('span');
+    numLabel.className = 'qnum';
+    head.appendChild(numLabel);
+
+    const toggleWrap = document.createElement('label');
+    toggleWrap.className = 'subtoggle';
+    toggleWrap.appendChild(document.createTextNode('উপ-প্রশ্ন আছে? '));
+    const toggleSel = document.createElement('select');
+    toggleSel.innerHTML = '<option value="no">না</option><option value="yes">হ্যাঁ</option>';
+    toggleWrap.appendChild(toggleSel);
+    head.appendChild(toggleWrap);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button'; delBtn.className = 'qdel'; delBtn.textContent = 'মুছুন';
+    delBtn.addEventListener('click', () => { card.remove(); renumberQuestions(); validateAllMarks(); });
+    head.appendChild(delBtn);
+
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    card.appendChild(body);
+
+    function renderNoSub() {
+      body.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'qrow';
+      const ta = document.createElement('textarea');
+      ta.className = 'qtext-input'; ta.placeholder = 'প্রশ্নের লেখা...';
+      const me = createMarksEditor([10]);
+      row.appendChild(ta);
+      row.appendChild(me);
+      body.appendChild(row);
+      card._getData = () => ({ hasSub: false, text: ta.value, marksEditor: me });
+    }
+
+    function renderHasSub() {
+      body.innerHTML = '';
+      const subsWrap = document.createElement('div');
+      subsWrap.className = 'subs-wrap';
+      const addSubBtn = document.createElement('button');
+      addSubBtn.type = 'button'; addSubBtn.className = 'add-sub-btn';
+      body.appendChild(subsWrap);
+      body.appendChild(addSubBtn);
+
+      let subs = [];
+
+      function updateAddBtn() {
+        if (subs.length >= 3) { addSubBtn.style.display = 'none'; return; }
+        addSubBtn.style.display = 'inline-block';
+        addSubBtn.textContent = `+ উপ-প্রশ্ন যোগ করুন (${SUB_SEQ[subs.length]})`;
+      }
+
+      addSubBtn.addEventListener('click', () => {
+        if (subs.length >= 3) return;
+        const label = SUB_SEQ[subs.length];
+        const subRow = document.createElement('div');
+        subRow.className = 'sub-row';
+
+        const subHead = document.createElement('div');
+        subHead.className = 'sub-head';
+        subHead.appendChild(document.createTextNode(`(${label})`));
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button'; rmBtn.className = 'sub-rm'; rmBtn.textContent = 'শেষটি মুছুন';
+        subHead.appendChild(rmBtn);
+        subRow.appendChild(subHead);
+
+        const taRow = document.createElement('div');
+        taRow.className = 'qrow';
+        const ta = document.createElement('textarea');
+        ta.className = 'qtext-input'; ta.placeholder = `(${label}) প্রশ্নের লেখা...`;
+        const me = createMarksEditor(['']);
+        taRow.appendChild(ta);
+        taRow.appendChild(me);
+        subRow.appendChild(taRow);
+
+        subsWrap.appendChild(subRow);
+        const subObj = { label, ta, me, row: subRow };
+        subs.push(subObj);
+
+        rmBtn.addEventListener('click', () => {
+          if (subs[subs.length - 1] === subObj) {
+            subRow.remove();
+            subs.pop();
+            updateAddBtn();
+            validateAllMarks();
+          }
+        });
+
+        updateAddBtn();
+        validateAllMarks();
+      });
+
+      updateAddBtn();
+      card._getData = () => ({
+        hasSub: true,
+        subs: subs.map(s => ({ label: s.label, text: s.ta.value, marksEditor: s.me }))
+      });
+    }
+
+    toggleSel.addEventListener('change', () => {
+      if (toggleSel.value === 'yes') renderHasSub(); else renderNoSub();
+      validateAllMarks();
+    });
+
+    renderNoSub();
+    document.getElementById('questionsList').appendChild(card);
+    renumberQuestions();
+    validateAllMarks();
+  }
+
+  function renumberQuestions() {
+    const cards = document.querySelectorAll('#questionsList .qcard');
+    cards.forEach((c, i) => { c.querySelector('.qnum').textContent = toBn(i + 1) + '।'; });
+    document.getElementById('totalMarksDisplay').textContent = toBn(cards.length * 10);
+  }
+
+  function validateAllMarks() {
+    const cards = document.querySelectorAll('#questionsList .qcard');
+    const invalidNums = [];
+    cards.forEach((c, i) => {
+      const data = c._getData ? c._getData() : null;
+      if (!data) return;
+      let total;
+      if (data.hasSub) total = data.subs.reduce((a, s) => a + s.marksEditor.getSum(), 0);
+      else total = data.marksEditor ? data.marksEditor.getSum() : 0;
+      if (Math.abs(total - 10) > 0.001) {
+        invalidNums.push(i + 1);
+        c.classList.add('invalid');
+      } else {
+        c.classList.remove('invalid');
+      }
+    });
+    const banner = document.getElementById('marksWarnBanner');
+    if (invalidNums.length) {
+      banner.style.display = 'block';
+      banner.textContent = `প্রশ্ন নং ${invalidNums.map(toBn).join(', ')} এর মোট নম্বর ১০ নয় — ঠিক করুন।`;
+    } else {
+      banner.style.display = 'none';
+    }
+    return invalidNums;
+  }
+  window.__validateAllMarks = validateAllMarks;
+
+  document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
+  addQuestion(); // start with one question
+
+  // ---------- Building one question's PDF markup ----------
+  // No-sub questions still indent their wrapped line to where "(ক)" would sit,
+  // even though "(ক)" itself is never shown - keeps every question's wrap point
+  // visually consistent down the page.
+  function buildQuestionHtml(qNumBn, data) {
+    if (!data.hasSub) {
+      const marksDisplay = data.marksEditor.getDisplay();
+      const visiblePrefix = qNumBn + '. ';
+      const indentRefText = qNumBn + '. (ক) ';
+      const indentPx = measureTextWidth(indentRefText, 10);
+      const marksW = measureTextWidth(marksDisplay, 10) + 10;
+      return `<div class="q-wrap">
+        <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
+        <p class="p-q" style="margin-left:${indentPx}px;text-indent:-${indentPx}px;padding-right:${marksW + 4}px;">${visiblePrefix}${esc(data.text)}</p>
+      </div>`;
+    }
+    let html = '';
+    data.subs.forEach((s, idx) => {
+      const marksDisplay = s.marksEditor.getDisplay();
+      const prefix = idx === 0 ? (qNumBn + '. (' + s.label + ') ') : ('(' + s.label + ') ');
+      const indentPx = measureTextWidth(prefix, 10);
+      const marksW = measureTextWidth(marksDisplay, 10) + 10;
+      html += `<div class="q-wrap">
+        <span class="q-marks" style="width:${marksW}px;">${marksDisplay}</span>
+        <p class="p-q" style="margin-left:${indentPx}px;text-indent:-${indentPx}px;padding-right:${marksW + 4}px;">${prefix}${esc(s.text)}</p>
+      </div>`;
+    });
+    return html;
+  }
+
+  function buildHeaderHtml(d) {
+    let h = '';
+    h += `<p class="p-center p-dept">${esc(d.department)}</p>`;
+    h += `<p class="p-center p-college">${esc(d.college)}</p>`;
+    h += `<p class="p-center p-year">${esc(d.academicYear)}</p>`;
+    h += `<p class="p-center p-examname">${esc(d.examTitle)}</p>`;
+    h += `<p class="p-center p-course">${esc(d.courseTitle)}${d.courseCode ? ' (' + esc(d.courseCode) + ')' : ''}</p>`;
+    h += `<div class="p-fixedrow"><span>সময়: ${esc(d.timeText)}</span><span>পূর্ণমান: ${esc(d.totalMarksBn)}</span></div>`;
+    return h;
+  }
+
+  function computeSplit(headerHtml, items) {
+    const box = document.getElementById('measureBox');
+    box.style.width = colTextPx + 'px';
+    box.innerHTML = headerHtml;
+    const headerHeight = box.offsetHeight;
+
+    box.innerHTML = '';
+    let splitIndex = items.length;
+    for (let i = 0; i < items.length; i++) {
+      box.innerHTML += items[i];
+      if (headerHeight + box.offsetHeight > maxHeightPx) { splitIndex = i; break; }
+    }
+    box.innerHTML = '';
+    return splitIndex;
+  }
+
+  document.getElementById('examForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('status');
+    const genBtn = document.getElementById('generateBtn');
+    const overlay = document.getElementById('genOverlay');
+
+    const invalid = validateAllMarks();
+    if (invalid.length) {
+      alert(`প্রশ্ন নং ${invalid.map(toBn).join(', ')} এর মোট নম্বর ১০ নয়। PDF তৈরি করার আগে ঠিক করুন।`);
+      return;
+    }
+    const cards = document.querySelectorAll('#questionsList .qcard');
+    if (!cards.length) {
+      alert('অন্তত একটি প্রশ্ন যোগ করুন।');
+      return;
+    }
+
+    const examTypeVal = document.getElementById('examType').value;
+    const examYearVal = document.getElementById('examYear').value;
+    const timeVal = document.getElementById('timeValue').value;
+    const timeUnit = document.getElementById('timeUnit').value;
+
+    const d = {
+      department: document.getElementById('department').value,
+      college: document.getElementById('college').value,
+      academicYear: document.getElementById('academicYear').value,
+      courseTitle: document.getElementById('courseTitle').value,
+      courseCode: document.getElementById('courseCode').value,
+      examTitle: examTypeVal + (examYearVal ? '-' + examYearVal : ''),
+      timeText: (timeVal ? toBn(timeVal) : '') + ' ' + timeUnit,
+      totalMarksBn: toBn(cards.length * 10)
+    };
+
+    const isTest = examTypeVal === 'নির্বাচনী পরীক্ষা';
+
+    genBtn.disabled = true;
+    statusEl.textContent = '';
+    overlay.classList.add('active');
+    document.getElementById('printHost').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+      const headerHtml = buildHeaderHtml(d);
+      const items = Array.from(cards).map((c, i) => buildQuestionHtml(toBn(i + 1), c._getData()));
+
+      if (isTest) {
+        // Single content stream flowing across two columns, like the Test tool.
+        const splitIndex = computeSplit(headerHtml, items);
+        document.getElementById('colLeft').innerHTML = headerHtml + items.slice(0, splitIndex).join('');
+        document.getElementById('colRight').innerHTML = items.slice(splitIndex).join('');
+      } else {
+        // Two identical copies side by side, like the Incourse tool.
+        const fullHtml = headerHtml + items.join('');
+        document.getElementById('colLeft').innerHTML = fullHtml;
+        document.getElementById('colRight').innerHTML = fullHtml;
+      }
+
+      const fileName = (isTest ? 'Test_' : 'Incourse_') + (d.courseCode || 'Question') + '_' + Date.now() + '.pdf';
+      const element = document.getElementById('printPage');
+      const scale = window.innerWidth < 768 ? 1.5 : 2;
+
+      const pdfBlob = await html2pdf().set({
+        margin: 0,
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: scale, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      }).from(element).toPdf().output('blob');
+
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = blobUrl; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+      statusEl.textContent = 'সম্পন্ন হয়েছে — ডাউনলোড শুরু হয়েছে।';
+    } catch (err) {
+      statusEl.textContent = 'ত্রুটি: ' + err.message;
+    } finally {
+      overlay.classList.remove('active');
+      document.getElementById('printHost').classList.remove('active');
+      document.body.style.overflow = '';
+      genBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

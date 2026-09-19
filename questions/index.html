@@ -18,6 +18,8 @@
     --navy-tint: #ecf0fa;
     --teal: #1e6e62;
     --teal-tint: #e7f4f1;
+    --accent: #7a2c3f;
+    --accent-tint: #f7e8ec;
   }
   * { box-sizing: border-box; }
   body {
@@ -47,6 +49,8 @@
   .card.navy:hover { background: var(--navy-tint); }
   .card.teal { border-left-color: var(--teal); }
   .card.teal:hover { background: var(--teal-tint); }
+  .card.accent { border-left-color: var(--accent); }
+  .card.accent:hover { background: var(--accent-tint); }
 
   .card .icon {
     flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
@@ -54,16 +58,19 @@
   }
   .card.navy .icon { background: var(--navy-tint); color: var(--navy); }
   .card.teal .icon { background: var(--teal-tint); color: var(--teal); }
+  .card.accent .icon { background: var(--accent-tint); color: var(--accent); }
 
   .card .text { flex: 1; min-width: 0; }
   .card h2 { margin: 0 0 4px; font-size: 16.5px; }
   .card.navy h2 { color: var(--navy); }
   .card.teal h2 { color: var(--teal); }
+  .card.accent h2 { color: var(--accent); }
   .card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
   .card .chev { flex: 0 0 auto; font-size: 18px; color: var(--border); }
   .card.navy:hover .chev { color: var(--navy); }
   .card.teal:hover .chev { color: var(--teal); }
+  .card.accent:hover .chev { color: var(--accent); }
 
   @media (max-width: 480px) {
     body { padding: 28px 14px 48px; }
@@ -96,6 +103,15 @@
         <span class="text">
           <h2>ইনকোর্স পরীক্ষা</h2>
           <p>সংক্ষিপ্ত প্রশ্নপত্র (৫টি প্রশ্ন, পূর্ণমান ১৫)।</p>
+        </span>
+        <span class="chev">›</span>
+      </a>
+
+      <a class="card accent" href="combined-exam.html">
+        <span class="icon">📚</span>
+        <span class="text">
+          <h2>ইনকোর্স-নির্বাচনী প্রশ্নপত্র জেনারেটর</h2>
+          <p>নিজের মতো প্রশ্ন যোগ করুন — উপ-প্রশ্নসহ বা ছাড়া, প্রতিটি ১০ নম্বরের।</p>
         </span>
         <span class="chev">›</span>
       </a>
