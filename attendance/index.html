@@ -71,6 +71,7 @@ let currentYear = null;
 let currentSubject = "";
 let students = [];
 let selectedStudent = null;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 let currentSession = null; // {id, label, status} — kept live via onSnapshot
 let sessionUnsub = null;
 
@@ -206,8 +207,8 @@ function populateDropdowns() {
   regSel.innerHTML = '<option value="" disabled selected>\u2014 Select your registration no \u2014</option>';
   nameSel.innerHTML = '<option value="" disabled selected>\u2014 Select your name \u2014</option>';
   students.forEach(s => {
-    regSel.innerHTML += `<option value="${s.reg}">${s.reg}</option>`;
-    nameSel.innerHTML += `<option value="${s.reg}">${s.name}</option>`;
+    regSel.innerHTML += `<option value="${esc(s.reg)}">${esc(s.reg)}</option>`;
+    nameSel.innerHTML += `<option value="${esc(s.reg)}">${esc(s.name)}</option>`;
   });
   document.getElementById('regSkeleton').style.display = 'none';
   document.getElementById('nameSkeleton').style.display = 'none';
@@ -218,7 +219,7 @@ function populateDropdowns() {
 function populateCcDropdown() {
   const sel = document.getElementById('ccRegSelect');
   sel.innerHTML = '<option value="" disabled selected>\u2014 Select your registration no \u2014</option>';
-  students.forEach(s => { sel.innerHTML += `<option value="${s.reg}">${s.reg} \u2014 ${s.name}</option>`; });
+  students.forEach(s => { sel.innerHTML += `<option value="${esc(s.reg)}">${esc(s.reg)} \u2014 ${esc(s.name)}</option>`; });
   document.getElementById('ccSkeleton').style.display = 'none';
   sel.style.display = 'block';
 }
@@ -298,7 +299,7 @@ window.submitAttendance = async function () {
       summaryHtml = `<br>Present in ${present} of ${total} session(s) so far (${pct}%).`;
     } catch (e) { /* summary is a nice-to-have; ignore failures here */ }
 
-    msg.innerHTML = `<div class="msg ok">Attendance recorded for ${selectedStudent.reg} \u2014 ${selectedStudent.name}.${summaryHtml}</div>`;
+    msg.innerHTML = `<div class="msg ok">Attendance recorded for ${esc(selectedStudent.reg)} \u2014 ${esc(selectedStudent.name)}.${summaryHtml}</div>`;
     btn.textContent = 'Submitted';
   } catch (err) {
     if (err.code === 'permission-denied') {
@@ -354,11 +355,11 @@ window.checkMyAttendance = async function () {
       .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
       .slice(0, 5);
 
-    let html = `<div class="msg ok"><strong>${student.name}</strong> (${student.reg})<br>
+    let html = `<div class="msg ok"><strong>${esc(student.name)}</strong> (${esc(student.reg)})<br>
       Present: ${present} / ${total} sessions (${pct}%)</div>`;
     if (recent.length) {
       html += '<div style="margin-top:10px;">';
-      recent.forEach(r => { html += `<div class="list-row"><span class="secondary">${r.sessionLabel}</span><span class="status-pill open">Present</span></div>`; });
+      recent.forEach(r => { html += `<div class="list-row"><span class="secondary">${esc(r.sessionLabel)}</span><span class="status-pill open">Present</span></div>`; });
       html += '</div>';
     }
     resultBox.innerHTML = html;
