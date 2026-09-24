@@ -1,16 +1,28 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Profile photo — only admin
-    match /profile/{file} {
-      allow read: true;
-      allow write: if request.auth != null && request.auth.token.email == "YOUR_GOOGLE_EMAIL@gmail.com";
+
+    // ── Profile photo (NEW) — public read, only the admin can upload / replace / delete ──
+    match /profile/{fileName} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                            && request.auth.token.email == "zafarbhbd@gmail.com"
+                            && request.resource.size < 5 * 1024 * 1024
+                            && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if request.auth != null
+                    && request.auth.token.email == "zafarbhbd@gmail.com";
     }
-    // Submissions — anyone can upload (students), only admin deletes
-    match /submissions/{assignId}/{file} {
-      allow read: true;
-      allow create: if request.resource.size < 10 * 1024 * 1024;
-      allow delete: if request.auth != null && request.auth.token.email == "YOUR_GOOGLE_EMAIL@gmail.com";
+
+    // ── Assignment submissions — your existing rule, unchanged ──
+    match /assignment-submissions/{courseId}/{assignmentId}/{fileName} {
+      allow read: if true;
+      allow create: if resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/jpeg|application/pdf');
+      // Only the admin account can delete a submitted file — this is what
+      // "Proceed to final close" uses to remove files while keeping records.
+      allow update: if false;
+      allow delete: if request.auth != null && request.auth.token.email == "zafarbhbd@gmail.com";
     }
   }
 }

@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Admin | Abu Zafar</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
+  <script src="js/theme.js"></script>
   <style>
-    body{background:#f0f2f5}
     #adminPanel{display:none}
-    .link-pill-preview{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;background:linear-gradient(135deg,#0d6e6e,#2a5298);color:#fff;font-size:0.83rem;font-weight:500;margin-left:10px}
   </style>
 </head>
-<body>
+<body class="admin-body">
 
 <!-- LOGIN -->
 <div id="loginScreen">
@@ -44,8 +43,8 @@
   <nav id="navbar" style="display:block">
     <div class="nav-inner">
       <a href="index.html" class="nav-brand">Abu Zafar</a>
-      <div style="display:flex;align-items:center;gap:12px">
-        <span id="adminUserEmail" style="font-size:0.82rem;color:var(--clr-muted)"></span>
+      <div class="admin-nav-right">
+        <span id="adminUserEmail"></span>
         <a href="index.html" class="btn btn-ghost btn-sm">← View Site</a>
         <button class="btn btn-outline btn-sm" id="signOutBtn">Sign Out</button>
       </div>
@@ -85,23 +84,19 @@
         <div class="form-group" style="margin-top:20px">
           <label>Profile Photo</label>
           <div class="photo-upload-area" id="photoUploadArea">
-            <img id="photoPreview" class="photo-preview" src="" alt="" style="display:none"/>
+            <img id="photoPreview" class="photo-preview" src="" alt="Profile photo preview" style="display:none"/>
             <div id="photoUploadHint">
               <div style="font-size:2rem">📸</div>
-              <p style="font-size:0.85rem;color:var(--clr-muted)">Click to upload photo (JPG, PNG — max 5MB)</p>
+              <p style="font-size:0.92rem;font-weight:500">Tap to choose a photo</p>
+              <p style="font-size:0.78rem;color:var(--clr-muted)">JPG, PNG or WebP. It is resized automatically and stored in Firebase Storage.</p>
             </div>
             <input type="file" id="photoFileInput" accept="image/jpeg,image/png,image/webp"/>
           </div>
-          <div class="upload-progress" id="uploadProgress" style="display:none">
-            <div class="upload-progress-bar" id="uploadProgressBar"></div>
-          </div>
-          <div style="margin-top:10px;padding:12px 16px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;font-size:0.83rem;color:#856404">
-            ⚠️ <strong>Google Drive links do not work as image URLs.</strong><br>
-            Use the upload button above (requires Cloudinary setup), or upload your photo to
-            <a href="https://imgur.com/upload" target="_blank" style="color:#0d6e6e">imgur.com</a> and paste the direct link below.
-          </div>
-          <p style="font-size:0.8rem;color:var(--clr-muted);margin-top:10px">Or paste a direct image URL (Cloudinary, Imgur, etc.):</p>
-          <input type="text" id="heroPhotoURL" placeholder="https://i.imgur.com/yourphoto.jpg" style="margin-top:6px"/>
+          <div class="upload-progress" id="uploadProgress" style="display:none"><div class="upload-progress-bar" id="uploadProgressBar"></div></div>
+          <div class="form-actions"><button type="button" class="btn btn-ghost btn-sm" id="removePhotoBtn" style="display:none">Remove photo</button></div>
+          <details class="alt-url"><summary>Use an image URL instead</summary>
+            <input type="text" id="heroPhotoURL" placeholder="https://…"/>
+          </details>
         </div>
         <div class="form-actions"><button class="btn btn-primary" id="saveHeroBtn">Save Home Page</button></div>
         <div id="heroStatus"></div>
@@ -254,8 +249,7 @@
       <div class="admin-card">
         <h3>🔗 Home Page Links</h3>
         <p style="font-size:0.88rem;color:var(--clr-muted);margin-bottom:20px">
-          These appear on the Home page below the Publications / Citations / Years stats row as styled pill buttons.
-          Add any link you want — Facebook, Google Scholar, ResearchGate, Twitter, LinkedIn, etc.
+          These appear on the Home page under “Connect &amp; Quick Portals”. Links about attendance, marks, questions or assignments go to <strong>Academic Tools</strong> automatically; everything else goes to <strong>Profiles</strong>. Use Group to override. For a folder on this site, type its path, e.g. <code>attendance/</code>.
         </p>
 
         <!-- Existing links list -->
@@ -272,7 +266,7 @@
           </div>
           <div class="form-group">
             <label>URL <span style="color:#c62828">*</span></label>
-            <input type="text" id="linkUrl" placeholder="https://facebook.com/yourprofile"/>
+            <input type="text" id="linkUrl" placeholder="https://… or a folder like attendance/"/>
           </div>
           <div class="form-group">
             <label>Emoji (optional)</label>
@@ -282,14 +276,10 @@
             <label>Order (1 = first)</label>
             <input type="number" id="linkOrder" value="1" min="1"/>
           </div>
-        </div>
-
-        <!-- Style preview -->
-        <div style="margin-top:12px;padding:14px 18px;background:var(--clr-accent-lt);border-radius:8px;font-size:0.85rem;color:var(--clr-accent);display:flex;align-items:center;flex-wrap:wrap;gap:12px">
-          <strong>Button style preview:</strong>
-          <span class="link-pill-preview">📘 Facebook</span>
-          <span class="link-pill-preview">🔗 Google Scholar</span>
-          <span class="link-pill-preview">GitHub</span>
+          <div class="form-group">
+            <label>Group</label>
+            <select id="linkGroup"><option value="">Auto-detect</option><option value="tools">Academic Tools &amp; Portals</option><option value="profiles">Profiles &amp; Research Utilities</option></select>
+          </div>
         </div>
 
         <div class="form-actions" style="margin-top:16px">
@@ -303,13 +293,14 @@
 </div>
 
 <script type="module">
-import { auth, db, ADMIN_EMAIL } from "./js/firebase-config.js";
+import { app, auth, db, ADMIN_EMAIL } from "./js/firebase-config.js";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, orderBy, query, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Cloudinary config — fill these in after setting up your free Cloudinary account
-const CLOUDINARY_CLOUD_NAME    = "YOUR_CLOUD_NAME";
-const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET";
+const storage    = getStorage(app);
+const PHOTO_PATH = "profile/avatar.jpg";   // one fixed file: a new upload replaces the old one
+let photoUpdated = 0;                       // used to bust caches after a replace
 
 // ── Auth ───────────────────────────────────────────────
 onAuthStateChanged(auth, user => {
@@ -352,39 +343,71 @@ function showStatus(id, msg, ok = true){
   setTimeout(() => { el.textContent = ""; el.className = ""; }, 3500);
 }
 
-// ── Photo upload via Cloudinary ────────────────────────
+// ── Profile photo → Firebase Storage ───────────────────
 const photoArea    = document.getElementById("photoUploadArea");
 const photoInput   = document.getElementById("photoFileInput");
 const photoPreview = document.getElementById("photoPreview");
-photoArea.addEventListener("click", () => photoInput.click());
-photoInput.addEventListener("change", async () => {
-  const file = photoInput.files[0];
-  if(!file) return;
-  if(file.size > 5*1024*1024){ showStatus("heroStatus","Photo must be under 5MB.",false); return; }
-  if(CLOUDINARY_CLOUD_NAME === "YOUR_CLOUD_NAME"){ showStatus("heroStatus","⚠️ Set your Cloudinary credentials first.",false); return; }
-  const prog = document.getElementById("uploadProgress");
-  const bar  = document.getElementById("uploadProgressBar");
-  prog.style.display = "block"; bar.style.width = "30%";
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  fd.append("folder", "abu-zafar-profile");
+const removeBtn    = document.getElementById("removePhotoBtn");
+function setPreview(url){
+  photoPreview.src = url; photoPreview.style.display = "block";
+  document.getElementById("photoUploadHint").style.display = "none";
+  removeBtn.style.display = "inline-flex";
+}
+function clearPreview(){
+  photoPreview.removeAttribute("src"); photoPreview.style.display = "none";
+  document.getElementById("photoUploadHint").style.display = "block";
+  removeBtn.style.display = "none";
+}
+const withV = (url, v) => v ? url + (url.includes("?") ? "&" : "?") + "v=" + v : url;
+
+// Resize in the browser (max 900px, JPEG) so uploads are small and pages load fast on phones
+async function shrink(file, max = 900){
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+  catch { bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); }
+  const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("Could not process this image.")), "image/jpeg", 0.86));
+}
+function uploadError(e){
+  const c = e && e.code || "";
+  if (c === "storage/unauthorized") return "Storage blocked the upload. Deploy the updated storage.rules and sign in with the admin account.";
+  if (c === "storage/bucket-not-found" || c === "storage/project-not-found") return "Storage bucket not found. Check storageBucket in js/firebase-config.js.";
+  if (c === "storage/retry-limit-exceeded" || c === "storage/canceled") return "Upload interrupted. Check your connection and try again.";
+  return "Upload failed: " + (e && e.message || e);
+}
+async function handlePhoto(file){
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)){ showStatus("heroStatus", "Choose a JPG, PNG or WebP image.", false); return; }
+  if (file.size > 25*1024*1024){ showStatus("heroStatus", "That file is too large (max 25 MB).", false); return; }
+  const prog = document.getElementById("uploadProgress"), bar = document.getElementById("uploadProgressBar");
+  prog.style.display = "block"; bar.style.width = "5%";
   try {
-    bar.style.width = "60%";
-    const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method:"POST", body:fd });
-    const data = await res.json();
-    bar.style.width = "100%";
-    if(data.secure_url){
-      document.getElementById("heroPhotoURL").value = data.secure_url;
-      photoPreview.src = data.secure_url;
-      photoPreview.style.display = "block";
-      document.getElementById("photoUploadHint").style.display = "none";
-      showStatus("heroStatus","✅ Photo uploaded! Click Save Home Page to apply.");
-    } else {
-      showStatus("heroStatus","Upload failed. Check Cloudinary credentials.",false);
-    }
-  } catch(e){ showStatus("heroStatus","Upload error: "+e.message,false); }
-  setTimeout(() => { prog.style.display="none"; bar.style.width="0%"; }, 1000);
+    const blob = await shrink(file);
+    const task = uploadBytesResumable(ref(storage, PHOTO_PATH), blob, { contentType: "image/jpeg", cacheControl: "public,max-age=3600" });
+    await new Promise((res, rej) => task.on("state_changed", s => { bar.style.width = (10 + 90 * s.bytesTransferred / s.totalBytes) + "%"; }, rej, res));
+    const url = await getDownloadURL(task.snapshot.ref);
+    photoUpdated = Date.now();
+    document.getElementById("heroPhotoURL").value = url;
+    setPreview(withV(url, photoUpdated));
+    await setDoc(doc(db, "site", "hero"), { photoURL: url, photoUpdated }, { merge: true });
+    showStatus("heroStatus", "✅ Photo uploaded and published on your Home page.");
+  } catch (e) { console.error(e); showStatus("heroStatus", uploadError(e), false); }
+  setTimeout(() => { prog.style.display = "none"; bar.style.width = "0%"; }, 800);
+  photoInput.value = "";
+}
+photoArea.addEventListener("click", () => photoInput.click());
+photoInput.addEventListener("change", () => handlePhoto(photoInput.files[0]));
+["dragover", "dragenter"].forEach(t => photoArea.addEventListener(t, e => { e.preventDefault(); photoArea.classList.add("drag"); }));
+["dragleave", "drop"].forEach(t => photoArea.addEventListener(t, e => { e.preventDefault(); photoArea.classList.remove("drag"); }));
+photoArea.addEventListener("drop", e => handlePhoto(e.dataTransfer.files[0]));
+removeBtn.addEventListener("click", async () => {
+  if (!confirm("Remove the profile photo from your Home page?")) return;
+  try { await deleteObject(ref(storage, PHOTO_PATH)); } catch (e) { /* file may already be gone */ }
+  document.getElementById("heroPhotoURL").value = ""; photoUpdated = 0; clearPreview();
+  await setDoc(doc(db, "site", "hero"), { photoURL: "", photoUpdated: 0 }, { merge: true });
+  showStatus("heroStatus", "Photo removed.");
 });
 
 // ── Edit Modal ─────────────────────────────────────────
@@ -392,12 +415,15 @@ let editCallback = null;
 document.getElementById("editModalSave").addEventListener("click", () => { if(editCallback) editCallback(); });
 function openEditModal(title, fields, onSave){
   document.getElementById("editModalTitle").textContent = title;
+  const escA = s => String(s ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   document.getElementById("editModalBody").innerHTML = fields.map(f => `
     <div class="form-group" style="margin-bottom:12px">
       <label>${f.label}</label>
-      ${f.textarea
-        ? `<textarea id="em_${f.key}" rows="3">${f.value||""}</textarea>`
-        : `<input type="${f.type||"text"}" id="em_${f.key}" value="${(f.value||"").replace(/"/g,"&quot;")}" placeholder="${f.placeholder||""}"/>`}
+      ${f.options
+        ? `<select id="em_${f.key}">${f.options.map(o => `<option value="${o[0]}"${String(f.value ?? "") === o[0] ? " selected" : ""}>${o[1]}</option>`).join("")}</select>`
+        : f.textarea
+        ? `<textarea id="em_${f.key}" rows="3">${escA(f.value)}</textarea>`
+        : `<input type="${f.type||"text"}" id="em_${f.key}" value="${escA(f.value)}" placeholder="${escA(f.placeholder)}"/>`}
     </div>`).join("");
   editCallback = () => {
     const data = {};
@@ -452,7 +478,8 @@ async function loadAll(){
     document.getElementById("heroStatPubs").value    = d.statPubs    || "";
     document.getElementById("heroStatCites").value   = d.statCites   || "";
     document.getElementById("heroStatYears").value   = d.statYears   || "";
-    if(d.photoURL){ photoPreview.src=d.photoURL; photoPreview.style.display="block"; document.getElementById("photoUploadHint").style.display="none"; }
+    photoUpdated = d.photoUpdated || 0;
+    if(d.photoURL) setPreview(withV(d.photoURL, photoUpdated)); else clearPreview();
   }
   // About
   const aSnap = await getDoc(doc(db,"site","about"));
@@ -497,7 +524,7 @@ async function loadLinks(){
     <div class="item-row">
       <div class="item-row-info">
         <strong>${l.emoji||""} ${l.label}</strong>
-        <span>${l.url} · Order: ${l.order}</span>
+        <span>${l.url} · Order: ${l.order} · ${l.group==="tools"?"Academic tools":l.group==="profiles"?"Profiles":"Auto group"}</span>
       </div>
       <div class="item-actions">
         <button class="btn btn-outline btn-xs edit-link" data-id="${l.id}">Edit</button>
@@ -517,11 +544,12 @@ async function loadLinks(){
       {key:"label", label:"Label",              value:l.label},
       {key:"url",   label:"URL",                value:l.url},
       {key:"emoji", label:"Emoji (optional)",   value:l.emoji||""},
-      {key:"order", label:"Order (1 = first)",  value:l.order, type:"number"}
+      {key:"order", label:"Order (1 = first)",  value:l.order, type:"number"},
+      {key:"group", label:"Group", value:l.group||"", options:[["","Auto-detect"],["tools","Academic Tools & Portals"],["profiles","Profiles & Research Utilities"]]}
     ], async data => {
       await updateDoc(doc(db,"hero_links",btn.dataset.id), {
         label: data.label, url: data.url,
-        emoji: data.emoji, order: parseInt(data.order)||1
+        emoji: data.emoji, order: parseInt(data.order)||1, group: data.group
       });
       loadLinks();
     });
@@ -537,11 +565,13 @@ document.getElementById("addLinkBtn").addEventListener("click", async () => {
     url,
     emoji: document.getElementById("linkEmoji").value.trim(),
     order: parseInt(document.getElementById("linkOrder").value) || 1,
+    group: document.getElementById("linkGroup").value,
   });
   document.getElementById("linkLabel").value = "";
   document.getElementById("linkUrl").value   = "";
   document.getElementById("linkEmoji").value = "";
   document.getElementById("linkOrder").value = "1";
+  document.getElementById("linkGroup").value = "";
   showStatus("linkStatus","✅ Link added! It now appears on your Home page.");
   loadLinks();
 });
@@ -556,6 +586,7 @@ document.getElementById("saveHeroBtn").addEventListener("click", async () => {
     statPubs:    document.getElementById("heroStatPubs").value.trim(),
     statCites:   document.getElementById("heroStatCites").value.trim(),
     statYears:   document.getElementById("heroStatYears").value.trim(),
+    photoUpdated,
   });
   showStatus("heroStatus","✅ Home page saved!");
 });

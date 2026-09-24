@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Publications | Abu Zafar</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css"/>
+  <script src="js/theme.js"></script>
 </head>
 <body>
 <nav id="navbar"></nav>
@@ -23,6 +24,6 @@ const pubs=snap.docs.map(d=>({id:d.id,...d.data()}));
 document.getElementById("pubSubtitle").textContent=`${pubs.length} peer-reviewed publication${pubs.length!==1?"s":""}.`;
 const list=document.getElementById("pubList");
 if(!pubs.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📄</div><p>Publications coming soon.</p></div>`;}
-else{list.innerHTML=pubs.map(p=>`<div class="pub-card" data-fade><span class="pub-year">${p.year}</span><div class="pub-body"><h3 class="pub-title">${p.title}</h3><p class="pub-authors">${p.authors}</p><p class="pub-journal">${p.journal}${p.citations?` · <em>Cited ${p.citations} times</em>`:""}</p><div class="pub-links">${p.pdfUrl?`<a href="${p.pdfUrl}" target="_blank" class="pub-link">PDF ↗</a>`:""}${p.doiUrl?`<a href="${p.doiUrl}" target="_blank" class="pub-link">DOI ↗</a>`:""}</div></div></div>`).join("");document.querySelectorAll("[data-fade]").forEach(el=>{const o=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add("visible");o.unobserve(x.target)}}),{threshold:0.1});o.observe(el);});}
+else{list.innerHTML=pubs.map(p=>`<div class="pub-card" data-fade><span class="pub-year">${p.year}</span><div class="pub-body"><h3 class="pub-title">${p.pubUrl?`<a href="${p.pubUrl}" target="_blank" rel="noopener">${p.title}</a>`:p.title}</h3><p class="pub-authors">${p.authors}</p><p class="pub-journal">${p.journal}${p.citations?` · <em>Cited ${p.citations} times</em>`:""}</p><div class="pub-links">${p.pubUrl?`<a href="${p.pubUrl}" target="_blank" rel="noopener" class="pub-link-url">Read Paper ↗</a>`:""}${p.pdfUrl?`<a href="${p.pdfUrl}" target="_blank" class="pub-link">PDF ↗</a>`:""}${p.doiUrl?`<a href="${p.doiUrl}" target="_blank" class="pub-link">DOI ↗</a>`:""}</div></div></div>`).join("");document.querySelectorAll("[data-fade]").forEach(el=>{const o=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add("visible");o.unobserve(x.target)}}),{threshold:0.1});o.observe(el);});}
 </script>
 </body></html>
