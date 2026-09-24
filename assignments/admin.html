@@ -312,6 +312,9 @@ import {
   courseColor, studentDocId, submissionDocId, splitIntoGroups,
   YEARS, YEAR_LABELS, YEAR_COLORS, YEAR_TINTS, NM_SUBJECTS, needsSubject, NEXT_YEAR_MAP
 } from './firebase-config.js';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const safeUrl = u => /^https:\/\/firebasestorage\.googleapis\.com\//.test(String(u || '')) ? String(u) : '';
+
 
 let currentYear = null, currentSubject = "";
 let yearRoster = [];
@@ -440,7 +443,7 @@ window.renderRoster = function () {
   rows.forEach(s => {
     const row = document.createElement('div');
     row.className = 'list-row';
-    row.innerHTML = `<div class="primary">${s.reg} \u2014 ${s.name}</div>
+    row.innerHTML = `<div class="primary">${esc(s.reg)} \u2014 ${esc(s.name)}</div>
       <div class="row-actions"><button class="btn-secondary btn-sm" data-edit>Edit</button><button class="btn-danger btn-sm" data-remove>Remove</button></div>`;
     row.querySelector('[data-edit]').onclick = () => openEditStudent(s);
     row.querySelector('[data-remove]').onclick = () => removeStudent(s);
@@ -537,10 +540,10 @@ window.renderCourses = function () {
     const card = document.createElement('div');
     card.className = 'course-card' + (c.archived ? ' archived' : '');
     card.innerHTML = `
-      <div class="course-card-top"><div class="course-avatar" style="background:${color};">${c.name.charAt(0).toUpperCase()}</div><div><h3 style="font-size:15px;">${c.name}</h3></div></div>
+      <div class="course-card-top"><div class="course-avatar" style="background:${color};">${esc(c.name.charAt(0).toUpperCase())}</div><div><h3 style="font-size:15px;">${esc(c.name)}</h3></div></div>
       <div class="course-card-body">${c.archived ? '<span style="color:var(--red); font-size:12.5px;">Archived</span>' : ''}</div>
       <div class="course-card-footer"><span class="open-course-link">Open course &rarr;</span>
-        <button class="archive-link" data-name="${c.name}" data-archived="${c.archived ? '1' : '0'}">${c.archived ? 'Unarchive' : 'Archive'}</button></div>`;
+        <button class="archive-link" data-name="${esc(c.name)}" data-archived="${c.archived ? '1' : '0'}">${c.archived ? 'Unarchive' : 'Archive'}</button></div>`;
     card.addEventListener('click', e => { if (e.target.closest('.archive-link')) return; openCourse(c); });
     grid.appendChild(card);
   });
@@ -616,7 +619,7 @@ function renderAssignments() {
     row.className = 'list-row';
     const pill = a.status === 'open' ? '<span class="status-pill open"><span class="dot"></span>Open</span>' : '<span class="status-pill closed"><span class="dot"></span>Closed</span>';
     const modeTag = a.mode === 'groups' ? '<span class="secondary" style="margin-left:6px;">\u00b7 Groups</span>' : '';
-    row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${a.name}${modeTag}</div></div>
+    row.innerHTML = `<div><div class="primary" style="cursor:pointer;">${esc(a.name)}${modeTag}</div></div>
       <div class="row-actions">${pill}
       ${a.status === 'open' ? `<button class="btn-secondary btn-sm" data-action="close">Close</button>` : `<button class="btn-secondary btn-sm" data-action="allow">Allow</button>`}
       <button class="btn-danger btn-sm" data-action="delete">Delete</button></div>`;
@@ -744,7 +747,7 @@ async function loadFinalReport() {
   const subSnap = await getDocs(query(collection(db, SUBMISSIONS), where('courseId', '==', currentCourse.id)));
   const marksByReg = {};
   subSnap.docs.forEach(d => { const data = d.data(); if (!marksByReg[data.reg]) marksByReg[data.reg] = {}; marksByReg[data.reg][data.assignmentId] = data.marks; });
-  document.getElementById('reportHeadRow').innerHTML = '<th>Reg</th><th>Name</th>' + allAssignments.map(a => `<th>${a.name}</th>`).join('') + '<th>Average</th>';
+  document.getElementById('reportHeadRow').innerHTML = '<th>Reg</th><th>Name</th>' + allAssignments.map(a => `<th>${esc(a.name)}</th>`).join('') + '<th>Average</th>';
   reportRows = yearRoster.map(s => {
     const marks = marksByReg[s.reg] || {};
     const graded = allAssignments.map(a => marks[a.id]).filter(m => m !== null && m !== undefined);
@@ -765,8 +768,8 @@ window.renderReportTable = function () {
     const tr = document.createElement('tr');
     const avgPct = r.avg !== null ? (r.avg / 10) * 100 : null;
     if (avgPct !== null && avgPct < threshold) tr.className = 'low-attendance';
-    const cells = r.assignments.map(a => { const m = r.marks[a.id]; return `<td data-label="${a.name}">${m !== null && m !== undefined ? m + '/10' : '\u2014'}</td>`; }).join('');
-    tr.innerHTML = `<td data-label="Reg">${r.reg}</td><td data-label="Name">${r.name}</td>${cells}<td data-label="Average">${r.avg !== null ? r.avg + '/10' : '\u2014'}</td>`;
+    const cells = r.assignments.map(a => { const m = r.marks[a.id]; return `<td data-label="${esc(a.name)}">${m !== null && m !== undefined ? m + '/10' : '\u2014'}</td>`; }).join('');
+    tr.innerHTML = `<td data-label="Reg">${esc(r.reg)}</td><td data-label="Name">${esc(r.name)}</td>${cells}<td data-label="Average">${r.avg !== null ? r.avg + '/10' : '\u2014'}</td>`;
     body.appendChild(tr);
   });
 };
@@ -814,7 +817,7 @@ async function loadArchiveList() {
     const date = item.archivedAt && item.archivedAt.toDate ? item.archivedAt.toDate().toLocaleDateString() : '';
     const row = document.createElement('div');
     row.className = 'list-row';
-    row.innerHTML = `<div class="primary" style="cursor:pointer;">${item.courseName} <span style="font-weight:400; color:var(--muted); font-size:12.5px;">\u00b7 ${date}</span></div>`;
+    row.innerHTML = `<div class="primary" style="cursor:pointer;">${esc(item.courseName)} <span style="font-weight:400; color:var(--muted); font-size:12.5px;">\u00b7 ${date}</span></div>`;
     row.querySelector('.primary').onclick = () => openArchiveView(item);
     el.appendChild(row);
   });
@@ -822,10 +825,10 @@ async function loadArchiveList() {
 function openArchiveView(item) {
   document.getElementById('archiveViewTitle').textContent = item.courseName + ' \u2014 archived report';
   const assignNames = item.rows.length ? item.rows[0].marks.map(m => m.name) : [];
-  document.getElementById('archiveViewHead').innerHTML = '<th>Reg</th><th>Name</th>' + assignNames.map(n => `<th>${n}</th>`).join('') + '<th>Average</th>';
+  document.getElementById('archiveViewHead').innerHTML = '<th>Reg</th><th>Name</th>' + assignNames.map(n => `<th>${esc(n)}</th>`).join('') + '<th>Average</th>';
   const body = document.getElementById('archiveViewBody');
   body.innerHTML = '';
-  item.rows.forEach(r => { const cells = r.marks.map(m => `<td>${m.marks !== null && m.marks !== undefined ? m.marks + '/10' : '\u2014'}</td>`).join(''); const tr = document.createElement('tr'); tr.innerHTML = `<td>${r.reg}</td><td>${r.name}</td>${cells}<td>${r.avg !== null ? r.avg + '/10' : '\u2014'}</td>`; body.appendChild(tr); });
+  item.rows.forEach(r => { const cells = r.marks.map(m => `<td>${m.marks !== null && m.marks !== undefined ? m.marks + '/10' : '\u2014'}</td>`).join(''); const tr = document.createElement('tr'); tr.innerHTML = `<td>${esc(r.reg)}</td><td>${esc(r.name)}</td>${cells}<td>${r.avg !== null ? r.avg + '/10' : '\u2014'}</td>`; body.appendChild(tr); });
   document.getElementById('archiveDownloadBtn').onclick = () => {
     function csvField(v) { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
     function csvRow(f) { return f.map(csvField).join(','); }
@@ -902,7 +905,7 @@ window.doTransfer = async function () {
     await wipeData(courses);
     document.getElementById('transferMsg').innerHTML = `<div class="msg ok">${toAdd.length} transferred${skipped ? ', ' + skipped + ' skipped' : ''}. This year has been reset.</div>`;
     btn.style.display = 'none'; cancelBtn.style.display = 'none';
-  } catch (e) { document.getElementById('transferMsg').innerHTML = `<div class="msg error">${e.message}</div>`; btn.disabled = false; btn.textContent = originalLabel; cancelBtn.disabled = false; }
+  } catch (e) { document.getElementById('transferMsg').innerHTML = `<div class="msg error">${esc(e.message)}</div>`; btn.disabled = false; btn.textContent = originalLabel; cancelBtn.disabled = false; }
 };
 window.revealReset = function () { document.getElementById('resetStep0').style.display = 'none'; document.getElementById('resetStep1').style.display = 'block'; };
 window.cancelReset = function () { document.getElementById('resetStep0').style.display = 'block'; document.getElementById('resetStep1').style.display = 'none'; document.getElementById('resetMsg').innerHTML = ''; };
@@ -910,7 +913,7 @@ window.doFullReset = async function (btn) {
   if (!confirm('Permanently delete all students, courses, assignments, submissions and files here? Final Reports will be archived first. This cannot be undone.')) return;
   btn.disabled = true; btn.innerHTML = '<span class="spinner dark"></span> Deleting\u2026';
   try { const courses = await archiveAllCourseReports(); await wipeData(courses); document.getElementById('resetMsg').innerHTML = '<div class="msg ok">Fully reset. Final Reports were archived first.</div>'; }
-  catch (e) { document.getElementById('resetMsg').innerHTML = `<div class="msg error">${e.message}</div>`; }
+  catch (e) { document.getElementById('resetMsg').innerHTML = `<div class="msg error">${esc(e.message)}</div>`; }
   btn.disabled = false; btn.textContent = 'Delete everything';
 };
 
@@ -961,7 +964,7 @@ function renderGroupTasksList() {
   (currentAssignment.groupTasks || []).forEach((t, i) => {
     const row = document.createElement('div');
     row.className = 'list-row';
-    row.innerHTML = `<div><div class="primary">${t.topic}</div><div class="secondary">${t.memberRegs.length} student(s)${t.deadline ? ' \u00b7 Due ' + new Date(t.deadline).toLocaleDateString() : ''}</div></div>
+    row.innerHTML = `<div><div class="primary">${esc(t.topic)}</div><div class="secondary">${t.memberRegs.length} student(s)${t.deadline ? ' \u00b7 Due ' + new Date(t.deadline).toLocaleDateString() : ''}</div></div>
       <button class="btn-secondary btn-sm">Edit</button>`;
     row.querySelector('button').onclick = () => openEditTaskModal(t);
     el.appendChild(row);
@@ -984,13 +987,13 @@ function renderEditTaskMembers(t) {
     const student = yearRoster.find(s => s.reg === reg);
     const row = document.createElement('div');
     row.className = 'list-row';
-    row.innerHTML = `<div class="primary">${reg}${student ? ' \u2014 ' + student.name : ''}</div><button class="btn-danger btn-sm">Remove</button>`;
+    row.innerHTML = `<div class="primary">${esc(reg)}${student ? ' \u2014 ' + esc(student.name) : ''}</div><button class="btn-danger btn-sm">Remove</button>`;
     row.querySelector('button').onclick = () => { t.memberRegs = t.memberRegs.filter(r => r !== reg); renderEditTaskMembers(t); };
     el.appendChild(row);
   });
   const allAssignedRegs = new Set((currentAssignment.groupTasks || []).flatMap(x => x.id === t.id ? [] : x.memberRegs));
   const addSelect = document.getElementById('editTaskAddSelect');
-  addSelect.innerHTML = yearRoster.filter(s => !t.memberRegs.includes(s.reg) && !allAssignedRegs.has(s.reg)).map(s => `<option value="${s.reg}">${s.reg} \u2014 ${s.name}</option>`).join('');
+  addSelect.innerHTML = yearRoster.filter(s => !t.memberRegs.includes(s.reg) && !allAssignedRegs.has(s.reg)).map(s => `<option value="${esc(s.reg)}">${esc(s.reg)} \u2014 ${esc(s.name)}</option>`).join('');
   addSelect.dataset.taskId = t.id;
 }
 window.submitAddToTask = function () {
@@ -1051,10 +1054,10 @@ window.renderDashTable = function () {
   rows.forEach(r => {
     const tr = document.createElement('tr');
     let statusHtml = r.submitted ? '<span class="status-pill submitted"><span class="dot"></span>Submitted</span>' : '<span class="status-pill pending"><span class="dot"></span>Not submitted</span>';
-    if (r.duplicateWith && r.duplicateWith.length) statusHtml += ` <span class="status-pill" style="background:var(--red-bg); color:var(--red);" title="Identical file to: ${r.duplicateWith.join(', ')}">\u26a0 Duplicate</span>`;
-    const markHtml = r.marks !== null ? `<span class="mark-value">${r.marks} / 10</span>` : `<span class="mark-value ungraded">${r.submitted ? 'Ungraded' : '\u2014'}</span>`;
-    const actionHtml = r.submitted ? `<button class="btn-secondary btn-sm" data-reg="${r.reg}">View &amp; mark</button>` : '<span style="color:var(--light);">\u2014</span>';
-    tr.innerHTML = `<td data-label="">${r.reg}</td><td data-label="Name">${r.name}</td><td data-label="Status">${statusHtml}</td><td data-label="Mark">${markHtml}</td><td data-label="">${actionHtml}</td>`;
+    if (r.duplicateWith && r.duplicateWith.length) statusHtml += ` <span class="status-pill" style="background:var(--red-bg); color:var(--red);" title="Identical file to: ${esc(r.duplicateWith.join(', '))}">\u26a0 Duplicate</span>`;
+    const markHtml = r.marks !== null ? `<span class="mark-value">${esc(r.marks)} / 10</span>` : `<span class="mark-value ungraded">${r.submitted ? 'Ungraded' : '\u2014'}</span>`;
+    const actionHtml = r.submitted ? `<button class="btn-secondary btn-sm" data-reg="${esc(r.reg)}">View &amp; mark</button>` : '<span style="color:var(--light);">\u2014</span>';
+    tr.innerHTML = `<td data-label="">${esc(r.reg)}</td><td data-label="Name">${esc(r.name)}</td><td data-label="Status">${statusHtml}</td><td data-label="Mark">${markHtml}</td><td data-label="">${actionHtml}</td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll('[data-reg]').forEach(btn => btn.onclick = () => openMarkModal(btn.getAttribute('data-reg')));
@@ -1070,9 +1073,9 @@ function openMarkModal(reg) {
   renderMarkButtons();
   const previewArea = document.getElementById('previewArea');
   if (row.fileDeleted) previewArea.innerHTML = '<div class="empty-state">File removed (this assignment was finally closed out).</div>';
-  else { const ext = (row.fileName || '').split('.').pop().toLowerCase(); if (ext === 'pdf') previewArea.innerHTML = `<iframe src="${row.fileURL}" style="width:100%; height:60vh; border:none;"></iframe>`; else previewArea.innerHTML = `<img src="${row.fileURL}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`; }
+  else { const ext = (row.fileName || '').split('.').pop().toLowerCase(); if (ext === 'pdf') previewArea.innerHTML = `<iframe src="${esc(safeUrl(row.fileURL))}" style="width:100%; height:60vh; border:none;"></iframe>`; else previewArea.innerHTML = `<img src="${esc(safeUrl(row.fileURL))}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`; }
   document.querySelectorAll('#viewModal .dup-warning-slot').forEach(el => el.remove());
-  if (row.duplicateWith && row.duplicateWith.length) previewArea.insertAdjacentHTML('afterend', `<div class="dup-warning-slot"><div class="msg error" style="margin:12px 18px 0 18px;">\u26a0 Identical file to: <strong>${row.duplicateWith.join(', ')}</strong>.</div></div>`);
+  if (row.duplicateWith && row.duplicateWith.length) previewArea.insertAdjacentHTML('afterend', `<div class="dup-warning-slot"><div class="msg error" style="margin:12px 18px 0 18px;">\u26a0 Identical file to: <strong>${esc(row.duplicateWith.join(', '))}</strong>.</div></div>`);
   openModal('viewModal');
 }
 function renderMarkButtons() {
@@ -1108,7 +1111,7 @@ window.doFinalClose = async function (btn) {
     for (const d of subSnap.docs) { const data = d.data(); if (data.storagePath && !data.fileDeleted) { try { await deleteObject(ref(storage, data.storagePath)); } catch (e) {} } await updateDoc(d.ref, { fileDeleted: true, fileURL: null }); }
     document.getElementById('finalCloseMsg').innerHTML = '<div class="msg ok">All files removed. Records and marks are intact.</div>';
     await loadDashboard();
-  } catch (e) { document.getElementById('finalCloseMsg').innerHTML = `<div class="msg error">${e.message}</div>`; }
+  } catch (e) { document.getElementById('finalCloseMsg').innerHTML = `<div class="msg error">${esc(e.message)}</div>`; }
   btn.disabled = false; btn.textContent = 'Final deletion \u2014 remove all files';
 };
 
