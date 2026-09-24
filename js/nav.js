@@ -25,6 +25,14 @@ export function insertNav() {
           <a href="publications.html">Publications</a>
         </div>
       </li>
+      <li class="nav-dropdown">
+        <button type="button" class="nav-dropbtn" aria-expanded="false" aria-haspopup="true">Services ${CHEV}</button>
+        <div class="nav-dropdown-menu">
+          <a href="attendance/index.html">Attendance</a>
+          <a href="assignments/index.html">Assignments</a>
+          <a href="questions/index.html">Questions Generator</a>
+        </div>
+      </li>
       <li><a href="blog.html">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
       <li class="nav-admin"><a href="admin.html">Admin</a></li>
@@ -40,23 +48,33 @@ export function insertNav() {
 function wireNav(nav) {
   const links  = nav.querySelector("#navLinks");
   const toggle = nav.querySelector("#navToggle");
-  const drop   = nav.querySelector(".nav-dropdown");
-  const dropBtn = drop.querySelector(".nav-dropbtn");
+  const drops  = [...nav.querySelectorAll(".nav-dropdown")];
 
+  const setDrop = (d, open) => { d.classList.toggle("open", open); d.querySelector(".nav-dropbtn").setAttribute("aria-expanded", open); };
+  const closeDrops = except => drops.forEach(d => { if (d !== except) setDrop(d, false); });
   const setMenu = open => {
     links.classList.toggle("open", open);
     toggle.setAttribute("aria-expanded", open);
     toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-    if (!open) setDrop(false);
+    if (!open) closeDrops();
   };
-  const setDrop = open => { drop.classList.toggle("open", open); dropBtn.setAttribute("aria-expanded", open); };
 
   toggle.addEventListener("click", () => setMenu(!links.classList.contains("open")));
-  dropBtn.addEventListener("click", e => { e.stopPropagation(); setDrop(!drop.classList.contains("open")); });
+  drops.forEach(d => {
+    d.querySelector(".nav-dropbtn").addEventListener("click", e => {
+      e.stopPropagation();
+      const willOpen = !d.classList.contains("open");
+      closeDrops(d); setDrop(d, willOpen);
+    });
+    d.addEventListener("mouseenter", () => closeDrops(d));
+  });
   links.querySelectorAll("a").forEach(a => a.addEventListener("click", () => setMenu(false)));
-  document.addEventListener("click", e => { if (!nav.contains(e.target)) setMenu(false); else if (!drop.contains(e.target)) setDrop(false); });
+  document.addEventListener("click", e => {
+    if (!nav.contains(e.target)) setMenu(false);
+    else closeDrops(drops.find(d => d.contains(e.target)));
+  });
   document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
-  window.addEventListener("resize", () => { if (window.innerWidth > 820) setMenu(false); });
+  window.addEventListener("resize", () => { if (window.innerWidth > 900) setMenu(false); });
 
   // theme toggle
   nav.querySelector("#themeToggle").addEventListener("click", () => {
@@ -69,12 +87,13 @@ function wireNav(nav) {
   const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 10);
   window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
 
-  // active page (+ highlight "Academic" when a sub-page is open)
+  // active page (+ highlight the parent menu when one of its pages is open)
   const page = window.location.pathname.split("/").pop() || "index.html";
   links.querySelectorAll("a").forEach(a => {
     if ((a.getAttribute("href") || "") === page) {
       a.classList.add("active");
-      if (drop.contains(a)) dropBtn.classList.add("active");
+      const d = drops.find(x => x.contains(a));
+      if (d) d.querySelector(".nav-dropbtn").classList.add("active");
     }
   });
 }
