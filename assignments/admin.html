@@ -10,12 +10,10 @@
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 </script>
 <style>
-  .pdf-viewer{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
-  .pdf-canvas-wrap{width:100%;max-height:60vh;overflow:auto;background:#e9ebf0;border-radius:8px;display:flex;justify-content:center;padding:8px 0}
-  .pdf-canvas-wrap canvas{max-width:100%;height:auto;box-shadow:0 1px 6px rgba(0,0,0,.15);background:#fff}
-  .pdf-nav{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted,#6b7280)}
-  .pdf-nav button{padding:6px 14px;border-radius:8px;border:1px solid #d8dbe2;background:#fff;cursor:pointer;font-size:13px}
-  .pdf-nav button:disabled{opacity:.45;cursor:not-allowed}
+  .pdf-scroll{width:100%;max-height:70vh;overflow-y:auto;overflow-x:hidden;background:#e9ebf0;border-radius:8px;padding:16px 0;box-sizing:border-box}
+  .pdf-page-wrap{display:flex;justify-content:center;padding:0 12px 16px}
+  .pdf-page-wrap:last-child{padding-bottom:0}
+  .pdf-page-wrap canvas{width:100%;height:auto;max-width:720px;box-shadow:0 1px 6px rgba(0,0,0,.15);background:#fff;border-radius:2px}
   .pdf-status{font-size:13px;color:var(--muted,#6b7280);padding:24px}
 </style>
 </head>
@@ -1078,9 +1076,10 @@ window.renderDashTable = function () {
   });
   body.querySelectorAll('[data-reg]').forEach(btn => btn.onclick = () => openMarkModal(btn.getAttribute('data-reg')));
 };
-// Shows a submission inline: images as <img>, PDFs paged through pdf.js so a tap
-// opens straight into a readable page on mobile — no separate download step.
-let pdfViewState = null; // { doc, page, total }
+// Shows a submission inline: images as <img>, PDFs as a scrollable stack of
+// pages (like Google Docs' preview) so it reads naturally on phone or laptop
+// alike — no Prev/Next, and no page ever gets stretched wider than a real page.
+let pdfRenderToken = 0; // bumped on every open so a slow render from a closed/reopened modal can't draw itself in late
 
 function renderPreview(area, row) {
   const url = safeUrl(row.fileURL);
@@ -1090,51 +1089,38 @@ function renderPreview(area, row) {
     area.innerHTML = `<img src="${esc(url)}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`;
     return;
   }
+  const myToken = ++pdfRenderToken;
   area.innerHTML = '<div class="pdf-status">Loading PDF…</div>';
   if (!window.pdfjsLib) { area.innerHTML = '<div class="empty-state">PDF viewer failed to load. Check your connection and reopen this submission.</div>'; return; }
-  pdfjsLib.getDocument(url).promise.then(doc => {
-    pdfViewState = { doc, page: 1, total: doc.numPages };
-    area.innerHTML = `
-      <div class="pdf-viewer">
-        <div class="pdf-canvas-wrap"><canvas id="pdfCanvas"></canvas></div>
-        <div class="pdf-nav">
-          <button id="pdfPrev" type="button">‹ Prev</button>
-          <span id="pdfPageLabel"></span>
-          <button id="pdfNext" type="button">Next ›</button>
-        </div>
-      </div>`;
-    area.querySelector('#pdfPrev').onclick = () => changePdfPage(-1);
-    area.querySelector('#pdfNext').onclick = () => changePdfPage(1);
-    renderPdfPage();
+  pdfjsLib.getDocument(url).promise.then(async doc => {
+    if (myToken !== pdfRenderToken) return; // a newer submission was opened while this was loading
+    area.innerHTML = '<div class="pdf-scroll" id="pdfScroll"></div>';
+    const scroll = document.getElementById('pdfScroll');
+    for (let n = 1; n <= doc.numPages; n++) {
+      if (myToken !== pdfRenderToken) return;
+      const pdfPage = await doc.getPage(n);
+      if (myToken !== pdfRenderToken) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'pdf-page-wrap';
+      const canvas = document.createElement('canvas');
+      wrap.appendChild(canvas);
+      scroll.appendChild(wrap);
+      // Render at a real, capped page width (never the modal's full width) so
+      // portrait pages stay readable instead of being stretched sideways —
+      // then draw at device pixel ratio so phone screens stay sharp.
+      const cssWidth = Math.min(wrap.clientWidth || 600, 720);
+      const dpr = window.devicePixelRatio || 1;
+      const unscaled = pdfPage.getViewport({ scale: 1 });
+      const viewport = pdfPage.getViewport({ scale: (cssWidth * dpr) / unscaled.width });
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      canvas.style.width = cssWidth + 'px';
+      canvas.style.height = (viewport.height / dpr) + 'px';
+      await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    }
   }).catch(err => {
+    if (myToken !== pdfRenderToken) return;
     area.innerHTML = '<div class="empty-state">Could not open this PDF. It may have been removed or the link is broken.</div>';
     console.error(err);
-  });
-}
-
-function changePdfPage(delta) {
-  if (!pdfViewState) return;
-  const next = pdfViewState.page + delta;
-  if (next < 1 || next > pdfViewState.total) return;
-  pdfViewState.page = next;
-  renderPdfPage();
-}
-
-function renderPdfPage() {
-  if (!pdfViewState) return;
-  const { doc, page, total } = pdfViewState;
-  const label = document.getElementById('pdfPageLabel');
-  const prevBtn = document.getElementById('pdfPrev');
-  const nextBtn = document.getElementById('pdfNext');
-  if (label) label.textContent = `Page ${page} of ${total}`;
-  if (prevBtn) prevBtn.disabled = page <= 1;
-  if (nextBtn) nextBtn.disabled = page >= total;
-  doc.getPage(page).then(pdfPage => {
-    const canvas = document.getElementById('pdfCanvas');
-    if (!canvas) return; // modal was closed while this was loading
-    const viewport = pdfPage.getViewport({ scale: Math.min(2, (canvas.parentElement.clientWidth || 600) / pdfPage.getViewport({ scale: 1 }).width) });
-    canvas.width = viewport.width; canvas.height = viewport.height;
-    pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport });
   });
 }
 
