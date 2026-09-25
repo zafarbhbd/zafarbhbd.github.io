@@ -303,7 +303,10 @@
         <div id="markError" class="msg error" style="display:none;"></div>
       </div>
     </div>
-    <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('viewModal')">Close</button><button class="btn-primary" id="saveMarkBtn" onclick="submitMark()">Save mark</button></div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-danger btn-sm" id="deleteSubmissionBtn" onclick="deleteSubmission()">Delete submission (allow resubmit)</button>
+      <div><button class="btn-secondary" onclick="closeModal('viewModal')">Close</button><button class="btn-primary" id="saveMarkBtn" onclick="submitMark()">Save mark</button></div>
+    </div>
   </div></div>
 
   <div class="overlay" id="archiveViewModal"><div class="modal wide">
@@ -1049,7 +1052,7 @@ async function loadDashboard() {
     if (hasMarks) { markSum += sub.marks; markCount++; }
     const dupGroup = sub && sub.fileHash ? byHash[sub.fileHash] : null;
     const duplicateWith = dupGroup ? dupGroup.filter(r => r !== s.reg) : [];
-    return { reg: s.reg, name: s.name, submitted: !!sub, fileURL: sub ? sub.fileURL : null, fileName: sub ? sub.fileName : null, fileDeleted: sub ? !!sub.fileDeleted : false, marks: hasMarks ? sub.marks : null, feedback: sub && sub.feedback ? sub.feedback : '', duplicateWith };
+    return { reg: s.reg, name: s.name, submitted: !!sub, fileURL: sub ? sub.fileURL : null, fileName: sub ? sub.fileName : null, storagePath: sub ? sub.storagePath : null, fileDeleted: sub ? !!sub.fileDeleted : false, marks: hasMarks ? sub.marks : null, feedback: sub && sub.feedback ? sub.feedback : '', duplicateWith };
   });
   const submittedCount = dashRows.filter(r => r.submitted).length;
   document.getElementById('summaryCount').textContent = submittedCount + ' of ' + dashRows.length;
@@ -1143,6 +1146,7 @@ function openMarkModal(reg) {
   document.getElementById('viewModalTitle').textContent = reg + ' \u2014 ' + row.name;
   document.getElementById('feedbackText').value = row.feedback || '';
   document.getElementById('markError').style.display = 'none';
+  document.getElementById('deleteSubmissionBtn').style.display = row.submitted ? 'inline-flex' : 'none';
   renderMarkButtons();
   const previewArea = document.getElementById('previewArea');
   if (row.fileDeleted) previewArea.innerHTML = '<div class="empty-state">File removed (this assignment was finally closed out).</div>';
@@ -1157,6 +1161,26 @@ function renderMarkButtons() {
   for (let i = 0; i <= 10; i++) { const btn = document.createElement('button'); btn.className = 'mark-btn' + (selectedMarkValue === i ? ' selected' : ''); btn.textContent = i; btn.onclick = () => { selectedMarkValue = i; renderMarkButtons(); }; container.appendChild(btn); }
   const clearBtn = document.createElement('button'); clearBtn.className = 'mark-btn clear'; clearBtn.textContent = 'Clear'; clearBtn.onclick = () => { selectedMarkValue = null; renderMarkButtons(); }; container.appendChild(clearBtn);
 }
+// Removes this student's submission (file + record) so the "already submitted"
+// rule no longer applies and they can upload again for this assignment.
+window.deleteSubmission = async function () {
+  const row = dashRows.find(r => r.reg === currentMarkRoll);
+  if (!row || !row.submitted) return;
+  if (!confirm(`Delete ${row.reg} \u2014 ${row.name}'s submission? They will then be able to submit again for this assignment. This cannot be undone.`)) return;
+  const btn = document.getElementById('deleteSubmissionBtn');
+  btn.disabled = true; btn.textContent = 'Deleting\u2026';
+  try {
+    if (row.storagePath) { try { await deleteObject(ref(storage, row.storagePath)); } catch (e) { /* file may already be gone */ } }
+    await deleteDoc(doc(db, SUBMISSIONS, submissionDocId(currentAssignment.id, row.reg)));
+    await loadDashboard();
+    closeModal('viewModal');
+  } catch (e) {
+    document.getElementById('markError').textContent = e.message;
+    document.getElementById('markError').style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Delete submission (allow resubmit)';
+};
+
 window.submitMark = async function () {
   const feedback = document.getElementById('feedbackText').value.trim();
   const btn = document.getElementById('saveMarkBtn');
