@@ -35,7 +35,14 @@ export function insertNav() {
       </li>
       <li><a href="blog.html">Blog</a></li>
       <li><a href="contact.html">Contact</a></li>
-      <li class="nav-admin"><a href="admin.html">Admin</a></li>
+      <li class="nav-dropdown admin-drop">
+        <button type="button" class="nav-dropbtn" aria-expanded="false" aria-haspopup="true">Admin ${CHEV}</button>
+        <div class="nav-dropdown-menu">
+          <a href="admin.html">Main Site Sign In</a>
+          <a href="attendance/teacher.html">Attendance Sign In</a>
+          <a href="assignments/admin.html">Assignments Sign In</a>
+        </div>
+      </li>
     </ul>
     <div class="nav-tools">
       <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">${SUN}${MOON}</button>
