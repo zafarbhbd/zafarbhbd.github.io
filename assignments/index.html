@@ -475,13 +475,17 @@ window.downloadReceipt = async function (evt) {
 
     const ensureRoom = need => { if (y + need > bottomEdge) { pdf.addPage(); y = 22; } };
 
-    // One field, two possible layouts: label and value sit on the same line
-    // (matches Student name / Registration no / Submitted / Mark) whenever
-    // the value is short enough to fit; only a genuinely long value — like a
-    // multi-sentence feedback comment — drops to its own line and wraps as
-    // a paragraph. requireValue=true always prints a row (with an em dash
-    // fallback); false skips the row entirely when there is no value.
-    const VALUE_X = 75;
+    // Table layout: every label starts at the same left edge, every colon
+    // lines up in its own column (set from the widest label), and every
+    // value starts at one fixed column — including wrapped continuation
+    // lines, which hang under that same column rather than the left margin.
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal'); // labels are always plain English
+    const LABELS = ['Student name', 'Registration no', 'Course', 'Assignment', 'Topic', 'Submitted', 'Mark', 'Feedback'];
+    const maxLabelWidth = Math.max(...LABELS.map(l => pdf.getTextWidth(l)));
+    const COLON_X = marginX + maxLabelWidth + 3;
+    const VALUE_X = COLON_X + 5;
+
     const row = (label, value, requireValue) => {
       const hasValue = value !== undefined && value !== null && String(value).trim() !== '';
       if (!hasValue && !requireValue) return;
@@ -489,32 +493,28 @@ window.downloadReceipt = async function (evt) {
 
       pdf.setFontSize(12);
       setFont(text);
-      const fitsInline = pdf.getTextWidth(text) <= (rightEdge - VALUE_X);
+      const lines = pdf.splitTextToSize(text, rightEdge - VALUE_X);
 
-      if (fitsInline) {
-        ensureRoom(9);
-        pdf.setTextColor(80); setFont(label); pdf.text(label, marginX, y);
-        pdf.setTextColor(20); setFont(text); pdf.text(text, VALUE_X, y);
-        y += 9;
-      } else {
-        ensureRoom(8);
-        pdf.setTextColor(80); setFont(label); pdf.text(label, marginX, y);
+      ensureRoom(7);
+      pdf.setTextColor(80); pdf.setFont('helvetica', 'normal'); pdf.text(label, marginX, y); pdf.text(':', COLON_X, y);
+      pdf.setTextColor(20); setFont(lines[0] || ''); pdf.text(lines[0] || '', VALUE_X, y);
+      y += 7;
+      for (let i = 1; i < lines.length; i++) {
+        ensureRoom(7);
+        setFont(lines[i]); pdf.text(lines[i], VALUE_X, y);
         y += 7;
-        pdf.setTextColor(20); setFont(text); // re-set right before splitTextToSize so it measures with the correct font
-        const lines = pdf.splitTextToSize(text, rightEdge - marginX);
-        lines.forEach(l => { ensureRoom(7); pdf.text(l, marginX, y); y += 7; });
-        y += 3;
       }
+      y += 2; // small gap between rows
     };
 
-    row('Student name:', resolvedStudent.name, true);
-    row('Registration no:', resolvedStudent.reg, true);
-    row('Course:', currentCourse.name, true);
-    row('Assignment:', currentAssignment.name, true);
-    if (resolvedTask) row('Topic:', resolvedTask.topic, true);
-    row('Submitted:', currentSubmission.timestamp && currentSubmission.timestamp.toDate ? currentSubmission.timestamp.toDate().toLocaleString() : '', true);
-    row('Mark:', currentSubmission.marks + ' / 10', true);
-    row('Feedback:', currentSubmission.feedback, false);
+    row('Student name', resolvedStudent.name, true);
+    row('Registration no', resolvedStudent.reg, true);
+    row('Course', currentCourse.name, true);
+    row('Assignment', currentAssignment.name, true);
+    if (resolvedTask) row('Topic', resolvedTask.topic, true);
+    row('Submitted', currentSubmission.timestamp && currentSubmission.timestamp.toDate ? currentSubmission.timestamp.toDate().toLocaleString() : '', true);
+    row('Mark', currentSubmission.marks + ' / 10', true);
+    row('Feedback', currentSubmission.feedback, false);
 
     ensureRoom(16);
     pdf.setDrawColor(200); pdf.line(marginX, y + 2, rightEdge, y + 2);
