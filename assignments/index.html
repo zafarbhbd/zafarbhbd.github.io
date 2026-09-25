@@ -433,7 +433,16 @@ async function loadReceiptFont(pdf) {
   }
   pdf.addFileToVFS('NotoSansBengali-Regular.ttf', bengaliFontBase64);
   pdf.addFont('NotoSansBengali-Regular.ttf', 'NotoSansBengali', 'normal');
-  pdf.setFont('NotoSansBengali', 'normal');
+  // NOT set as the active font here — Noto Sans Bengali only carries Bengali
+  // script (plus shared digits/punctuation), not the English alphabet, so it
+  // must only be switched on for text that actually contains Bengali.
+}
+
+// Noto Sans Bengali and jsPDF's built-in Helvetica each cover a different
+// script — pick whichever one can actually draw the string being printed.
+const hasBengali = s => /[\u0980-\u09FF]/.test(String(s || ''));
+function useFontFor(pdf, s, bengaliLoaded) {
+  pdf.setFont(bengaliLoaded && hasBengali(s) ? 'NotoSansBengali' : 'helvetica', 'normal');
 }
 
 window.downloadReceipt = async function (evt) {
@@ -446,34 +455,46 @@ window.downloadReceipt = async function (evt) {
     const pageH = pdf.internal.pageSize.getHeight();
     const marginX = 20, rightEdge = pageW - marginX, bottomEdge = pageH - 20;
 
-    try { await loadReceiptFont(pdf); }
-    catch (e) { console.error('Bengali font failed to load, falling back to default font:', e); }
+    let bengaliLoaded = false;
+    try { await loadReceiptFont(pdf); bengaliLoaded = true; }
+    catch (e) { console.error('Bengali font failed to load — Bengali text in this receipt may not render:', e); }
+
+    // Every draw call below sets its own font first, based on what that
+    // specific piece of text contains — labels and English values use the
+    // normal font; anything with Bengali characters switches to the Bengali one.
+    const setFont = txt => useFontFor(pdf, txt, bengaliLoaded);
 
     let y = 22;
-    pdf.setFontSize(16); pdf.setTextColor(20); pdf.text('Assignment Submission Receipt', marginX, y);
+    pdf.setFontSize(16); pdf.setTextColor(20); setFont('Assignment Submission Receipt');
+    pdf.text('Assignment Submission Receipt', marginX, y);
     y += 7;
-    pdf.setFontSize(11); pdf.setTextColor(100); pdf.text('Generated ' + new Date().toLocaleString(), marginX, y);
+    const generatedLine = 'Generated ' + new Date().toLocaleString();
+    pdf.setFontSize(11); pdf.setTextColor(100); setFont(generatedLine);
+    pdf.text(generatedLine, marginX, y);
     y += 14;
 
     const ensureRoom = need => { if (y + need > bottomEdge) { pdf.addPage(); y = 22; } };
 
-    // Short fields: label and value share one line.
+    // Short fields: label and value share one line. Label is always English;
+    // the value gets its own font check since it may be Bengali or English.
     const inlineRow = (label, value) => {
       ensureRoom(9);
+      const text = String(value || '\u2014');
       pdf.setFontSize(12);
-      pdf.setTextColor(80); pdf.text(label, marginX, y);
-      pdf.setTextColor(20); pdf.text(String(value || '\u2014'), 75, y);
+      pdf.setTextColor(80); setFont(label); pdf.text(label, marginX, y);
+      pdf.setTextColor(20); setFont(text); pdf.text(text, 75, y);
       y += 9;
     };
 
     // Long fields: label on its own line, full-width text wrapped underneath as a paragraph.
     const paragraphRow = (label, value) => {
       if (!value) return;
+      const text = String(value);
       ensureRoom(8);
-      pdf.setFontSize(12); pdf.setTextColor(80); pdf.text(label, marginX, y);
+      pdf.setFontSize(12); pdf.setTextColor(80); setFont(label); pdf.text(label, marginX, y);
       y += 7;
-      pdf.setFontSize(12); pdf.setTextColor(20);
-      const lines = pdf.splitTextToSize(String(value), rightEdge - marginX);
+      pdf.setFontSize(12); pdf.setTextColor(20); setFont(text); // splitTextToSize needs the right font active to measure width correctly
+      const lines = pdf.splitTextToSize(text, rightEdge - marginX);
       lines.forEach(l => { ensureRoom(7); pdf.text(l, marginX, y); y += 7; });
       y += 3;
     };
@@ -490,7 +511,9 @@ window.downloadReceipt = async function (evt) {
     ensureRoom(16);
     pdf.setDrawColor(200); pdf.line(marginX, y + 2, rightEdge, y + 2);
     pdf.setFontSize(9); pdf.setTextColor(140);
-    const notice = pdf.splitTextToSize('This is a system-generated receipt confirming a graded assignment submission. No signature required.', rightEdge - marginX);
+    const noticeText = 'This is a system-generated receipt confirming a graded assignment submission. No signature required.';
+    setFont(noticeText);
+    const notice = pdf.splitTextToSize(noticeText, rightEdge - marginX);
     y += 9;
     notice.forEach(l => { ensureRoom(5); pdf.text(l, marginX, y); y += 5; });
 
