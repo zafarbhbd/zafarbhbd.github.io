@@ -310,7 +310,7 @@ function renderTaskArea() {
     if (currentSubmission.marks !== null && currentSubmission.marks !== undefined) {
       msg.innerHTML = `<div class="msg ok">You submitted this assignment. Your mark: <strong>${esc(currentSubmission.marks)} / 10</strong>.
         ${currentSubmission.feedback ? '<br><span style="color:var(--muted);">' + escapeHtml(currentSubmission.feedback) + '</span>' : ''}
-        <br><button class="btn-secondary btn-sm" style="margin-top:10px;" onclick="downloadReceipt()">Download receipt</button></div>`;
+        <br><button class="btn-secondary btn-sm" style="margin-top:10px;" onclick="downloadReceipt(event)">Download receipt</button></div>`;
     } else {
       msg.innerHTML = '<div class="msg info">You\u2019ve already submitted this assignment. Your teacher hasn\u2019t marked it yet.</div>';
     }
@@ -411,29 +411,96 @@ async function doSubmit() {
 }
 
 /* ---------------- RECEIPT ---------------- */
-window.downloadReceipt = function () {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-  pdf.setFontSize(16); pdf.text('Assignment Submission Receipt', 20, 22);
-  pdf.setFontSize(11); pdf.setTextColor(100); pdf.text('Generated ' + new Date().toLocaleString(), 20, 29);
+// Noto Sans Bengali (from the archived, frozen notofonts/noto-fonts repo — its
+// content never changes, so this link is stable) has both Bengali and basic
+// Latin glyphs, unlike jsPDF's built-in fonts which only cover Latin. It is
+// fetched once, on first download, and reused for the rest of the session.
+const BENGALI_FONT_URL = 'https://cdn.jsdelivr.net/gh/notofonts/noto-fonts@main/hinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf';
+let bengaliFontBase64 = null;
 
-  let y = 45;
-  const line = (label, value) => { pdf.setTextColor(80); pdf.text(label, 20, y); pdf.setTextColor(20); pdf.text(String(value || '\u2014'), 75, y); y += 9; };
-  pdf.setFontSize(12);
-  line('Student name:', resolvedStudent.name);
-  line('Registration no:', resolvedStudent.reg);
-  line('Course:', currentCourse.name);
-  line('Assignment:', currentAssignment.name);
-  if (resolvedTask) line('Topic:', resolvedTask.topic);
-  line('Submitted:', currentSubmission.timestamp && currentSubmission.timestamp.toDate ? currentSubmission.timestamp.toDate().toLocaleString() : '');
-  line('Mark:', currentSubmission.marks + ' / 10');
-  if (currentSubmission.feedback) line('Feedback:', currentSubmission.feedback);
+function bytesToBase64(bytes) {
+  let binary = '';
+  const chunk = 0x8000; // convert in chunks so a ~200KB font doesn't blow the call stack
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
 
-  pdf.setDrawColor(200); pdf.line(20, y + 4, 190, y + 4);
-  pdf.setFontSize(9); pdf.setTextColor(140);
-  pdf.text('This is a system-generated receipt confirming a graded assignment submission. No signature required.', 20, y + 12);
+async function loadReceiptFont(pdf) {
+  if (!bengaliFontBase64) {
+    const res = await fetch(BENGALI_FONT_URL);
+    if (!res.ok) throw new Error('Font download failed');
+    bengaliFontBase64 = bytesToBase64(new Uint8Array(await res.arrayBuffer()));
+  }
+  pdf.addFileToVFS('NotoSansBengali-Regular.ttf', bengaliFontBase64);
+  pdf.addFont('NotoSansBengali-Regular.ttf', 'NotoSansBengali', 'normal');
+  pdf.setFont('NotoSansBengali', 'normal');
+}
 
-  pdf.save(resolvedStudent.reg + ' - ' + currentAssignment.name + ' - receipt.pdf');
+window.downloadReceipt = async function (evt) {
+  const btn = evt && evt.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparing receipt…'; }
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const marginX = 20, rightEdge = pageW - marginX, bottomEdge = pageH - 20;
+
+    try { await loadReceiptFont(pdf); }
+    catch (e) { console.error('Bengali font failed to load, falling back to default font:', e); }
+
+    let y = 22;
+    pdf.setFontSize(16); pdf.setTextColor(20); pdf.text('Assignment Submission Receipt', marginX, y);
+    y += 7;
+    pdf.setFontSize(11); pdf.setTextColor(100); pdf.text('Generated ' + new Date().toLocaleString(), marginX, y);
+    y += 14;
+
+    const ensureRoom = need => { if (y + need > bottomEdge) { pdf.addPage(); y = 22; } };
+
+    // Short fields: label and value share one line.
+    const inlineRow = (label, value) => {
+      ensureRoom(9);
+      pdf.setFontSize(12);
+      pdf.setTextColor(80); pdf.text(label, marginX, y);
+      pdf.setTextColor(20); pdf.text(String(value || '\u2014'), 75, y);
+      y += 9;
+    };
+
+    // Long fields: label on its own line, full-width text wrapped underneath as a paragraph.
+    const paragraphRow = (label, value) => {
+      if (!value) return;
+      ensureRoom(8);
+      pdf.setFontSize(12); pdf.setTextColor(80); pdf.text(label, marginX, y);
+      y += 7;
+      pdf.setFontSize(12); pdf.setTextColor(20);
+      const lines = pdf.splitTextToSize(String(value), rightEdge - marginX);
+      lines.forEach(l => { ensureRoom(7); pdf.text(l, marginX, y); y += 7; });
+      y += 3;
+    };
+
+    inlineRow('Student name:', resolvedStudent.name);
+    inlineRow('Registration no:', resolvedStudent.reg);
+    paragraphRow('Course:', currentCourse.name);
+    paragraphRow('Assignment:', currentAssignment.name);
+    if (resolvedTask) paragraphRow('Topic:', resolvedTask.topic);
+    inlineRow('Submitted:', currentSubmission.timestamp && currentSubmission.timestamp.toDate ? currentSubmission.timestamp.toDate().toLocaleString() : '');
+    inlineRow('Mark:', currentSubmission.marks + ' / 10');
+    paragraphRow('Feedback:', currentSubmission.feedback);
+
+    ensureRoom(16);
+    pdf.setDrawColor(200); pdf.line(marginX, y + 2, rightEdge, y + 2);
+    pdf.setFontSize(9); pdf.setTextColor(140);
+    const notice = pdf.splitTextToSize('This is a system-generated receipt confirming a graded assignment submission. No signature required.', rightEdge - marginX);
+    y += 9;
+    notice.forEach(l => { ensureRoom(5); pdf.text(l, marginX, y); y += 5; });
+
+    pdf.save(resolvedStudent.reg + ' - ' + currentAssignment.name + ' - receipt.pdf');
+  } catch (e) {
+    console.error(e);
+    alert('Could not generate the receipt. Check your connection and try again.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Download receipt'; }
+  }
 };
 
 /* ---------------- AUTO-RESET ---------------- */
