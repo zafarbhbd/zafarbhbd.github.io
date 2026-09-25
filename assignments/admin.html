@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Assignment Admin</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
+</script>
+<style>
+  .pdf-viewer{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .pdf-canvas-wrap{width:100%;max-height:60vh;overflow:auto;background:#e9ebf0;border-radius:8px;display:flex;justify-content:center;padding:8px 0}
+  .pdf-canvas-wrap canvas{max-width:100%;height:auto;box-shadow:0 1px 6px rgba(0,0,0,.15);background:#fff}
+  .pdf-nav{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted,#6b7280)}
+  .pdf-nav button{padding:6px 14px;border-radius:8px;border:1px solid #d8dbe2;background:#fff;cursor:pointer;font-size:13px}
+  .pdf-nav button:disabled{opacity:.45;cursor:not-allowed}
+  .pdf-status{font-size:13px;color:var(--muted,#6b7280);padding:24px}
+</style>
 </head>
 <body>
   <div class="wrap wide">
@@ -1062,6 +1075,66 @@ window.renderDashTable = function () {
   });
   body.querySelectorAll('[data-reg]').forEach(btn => btn.onclick = () => openMarkModal(btn.getAttribute('data-reg')));
 };
+// Shows a submission inline: images as <img>, PDFs paged through pdf.js so a tap
+// opens straight into a readable page on mobile — no separate download step.
+let pdfViewState = null; // { doc, page, total }
+
+function renderPreview(area, row) {
+  const url = safeUrl(row.fileURL);
+  if (!url) { area.innerHTML = '<div class="empty-state">This file link looks invalid.</div>'; return; }
+  const ext = (row.fileName || '').split('.').pop().toLowerCase();
+  if (ext !== 'pdf') {
+    area.innerHTML = `<img src="${esc(url)}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`;
+    return;
+  }
+  area.innerHTML = '<div class="pdf-status">Loading PDF…</div>';
+  if (!window.pdfjsLib) { area.innerHTML = '<div class="empty-state">PDF viewer failed to load. Check your connection and reopen this submission.</div>'; return; }
+  pdfjsLib.getDocument(url).promise.then(doc => {
+    pdfViewState = { doc, page: 1, total: doc.numPages };
+    area.innerHTML = `
+      <div class="pdf-viewer">
+        <div class="pdf-canvas-wrap"><canvas id="pdfCanvas"></canvas></div>
+        <div class="pdf-nav">
+          <button id="pdfPrev" type="button">‹ Prev</button>
+          <span id="pdfPageLabel"></span>
+          <button id="pdfNext" type="button">Next ›</button>
+        </div>
+      </div>`;
+    area.querySelector('#pdfPrev').onclick = () => changePdfPage(-1);
+    area.querySelector('#pdfNext').onclick = () => changePdfPage(1);
+    renderPdfPage();
+  }).catch(err => {
+    area.innerHTML = '<div class="empty-state">Could not open this PDF. It may have been removed or the link is broken.</div>';
+    console.error(err);
+  });
+}
+
+function changePdfPage(delta) {
+  if (!pdfViewState) return;
+  const next = pdfViewState.page + delta;
+  if (next < 1 || next > pdfViewState.total) return;
+  pdfViewState.page = next;
+  renderPdfPage();
+}
+
+function renderPdfPage() {
+  if (!pdfViewState) return;
+  const { doc, page, total } = pdfViewState;
+  const label = document.getElementById('pdfPageLabel');
+  const prevBtn = document.getElementById('pdfPrev');
+  const nextBtn = document.getElementById('pdfNext');
+  if (label) label.textContent = `Page ${page} of ${total}`;
+  if (prevBtn) prevBtn.disabled = page <= 1;
+  if (nextBtn) nextBtn.disabled = page >= total;
+  doc.getPage(page).then(pdfPage => {
+    const canvas = document.getElementById('pdfCanvas');
+    if (!canvas) return; // modal was closed while this was loading
+    const viewport = pdfPage.getViewport({ scale: Math.min(2, (canvas.parentElement.clientWidth || 600) / pdfPage.getViewport({ scale: 1 }).width) });
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport });
+  });
+}
+
 function openMarkModal(reg) {
   const row = dashRows.find(r => r.reg === reg);
   if (!row) return;
@@ -1073,7 +1146,7 @@ function openMarkModal(reg) {
   renderMarkButtons();
   const previewArea = document.getElementById('previewArea');
   if (row.fileDeleted) previewArea.innerHTML = '<div class="empty-state">File removed (this assignment was finally closed out).</div>';
-  else { const ext = (row.fileName || '').split('.').pop().toLowerCase(); if (ext === 'pdf') previewArea.innerHTML = `<iframe src="${esc(safeUrl(row.fileURL))}" style="width:100%; height:60vh; border:none;"></iframe>`; else previewArea.innerHTML = `<img src="${esc(safeUrl(row.fileURL))}" style="max-width:100%; max-height:60vh; display:block; margin:0 auto;">`; }
+  else renderPreview(previewArea, row);
   document.querySelectorAll('#viewModal .dup-warning-slot').forEach(el => el.remove());
   if (row.duplicateWith && row.duplicateWith.length) previewArea.insertAdjacentHTML('afterend', `<div class="dup-warning-slot"><div class="msg error" style="margin:12px 18px 0 18px;">\u26a0 Identical file to: <strong>${esc(row.duplicateWith.join(', '))}</strong>.</div></div>`);
   openModal('viewModal');
