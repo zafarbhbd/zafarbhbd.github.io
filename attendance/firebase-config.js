@@ -38,7 +38,7 @@ export const YEAR_LABELS = {
 };
 export const NM_SUBJECTS = {
   NM1: ["Islamic History"],
-  NM2: ["Islamic History", "Bengali", "English", "Economics", "Philosophy"]
+  NM2: ["Islamic History", "Bengali", "English", "Economics", "Philosophy", "History"]
 };
 export const NM_YEARS = ["NM1", "NM2"];
 
