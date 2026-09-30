@@ -47,7 +47,7 @@ export const YEAR_TINTS = {
   Y3: { bg: "#fef3c7", border: "#fcd34d" }, Y4: { bg: "#fee2e2", border: "#fca5a5" },
   NM1: { bg: "#ede9fe", border: "#c4b5fd" }, NM2: { bg: "#cffafe", border: "#67e8f9" }
 };
-export const NM_SUBJECTS = { NM1: ["Islamic History"], NM2: ["Islamic History", "Bengali", "English", "Economics", "Philosophy"] };
+export const NM_SUBJECTS = { NM1: ["Islamic History"], NM2: ["Islamic History", "Bengali", "English", "Economics", "Philosophy", "History"] };
 export const NM_YEARS = ["NM1", "NM2"];
 export function needsSubject(yearKey) { return NM_YEARS.indexOf(yearKey) !== -1; }
 export const NEXT_YEAR_MAP = { Y1: "Y2", Y2: "Y3", Y3: "Y4" };
