@@ -5,22 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Attendance Portal</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  .portal-header{display:flex;align-items:center;gap:14px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:16px;padding:18px 20px;margin-bottom:16px}
+  .portal-header-icon{width:50px;height:50px;border-radius:13px;background:#4f46e5;color:#fff;display:grid;place-items:center;flex:none}
+  .portal-header-icon svg{width:24px;height:24px}
+  .portal-header-text .eyebrow{margin:0 0 2px}
+  .portal-header-text h1{font-size:1.1rem;margin:0;line-height:1.35;font-weight:700;color:#1e293b}
+  .select-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .select-card{border:1px solid #e2e8f0;border-top:4px solid var(--c,#94a3b8);border-radius:14px;padding:16px 12px;background:#fff;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit;transition:transform .15s ease,box-shadow .15s ease}
+  .select-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .select-card .sc-icon{width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--c,#94a3b8) 16%,transparent);color:var(--c,#94a3b8);display:grid;place-items:center;flex:none}
+  .select-card .sc-icon svg{width:19px;height:19px}
+  .select-card .sc-label{font-weight:700;font-size:.9rem;color:#1e293b;line-height:1.3;overflow-wrap:anywhere}
+  .select-card.active{background:var(--c,#4f46e5);border-color:var(--c,#4f46e5)}
+  .select-card.active .sc-icon{background:rgba(255,255,255,.28);color:#fff}
+  .select-card.active .sc-label{color:#fff}
+  @media(max-width:340px){.select-grid{grid-template-columns:1fr}}
+  .crumb{font-size:.82rem;color:#6b7280;margin:0 0 10px}
+  .crumb strong{color:#1e293b}
+</style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <p class="eyebrow">Attendance</p>
-      <h1>Welcome to Abu Zafar's Attendance Portal</h1>
+    <div class="portal-header">
+      <div class="portal-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 14l2 2 4-4"/></svg></div>
+      <div class="portal-header-text">
+        <p class="eyebrow">Attendance</p>
+        <h1>Welcome to Abu Zafar's Attendance Portal</h1>
+      </div>
     </div>
 
     <div class="card" id="yearCard">
       <label>Select your year</label>
-      <div class="pill-row" id="yearPills"></div>
+      <div class="select-grid" id="yearPills"></div>
     </div>
 
     <div class="card" id="subjectCard" style="display:none;">
+      <p class="crumb" id="subjectCrumb"></p>
       <label>Select your subject</label>
-      <div class="pill-row" id="subjectPills"></div>
+      <div class="select-grid" id="subjectPills"></div>
     </div>
 
     <div class="card" id="attCard" style="display:none;">
@@ -80,52 +103,57 @@ const urlParams = new URLSearchParams(location.search);
 const linkedYear = urlParams.get('year');
 const linkedSubject = urlParams.get('subject');
 
-// ---- Year pills (colored) ----
+// ---- Year / subject cards ----
+// One generic "book" icon, tinted per year via a CSS variable (--c) set inline —
+// reuses YEAR_COLORS so First Year is the same blue everywhere on the site.
+const BOOK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a4 4 0 014 4v12a3 3 0 00-3-3H2z"/><path d="M22 4h-7a4 4 0 00-4 4v12a3 3 0 013-3h8z"/></svg>';
+const SUBJECT_PALETTE = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
+
+function makeCard(label, color, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'select-card';
+  b.style.setProperty('--c', color);
+  b.innerHTML = `<span class="sc-icon">${BOOK_ICON}</span><span class="sc-label"></span>`;
+  b.querySelector('.sc-label').textContent = label; // via textContent, not innerHTML, so a subject name can never inject markup
+  b.onclick = onClick;
+  return b;
+}
+
 const yearPills = document.getElementById('yearPills');
 let yearButtons = {};
 YEARS.forEach(yk => {
-  const btn = document.createElement('button');
-  btn.className = 'pill';
-  btn.style.background = YEAR_TINTS[yk].bg;
-  btn.style.borderColor = YEAR_TINTS[yk].border;
-  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
-  btn.onclick = () => selectYear(yk, btn);
+  const btn = makeCard(YEAR_LABELS[yk], YEAR_COLORS[yk], () => selectYear(yk, btn));
   yearPills.appendChild(btn);
   yearButtons[yk] = btn;
 });
 
+function renderSubjectCards(yearKey, preselect) {
+  const subjectPills = document.getElementById('subjectPills');
+  subjectPills.innerHTML = '';
+  document.getElementById('subjectCrumb').innerHTML = `<strong>${YEAR_LABELS[yearKey]}</strong> &rsaquo; choose a subject`;
+  NM_SUBJECTS[yearKey].forEach((sub, i) => {
+    const b = makeCard(sub, SUBJECT_PALETTE[i % SUBJECT_PALETTE.length], () => selectSubject(sub, b));
+    if (sub === preselect) b.classList.add('active');
+    subjectPills.appendChild(b);
+  });
+}
+
 function selectYear(yearKey, btn) {
   currentYear = yearKey;
-  [...yearPills.children].forEach((b, i) => {
-    const yk = YEARS[i];
-    b.classList.remove('active');
-    b.style.background = YEAR_TINTS[yk].bg;
-    b.style.borderColor = YEAR_TINTS[yk].border;
-    b.style.color = '';
-  });
+  [...yearPills.children].forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  btn.style.background = YEAR_COLORS[yearKey];
-  btn.style.borderColor = YEAR_COLORS[yearKey];
-  btn.style.color = '#fff';
 
   document.getElementById('subjectCard').style.display = 'none';
   document.getElementById('attCard').style.display = 'none';
 
   if (needsSubject(yearKey)) {
-    const subjectPills = document.getElementById('subjectPills');
-    subjectPills.innerHTML = '';
-    NM_SUBJECTS[yearKey].forEach(sub => {
-      const b = document.createElement('button');
-      b.className = 'pill';
-      b.textContent = sub;
-      b.onclick = () => selectSubject(sub, b);
-      subjectPills.appendChild(b);
-    });
+    const preselect = (linkedYear === yearKey && linkedSubject && NM_SUBJECTS[yearKey].includes(linkedSubject)) ? linkedSubject : null;
+    renderSubjectCards(yearKey, preselect);
     document.getElementById('subjectCard').style.display = 'block';
-
-    if (linkedYear === yearKey && linkedSubject && NM_SUBJECTS[yearKey].includes(linkedSubject)) {
-      const matchBtn = [...subjectPills.children].find(b => b.textContent === linkedSubject);
-      if (matchBtn) selectSubject(linkedSubject, matchBtn);
+    if (preselect) {
+      const matchBtn = [...document.getElementById('subjectPills').children].find(b => b.querySelector('.sc-label').textContent === preselect);
+      if (matchBtn) selectSubject(preselect, matchBtn);
     }
   } else {
     currentSubject = "";
