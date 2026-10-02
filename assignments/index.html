@@ -6,25 +6,48 @@
 <title>Assignment Portal</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  .portal-header{display:flex;align-items:center;gap:14px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:16px;padding:18px 20px;margin-bottom:16px}
+  .portal-header-icon{width:50px;height:50px;border-radius:13px;background:#4f46e5;color:#fff;display:grid;place-items:center;flex:none}
+  .portal-header-icon svg{width:24px;height:24px}
+  .portal-header-text .eyebrow{margin:0 0 2px}
+  .portal-header-text h1{font-size:1.1rem;margin:0;line-height:1.35;font-weight:700;color:#1e293b}
+  .select-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .select-card{border:1px solid #e2e8f0;border-top:4px solid var(--c,#94a3b8);border-radius:14px;padding:16px 12px;background:#fff;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit;transition:transform .15s ease,box-shadow .15s ease}
+  .select-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .select-card .sc-icon{width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--c,#94a3b8) 16%,transparent);color:var(--c,#94a3b8);display:grid;place-items:center;flex:none}
+  .select-card .sc-icon svg{width:19px;height:19px}
+  .select-card .sc-label{font-weight:700;font-size:.9rem;color:#1e293b;line-height:1.3;overflow-wrap:anywhere}
+  .select-card.active{background:var(--c,#4f46e5);border-color:var(--c,#4f46e5)}
+  .select-card.active .sc-icon{background:rgba(255,255,255,.28);color:#fff}
+  .select-card.active .sc-label{color:#fff}
+  @media(max-width:340px){.select-grid{grid-template-columns:1fr}}
+  .crumb{font-size:.82rem;color:#6b7280;margin:0 0 10px}
+  .crumb strong{color:#1e293b}
+</style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card banner-card">
-      <p class="eyebrow" style="justify-content:center;">Assignments</p>
-      <h1>Welcome to Assignment Portal</h1>
+    <div class="portal-header">
+      <div class="portal-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 15l2 2 4-4"/></svg></div>
+      <div class="portal-header-text">
+        <p class="eyebrow">Assignments</p>
+        <h1>Welcome to Assignment Portal</h1>
+      </div>
     </div>
 
     <div class="card" id="loadingScreen">Loading&hellip;</div>
 
     <div class="card" id="yearScreen" style="display:none;">
       <label>Select your year</label>
-      <div class="pill-row" id="yearPills"></div>
+      <div class="select-grid" id="yearPills"></div>
     </div>
 
     <div class="card" id="subjectScreen" style="display:none;">
       <p class="back-link" onclick="goToYear()">&larr; Back to years</p>
+      <p class="crumb" id="subjectCrumb"></p>
       <label>Select your subject</label>
-      <div class="pill-row" id="subjectPills"></div>
+      <div class="select-grid" id="subjectPills"></div>
     </div>
 
     <div class="card" id="courseScreen" style="display:none;">
@@ -137,35 +160,50 @@ function updateUrl() {
   history.replaceState(null, '', p.toString() ? '?' + p.toString() : location.pathname);
 }
 
-/* ---------------- YEAR ---------------- */
+/* ---------------- YEAR / SUBJECT (card grid) ---------------- */
+const BOOK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a4 4 0 014 4v12a3 3 0 00-3-3H2z"/><path d="M22 4h-7a4 4 0 00-4 4v12a3 3 0 013-3h8z"/></svg>';
+const SUBJECT_PALETTE = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
+function makeCard(label, color, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'select-card'; b.style.setProperty('--c', color);
+  b.innerHTML = `<span class="sc-icon">${BOOK_ICON}</span><span class="sc-label"></span>`;
+  b.querySelector('.sc-label').textContent = label;
+  b.onclick = onClick;
+  return b;
+}
+// Renders the subject grid for a Non-Major year and returns its card list,
+// so both the normal click flow and the URL-restore flow (init()) can share
+// this instead of building the cards twice.
+function renderSubjectCards(yearKey, onPick) {
+  const sp = document.getElementById('subjectPills');
+  sp.innerHTML = '';
+  document.getElementById('subjectCrumb').innerHTML = `<strong>${YEAR_LABELS[yearKey]}</strong> &rsaquo; choose a subject`;
+  const cards = [];
+  NM_SUBJECTS[yearKey].forEach((sub, i) => {
+    const b = makeCard(sub, SUBJECT_PALETTE[i % SUBJECT_PALETTE.length], () => onPick(sub, b));
+    sp.appendChild(b);
+    cards.push(b);
+  });
+  return cards;
+}
+
 const yearPills = document.getElementById('yearPills');
 let yearButtons = {};
 YEARS.forEach(yk => {
-  const btn = document.createElement('button');
-  btn.className = 'pill';
-  btn.style.background = YEAR_TINTS[yk].bg; btn.style.borderColor = YEAR_TINTS[yk].border;
-  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
-  btn.onclick = () => selectYear(yk);
+  const btn = makeCard(YEAR_LABELS[yk], YEAR_COLORS[yk], () => selectYear(yk));
   yearPills.appendChild(btn);
   yearButtons[yk] = btn;
 });
 function highlightYearBtn(yearKey) {
-  [...yearPills.children].forEach((b, i) => { const yk = YEARS[i]; b.classList.remove('active'); b.style.background = YEAR_TINTS[yk].bg; b.style.borderColor = YEAR_TINTS[yk].border; b.style.color = ''; });
-  if (yearKey) { const b = yearButtons[yearKey]; b.classList.add('active'); b.style.background = YEAR_COLORS[yearKey]; b.style.borderColor = YEAR_COLORS[yearKey]; b.style.color = '#fff'; }
+  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  if (yearKey) yearButtons[yearKey].classList.add('active');
 }
 function selectYear(yearKey) {
   currentYear = yearKey; currentSubject = ""; currentCourse = null;
   highlightYearBtn(yearKey);
   updateUrl();
   if (needsSubject(yearKey)) {
-    const sp = document.getElementById('subjectPills');
-    sp.innerHTML = '';
-    NM_SUBJECTS[yearKey].forEach(sub => {
-      const b = document.createElement('button');
-      b.className = 'pill'; b.textContent = sub;
-      b.onclick = () => selectSubject(sub, b);
-      sp.appendChild(b);
-    });
+    renderSubjectCards(yearKey, (sub, b) => selectSubject(sub, b));
     show('subjectScreen');
   } else {
     loadCourses();
@@ -562,14 +600,9 @@ async function init() {
     currentYear = y; currentSubject = needsSubject(y) ? s : "";
     highlightYearBtn(y);
     if (needsSubject(y) && s) {
-      const sp = document.getElementById('subjectPills');
-      sp.innerHTML = '';
-      NM_SUBJECTS[y].forEach(sub => {
-        const b = document.createElement('button');
-        b.className = 'pill' + (sub === s ? ' active' : ''); b.textContent = sub;
-        b.onclick = () => selectSubject(sub, b);
-        sp.appendChild(b);
-      });
+      const cards = renderSubjectCards(y, (sub, b) => selectSubject(sub, b));
+      const match = cards.find(b => b.querySelector('.sc-label').textContent === s);
+      if (match) match.classList.add('active');
     }
     if (!needsSubject(y) || s) {
       show('loadingScreen');

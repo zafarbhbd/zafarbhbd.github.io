@@ -15,10 +15,35 @@
   .pdf-page-wrap:last-child{padding-bottom:0}
   .pdf-page-wrap canvas{width:100%;height:auto;max-width:720px;box-shadow:0 1px 6px rgba(0,0,0,.15);background:#fff;border-radius:2px}
   .pdf-status{font-size:13px;color:var(--muted,#6b7280);padding:24px}
+  .portal-header{display:flex;align-items:center;gap:10px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:13px;padding:11px 14px;margin-bottom:16px}
+  .portal-header-icon{width:36px;height:36px;border-radius:10px;background:#4f46e5;color:#fff;display:grid;place-items:center;flex:none}
+  .portal-header-icon svg{width:18px;height:18px}
+  .portal-header-text .eyebrow{margin:0 0 1px}
+  .portal-header-text h1{font-size:.92rem;margin:0;line-height:1.3;font-weight:700;color:#1e293b}
+  .select-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .select-card{border:1px solid #e2e8f0;border-top:4px solid var(--c,#94a3b8);border-radius:11px;padding:10px 8px;background:#fff;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:inherit;transition:transform .15s ease,box-shadow .15s ease}
+  .select-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .select-card .sc-icon{width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--c,#94a3b8) 16%,transparent);color:var(--c,#94a3b8);display:grid;place-items:center;flex:none}
+  .select-card .sc-icon svg{width:14px;height:14px}
+  .select-card .sc-label{font-weight:700;font-size:.76rem;color:#1e293b;line-height:1.3;overflow-wrap:anywhere}
+  .select-card.active{background:var(--c,#4f46e5);border-color:var(--c,#4f46e5)}
+  .select-card.active .sc-icon{background:rgba(255,255,255,.28);color:#fff}
+  .select-card.active .sc-label{color:#fff}
+  @media(max-width:340px){.select-grid{grid-template-columns:1fr}}
+  .crumb{font-size:.8rem;color:#6b7280;margin:0 0 8px}
+  .crumb strong{color:#1e293b}
 </style>
 </head>
 <body>
   <div class="wrap wide">
+
+    <div class="portal-header">
+      <div class="portal-header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 15l2 2 4-4"/></svg></div>
+      <div class="portal-header-text">
+        <p class="eyebrow">Admin</p>
+        <h1>Assignment Admin</h1>
+      </div>
+    </div>
 
     <div id="authBar" class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
       <div><p class="eyebrow">Admin</p><h1 id="authStatus" style="font-size:18px;">Please sign in to continue</h1></div>
@@ -30,11 +55,11 @@
       </div>
     </div>
 
-    <div id="yearScreen" style="display:none;"><div class="card"><label>Year</label><div class="pill-row" id="yearPills"></div></div></div>
+    <div id="yearScreen" style="display:none;"><div class="card"><label>Year</label><div class="select-grid" id="yearPills"></div></div></div>
 
     <div id="subjectScreen" style="display:none;">
       <p class="back-link" onclick="goToYear()">&larr; Back to years</p>
-      <div class="card"><label>Subject</label><div class="pill-row" id="subjectPills"></div></div>
+      <div class="card"><p class="crumb" id="subjectCrumb"></p><label>Subject</label><div class="select-grid" id="subjectPills"></div></div>
     </div>
 
     <!-- YEAR TABS: Roster / Courses / Archived Reports -->
@@ -373,21 +398,42 @@ function updateUrl() {
   history.replaceState(null, '', p.toString() ? '?' + p.toString() : location.pathname);
 }
 
-/* ---------------- YEAR / SUBJECT ---------------- */
+/* ---------------- YEAR / SUBJECT (card grid) ---------------- */
+const BOOK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a4 4 0 014 4v12a3 3 0 00-3-3H2z"/><path d="M22 4h-7a4 4 0 00-4 4v12a3 3 0 013-3h8z"/></svg>';
+const SUBJECT_PALETTE = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d'];
+function makeCard(label, color, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'select-card'; b.style.setProperty('--c', color);
+  b.innerHTML = `<span class="sc-icon">${BOOK_ICON}</span><span class="sc-label"></span>`;
+  b.querySelector('.sc-label').textContent = label;
+  b.onclick = onClick;
+  return b;
+}
+// Shared by the normal click flow and the URL-restore flow in init(), so the
+// subject grid is only ever built in one place.
+function renderSubjectCards(yearKey) {
+  const sp = document.getElementById('subjectPills');
+  sp.innerHTML = '';
+  document.getElementById('subjectCrumb').innerHTML = `<strong>${YEAR_LABELS[yearKey]}</strong> &rsaquo; choose a subject`;
+  const cards = [];
+  NM_SUBJECTS[yearKey].forEach((sub, i) => {
+    const b = makeCard(sub, SUBJECT_PALETTE[i % SUBJECT_PALETTE.length], () => selectSubject(sub));
+    sp.appendChild(b);
+    cards.push(b);
+  });
+  return cards;
+}
+
 const yearPills = document.getElementById('yearPills');
 let yearButtons = {};
 YEARS.forEach(yk => {
-  const btn = document.createElement('button');
-  btn.className = 'pill';
-  btn.style.background = YEAR_TINTS[yk].bg; btn.style.borderColor = YEAR_TINTS[yk].border;
-  btn.innerHTML = `<span class="pill-dot" style="background:${YEAR_COLORS[yk]}"></span>${YEAR_LABELS[yk]}`;
-  btn.onclick = () => selectYear(yk);
+  const btn = makeCard(YEAR_LABELS[yk], YEAR_COLORS[yk], () => selectYear(yk));
   yearPills.appendChild(btn);
   yearButtons[yk] = btn;
 });
 function highlightYearBtn(yk) {
-  [...yearPills.children].forEach((b, i) => { const y = YEARS[i]; b.classList.remove('active'); b.style.background = YEAR_TINTS[y].bg; b.style.borderColor = YEAR_TINTS[y].border; b.style.color = ''; });
-  if (yk) { const b = yearButtons[yk]; b.classList.add('active'); b.style.background = YEAR_COLORS[yk]; b.style.borderColor = YEAR_COLORS[yk]; b.style.color = '#fff'; }
+  [...yearPills.children].forEach(b => b.classList.remove('active'));
+  if (yk) yearButtons[yk].classList.add('active');
 }
 window.goToYear = function () { clearListeners(); currentYear = null; currentSubject = ""; currentCourse = null; updateUrl(); showTop('yearScreen'); };
 window.goToSubjectOrYear = function () {
@@ -401,14 +447,7 @@ function selectYear(yearKey) {
   highlightYearBtn(yearKey);
   updateUrl();
   if (needsSubject(yearKey)) {
-    const sp = document.getElementById('subjectPills');
-    sp.innerHTML = '';
-    NM_SUBJECTS[yearKey].forEach(sub => {
-      const b = document.createElement('button');
-      b.className = 'pill'; b.textContent = sub;
-      b.onclick = () => selectSubject(sub);
-      sp.appendChild(b);
-    });
+    renderSubjectCards(yearKey);
     showTop('subjectScreen');
   } else {
     enterYearTabs();
@@ -416,7 +455,7 @@ function selectYear(yearKey) {
 }
 function selectSubject(subject) {
   currentSubject = subject;
-  [...document.getElementById('subjectPills').children].forEach(b => b.classList.toggle('active', b.textContent === subject));
+  [...document.getElementById('subjectPills').children].forEach(b => b.classList.toggle('active', b.querySelector('.sc-label').textContent === subject));
   updateUrl();
   enterYearTabs();
 }
@@ -1210,9 +1249,7 @@ async function init() {
     currentYear = y; currentSubject = needsSubject(y) ? s : "";
     highlightYearBtn(y);
     if (needsSubject(y) && !s) {
-      const sp = document.getElementById('subjectPills');
-      sp.innerHTML = '';
-      NM_SUBJECTS[y].forEach(sub => { const b = document.createElement('button'); b.className = 'pill'; b.textContent = sub; b.onclick = () => selectSubject(sub); sp.appendChild(b); });
+      renderSubjectCards(y);
       showTop('subjectScreen');
       return;
     }
